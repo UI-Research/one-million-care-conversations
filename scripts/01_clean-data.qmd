@@ -1,0 +1,336 @@
+---
+title: "Clean test data"
+format:
+  html:
+    embed-resources: true
+    toc: true
+execute:
+  warning: false
+  message: false
+---
+
+Cleans the raw survey export in `data/raw/survey/` into an analysis-ready file
+in `data/processed/`. Canvassing data cleaning will be added here as well.
+
+The main transformation is one-hot encoding the multi-select questions: the raw
+export stores multiple selections as a single pipe-delimited string, and we
+break each question into one binary (0/1) column per response option. A `1`
+means the option was selected, a `0` means the respondent saw the question but
+did not select it, and `NA` means the respondent never saw the question (skip
+logic) or skipped it.
+
+Response option text comes from the observed data, not the survey PDF — the
+live form's wording differs from the June 15 questionnaire document (e.g. the
+PDF's "Caring for a child/children" appears in the data as "I care for a child
+or children now"). Options not yet observed in the data are therefore not in
+the dictionaries below; the encoding stops with an error listing any new value
+so it can be added deliberately.
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(readxl)
+library(here)
+```
+
+## Read raw survey data
+
+```{r}
+#| label: read
+survey_files <- list.files(
+  here("data/raw/survey"),
+  pattern = "\\.xlsx$", full.names = TRUE
+)
+
+raw <- survey_files |>
+  map(read_excel, col_types = "text") |>
+  bind_rows()
+
+dim(raw)
+```
+
+## Rename columns
+
+Column names in the export are the full question text. We map them to short
+IDs keyed to the questionnaire (q1, q2a, ..., q6). The mapping is validated in
+both directions so a new export with added, dropped, or reworded columns fails
+loudly instead of silently misaligning.
+
+Note the test export does not include q4c or the open-text questions
+(q5a/q5c/q5d, q7); they will need entries here when they appear.
+
+```{r}
+#| label: rename
+col_map <- c(
+  submitted_at  = "Time",
+  q1            = "We would like to know more about your connection to care, if any. Choose all that apply to you.",
+  q2a           = "What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",
+  q3a           = "What care support would make a difference for you or people around you? (Choose all that apply)",
+  q4a           = "What or who helps you most with care? (Choose your top 3)",
+  q2b           = "When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",
+  q3b           = "What types of care support and services do you think will matter most for you or people you know? (Choose all that apply)",
+  q2c           = "When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",
+  q3c           = "What care support would have made a difference for you or people around you? (Choose all that apply)",
+  q2d           = "What care challenges, if any, do the people you know experience? (Choose all that apply.)",
+  q3d           = "What care support would make a difference for the people you know? (Choose all that apply)",
+  q4d           = "What or who helps most with their care? (Choose your top 3)",
+  q6            = "What would ideal care support and services look like for you? (Choose up to three)",
+  address       = "Zipcode (Address)",
+  address2      = "Zipcode (Address2)",
+  city          = "Zipcode (City)",
+  state         = "Zipcode (State)",
+  zip           = "Zipcode (Zip)",
+  hh_size       = "How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",
+  hh_income     = "What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)",
+  age           = "What is your age?",
+  gender        = "What is your gender? (Choose all that apply)",
+  race          = "What is your race or ethnicity? (Choose all that apply)",
+  disability    = "I identify as a person with a disability or chronic health condition.",
+  political     = "How would you describe your political views?",
+  respondent_id = "Unique ID"
+)
+
+unmatched <- setdiff(names(raw), col_map)
+missing   <- setdiff(col_map, names(raw))
+if (length(unmatched) > 0 || length(missing) > 0) {
+  stop(
+    "Column mismatch between export and col_map.\n",
+    "In export but not mapped:\n", paste0('  "', unmatched, '"\n'),
+    "Mapped but not in export:\n", paste0('  "', missing, '"\n')
+  )
+}
+
+survey <- rename(raw, all_of(col_map))
+```
+
+## PII guard
+
+Data shared with Urban must contain no PII. ZIP is collected by design, but
+the export includes street-address fields that should always be empty — stop
+immediately if they ever are not.
+
+```{r}
+#| label: pii-guard
+if (any(!is.na(survey$address) | !is.na(survey$address2))) {
+  stop("Address fields are not empty — possible PII in the raw file. Do not proceed; flag to the team.")
+}
+
+survey <- select(survey, -address, -address2)
+```
+
+## One-hot encode multi-select questions
+
+Selections arrive pipe-delimited in survey order, e.g.
+`"Care is unaffordable|Other"`. Each question becomes one 0/1 column per
+option (`q2a_unaffordable`, `q2a_other`, ...), with every option the
+respondent did not select set to 0 and rows where the question was unanswered
+set to `NA` across all of its option columns.
+
+```{r}
+#| label: encode-fn
+encode_multiselect <- function(data, col, options) {
+  selections <- strsplit(data[[col]], "|", fixed = TRUE)
+
+  unknown <- setdiff(unique(unlist(selections)), c(options, NA))
+  if (length(unknown) > 0) {
+    stop(
+      "New response option(s) in `", col, "` — add them to its dictionary:\n",
+      paste0('  "', unknown, '"', collapse = "\n")
+    )
+  }
+
+  for (i in seq_along(options)) {
+    indicator <- map_int(selections, \(s) as.integer(options[[i]] %in% s))
+    indicator[is.na(data[[col]])] <- NA_integer_
+    data[[paste0(col, "_", names(options)[i])]] <- indicator
+  }
+
+  data[[col]] <- NULL
+  data
+}
+```
+
+```{r}
+#| label: dictionaries
+multiselect_options <- list(
+  q1 = c(
+    child_now      = "I care for a child or children now",
+    aging_now      = "I care for an aging person now",
+    disability_now = "I care for someone with a disability or chronic health condition now",
+    paid_provider  = "I am a paid care provider. I offer support and services for kids, aging adults, and/or people with disabilities",
+    cared_past     = "I have cared for an aging adult, child, or someone with a disability or chronic health condition in the past",
+    expect_future  = "I am not providing or receiving care right now, but I expect to in the next 5 years",
+    none           = "None of these apply to me"
+  ),
+  q2a = c(
+    unaffordable = "Care is unaffordable",
+    figure_out   = "It is hard to figure out what help exists or how to get it",
+    navigate     = "It is hard to navigate existing care programs",
+    job          = "Care affected my job or career",
+    other        = "Other"
+  ),
+  q3a = c(
+    affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
+    backup             = "Backup care for emergencies or unexpected needs",
+    everyday_support   = "Everyday support like meals and transportation",
+    other              = "Other"
+  ),
+  q4a = c(
+    family_friends       = "Family, friends, or neighbors",
+    health_professionals = "Health care professionals",
+    paid_provider        = "Paid care provider for home care or personal care, child care, or pre-k",
+    community_religious  = "Community organizations or religious groups",
+    employer             = "Employer support for things like leave, flexibility, benefits",
+    support_groups       = "Support groups, online, or in-person",
+    no_help              = "I do not receive help",
+    other                = "Other"
+  ),
+  q2b = c(
+    finding = "Difficulty with finding care that's available, nearby, or right for me or my family",
+    help    = "Not enough help or support with care",
+    job     = "Care could affect my job or career"
+  ),
+  q3b = c(
+    affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
+    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
+    financial          = "Financial support for care expenses"
+  ),
+  q2c = c(
+    unaffordable = "Care was unaffordable",
+    finding      = "It was hard to find care that was available, nearby, or right for my family and me",
+    time_flex    = "I didn't have enough time or flexibility",
+    help         = "I didn't have enough help or support",
+    figure_out   = "It was hard to figure out what help existed or how to get it",
+    navigate     = "It was hard to navigate existing care programs",
+    no_say       = "I didn't have a say in how care works for me or my family",
+    job          = "Care affected my job or career"
+  ),
+  q3c = c(
+    affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
+    backup             = "Backup care for emergencies or unexpected needs",
+    financial          = "Financial support for care expenses",
+    navigation_help    = "Help with finding, understanding, and accessing available care options",
+    schedule_control   = "More control over my schedule at work",
+    paid_time_off      = "Paid time off for care"
+  ),
+  q6 = c(
+    there_when_needed = "There when you need it - at every stage of life, no matter your job or family situation",
+    easy_to_use       = "Easy to find and use - without complicated steps or barriers",
+    affordable        = "Affordable - without causing personal financial strain",
+    in_community      = "Available in your community - not far away or out of reach",
+    flexible          = "Flexible - fitting real schedules, needs, and changing circumstances",
+    reliable          = "Reliable - something you can count on over time",
+    clear             = "Clear and transparent - you know what's available and how to get it",
+    good_jobs         = "Good jobs for care providers - with fair pay and stability",
+    secure            = "Keep people who rely on care feeling secure, healthy, and thriving"
+  ),
+  gender = c(
+    woman             = "Woman",
+    man               = "Man",
+    other             = "Other",
+    prefer_not_to_say = "Prefer not to say"
+  ),
+  race = c(
+    black             = "Black or African American",
+    hispanic          = "Hispanic, Latino, or Latina",
+    mena              = "Middle Eastern or North African",
+    nhpi              = "Native Hawaiian or Pacific Islander",
+    multiracial       = "Multiracial",
+    other             = "Other",
+    prefer_not_to_say = "Prefer not to say"
+  )
+)
+
+for (col in names(multiselect_options)) {
+  survey <- encode_multiselect(survey, col, multiselect_options[[col]])
+}
+```
+
+The pathway D questions (q2d, q3d, q4d) are entirely `NA` in the test data —
+no observer-pathway respondents yet — so there are no observed option strings
+to build dictionaries from. They pass through unencoded for now.
+
+```{r}
+#| label: pathway-d-check
+survey |>
+  select(any_of(c("q2d", "q3d", "q4d"))) |>
+  summarise(across(everything(), \(x) sum(!is.na(x))))
+```
+
+## Single-select questions
+
+Ordered categories become factors. Unobserved levels are filled in from the
+questionnaire following the formatting pattern of the observed values;
+`to_factor()` errors on any value not in its level set, so wording drift in a
+future export surfaces immediately.
+
+```{r}
+#| label: factors
+to_factor <- function(x, levels) {
+  unknown <- setdiff(unique(x[!is.na(x)]), levels)
+  if (length(unknown) > 0) {
+    stop(
+      "Value(s) outside the expected levels — add or fix:\n",
+      paste0('  "', unknown, '"', collapse = "\n")
+    )
+  }
+  factor(x, levels = levels)
+}
+
+survey <- survey |>
+  mutate(
+    hh_size = to_factor(hh_size, c(
+      "1, just myself", "2", "3", "4", "5", "6", "7 or more",
+      "Prefer not to say"
+    )),
+    hh_income = to_factor(hh_income, c(
+      "Under $25,000", "$25,000-$49,999", "$50,000-$74,999",
+      "$75,000-$99,999", "$100,000-$149,999", "$150,000-$174,999",
+      "$175,000-$199,999", "$200,000-$249,999", "$250,000-$299,999",
+      "$300,000 or more", "Prefer not to say"
+    )),
+    age = to_factor(age, c(
+      "18-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75 or older",
+      "Prefer not to say"
+    )),
+    disability = to_factor(disability, c(
+      "Yes", "No", "Not sure", "Prefer not to say"
+    )),
+    political = to_factor(political, c(
+      "Very liberal", "Somewhat liberal", "Moderate/Middle of the road",
+      "Somewhat conservative", "Very conservative", "Don't know",
+      "Prefer not to say"
+    ))
+  )
+```
+
+## Remaining columns
+
+```{r}
+#| label: other-cols
+stopifnot(!any(duplicated(survey$respondent_id)))
+
+survey <- survey |>
+  mutate(
+    # reading the sheet as all-text leaves datetimes as Excel serial numbers
+    submitted_at = as.POSIXct(
+      round(as.numeric(submitted_at) * 86400),
+      origin = "1899-12-30", tz = "UTC"
+    ),
+    zip = str_pad(zip, width = 5, pad = "0")
+  ) |>
+  relocate(respondent_id, submitted_at)
+```
+
+## Validate and write
+
+```{r}
+#| label: check
+glimpse(survey)
+```
+
+```{r}
+#| label: write
+write_rds(survey, here("data/processed/survey_clean.rds"))
+write_csv(survey, here("data/processed/survey_clean.csv"))
+```

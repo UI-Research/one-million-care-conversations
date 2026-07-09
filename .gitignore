@@ -16,5 +16,9 @@ __pycache__/
 # Project documents live on Box, not in the repo
 *.pdf
 
+# Rendered outputs can embed data rows
+scripts/*.html
+scripts/*_files/
+
 # OS
 .DS_Store
