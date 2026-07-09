@@ -1,0 +1,20 @@
+# No data in this repo (see README: no coalition data, no PII)
+data/**
+!data/**/
+!data/**/.gitkeep
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Python
+__pycache__/
+.venv/
+
+# Project documents live on Box, not in the repo
+*.pdf
+
+# OS
+.DS_Store
