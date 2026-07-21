@@ -1,0 +1,128 @@
+column,question,option
+q1_child_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I care for a child or children now
+q1_aging_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I care for an aging person now
+q1_disability_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I care for someone with a disability or chronic health condition now
+q1_paid_provider,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I am a paid care provider. I offer support and services for kids, aging adults, and/or people with disabilities"
+q1_cared_past,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I have cared for an aging adult, child, or someone with a disability or chronic health condition in the past"
+q1_expect_future,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I am not providing or receiving care right now, but I expect to in the next 5 years"
+q1_none,"We would like to know more about your connection to care, if any. Choose all that apply to you.",None of these apply to me
+q2a_unaffordable,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Care is unaffordable
+q2a_time_flex,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have enough time or flexibility
+q2a_figure_out,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",It is hard to figure out what help exists or how to get it
+q2a_navigate,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",It is hard to navigate existing care programs
+q2a_job,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Care affected my job or career
+q2a_other,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Other
+q3a_affordable_quality,What care support would make a difference for you or people around you? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
+q3a_backup,What care support would make a difference for you or people around you? (Choose all that apply),Backup care for emergencies or unexpected needs
+q3a_extended_childcare,What care support would make a difference for you or people around you? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
+q3a_everyday_support,What care support would make a difference for you or people around you? (Choose all that apply),Everyday support like meals and transportation
+q3a_other,What care support would make a difference for you or people around you? (Choose all that apply),Other
+q4a_family_friends,What or who helps you most with care? (Choose your top 3),"Family, friends, or neighbors"
+q4a_health_professionals,What or who helps you most with care? (Choose your top 3),Health care professionals
+q4a_paid_provider,What or who helps you most with care? (Choose your top 3),"Paid care provider for home care or personal care, child care, or pre-k"
+q4a_community_religious,What or who helps you most with care? (Choose your top 3),Community organizations or religious groups
+q4a_employer,What or who helps you most with care? (Choose your top 3),"Employer support for things like leave, flexibility, benefits"
+q4a_support_groups,What or who helps you most with care? (Choose your top 3),"Support groups, online, or in-person"
+q4a_no_help,What or who helps you most with care? (Choose your top 3),I do not receive help
+q4a_other,What or who helps you most with care? (Choose your top 3),Other
+q2b_finding,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)","Difficulty with finding care that's available, nearby, or right for me or my family"
+q2b_help,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Not enough help or support with care
+q2b_job,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Care could affect my job or career
+q3b_affordable_quality,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
+q3b_extended_childcare,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
+q3b_financial,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Financial support for care expenses
+q2c_unaffordable,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Care was unaffordable
+q2c_finding,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)","It was hard to find care that was available, nearby, or right for my family and me"
+q2c_time_flex,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",I didn't have enough time or flexibility
+q2c_help,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",I didn't have enough help or support
+q2c_figure_out,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",It was hard to figure out what help existed or how to get it
+q2c_navigate,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",It was hard to navigate existing care programs
+q2c_no_say,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",I didn't have a say in how care works for me or my family
+q2c_job,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Care affected my job or career
+q3c_affordable_quality,What care support would have made a difference for you or people around you? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
+q3c_backup,What care support would have made a difference for you or people around you? (Choose all that apply),Backup care for emergencies or unexpected needs
+q3c_financial,What care support would have made a difference for you or people around you? (Choose all that apply),Financial support for care expenses
+q3c_navigation_help,What care support would have made a difference for you or people around you? (Choose all that apply),"Help with finding, understanding, and accessing available care options"
+q3c_schedule_control,What care support would have made a difference for you or people around you? (Choose all that apply),More control over my schedule at work
+q3c_paid_time_off,What care support would have made a difference for you or people around you? (Choose all that apply),Paid time off for care
+q6_there_when_needed,What would ideal care support and services look like for you? (Choose up to three),"There when you need it - at every stage of life, no matter your job or family situation"
+q6_easy_to_use,What would ideal care support and services look like for you? (Choose up to three),Easy to find and use - without complicated steps or barriers
+q6_affordable,What would ideal care support and services look like for you? (Choose up to three),Affordable - without causing personal financial strain
+q6_in_community,What would ideal care support and services look like for you? (Choose up to three),Available in your community - not far away or out of reach
+q6_flexible,What would ideal care support and services look like for you? (Choose up to three),"Flexible - fitting real schedules, needs, and changing circumstances"
+q6_reliable,What would ideal care support and services look like for you? (Choose up to three),Reliable - something you can count on over time
+q6_clear,What would ideal care support and services look like for you? (Choose up to three),Clear and transparent - you know what's available and how to get it
+q6_good_jobs,What would ideal care support and services look like for you? (Choose up to three),Good jobs for care providers - with fair pay and stability
+q6_secure,What would ideal care support and services look like for you? (Choose up to three),"Keep people who rely on care feeling secure, healthy, and thriving"
+gender_woman,What is your gender? (Choose all that apply),Woman
+gender_man,What is your gender? (Choose all that apply),Man
+gender_other,What is your gender? (Choose all that apply),Other
+gender_prefer_not_to_say,What is your gender? (Choose all that apply),Prefer not to say
+race_black,What is your race or ethnicity? (Choose all that apply),Black or African American
+race_hispanic,What is your race or ethnicity? (Choose all that apply),"Hispanic, Latino, or Latina"
+race_mena,What is your race or ethnicity? (Choose all that apply),Middle Eastern or North African
+race_nhpi,What is your race or ethnicity? (Choose all that apply),Native Hawaiian or Pacific Islander
+race_multiracial,What is your race or ethnicity? (Choose all that apply),Multiracial
+race_other,What is your race or ethnicity? (Choose all that apply),Other
+race_prefer_not_to_say,What is your race or ethnicity? (Choose all that apply),Prefer not to say
+doorstep_challenges_cost,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Cost
+doorstep_challenges_time,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Time
+doorstep_challenges_location,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Location
+doorstep_challenges_right_fit,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Right fit
+doorstep_challenges_lack_support,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Lack of support
+doorstep_challenges_no_control,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No control
+doorstep_challenges_worker_availability,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Worker availability
+doorstep_challenges_barriers_access,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Barriers to access
+doorstep_challenges_no_challenges,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No challenges
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)","1, just myself"
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",2
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",3
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",4
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",5
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",6
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",7 or more
+hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",Prefer not to say
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","Under $25,000"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$25,000-$49,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$50,000-$74,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$75,000-$99,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$100,000-$149,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$150,000-$174,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$175,000-$199,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$200,000-$249,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$250,000-$299,999"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)","$300,000 or more"
+hh_income,"What is your household's approximate annual income? (Add up income from everyone living with you, related or not.)",Prefer not to say
+age,What is your age?,18-24
+age,What is your age?,25-34
+age,What is your age?,35-44
+age,What is your age?,45-54
+age,What is your age?,55-64
+age,What is your age?,65-74
+age,What is your age?,75 or older
+age,What is your age?,Prefer not to say
+disability,I identify as a person with a disability or chronic health condition.,Yes
+disability,I identify as a person with a disability or chronic health condition.,No
+disability,I identify as a person with a disability or chronic health condition.,Not sure
+disability,I identify as a person with a disability or chronic health condition.,Prefer not to say
+political,How would you describe your political views?,Very liberal
+political,How would you describe your political views?,Somewhat liberal
+political,How would you describe your political views?,Moderate/Middle of the road
+political,How would you describe your political views?,Somewhat conservative
+political,How would you describe your political views?,Very conservative
+political,How would you describe your political views?,Don't know
+political,How would you describe your political views?,Prefer not to say
+pathway,Derived from q1 (priority: current > past > future > observer > none),current
+pathway,Derived from q1 (priority: current > past > future > observer > none),past
+pathway,Derived from q1 (priority: current > past > future > observer > none),future
+pathway,Derived from q1 (priority: current > past > future > observer > none),observer
+pathway,Derived from q1 (priority: current > past > future > observer > none),none
+canvass_mode,For Canvasser: How are you conducting this conversation?,Door-to-door
+canvass_mode,For Canvasser: How are you conducting this conversation?,Phone
+canvass_mode,For Canvasser: How are you conducting this conversation?,Other In Person
+responded,"For Canvasser: Did the person respond and agree to answer questions?  If no, share the information card or the careconversations.com website and submit.",Yes - continue with questions
+responded,"For Canvasser: Did the person respond and agree to answer questions?  If no, share the information card or the careconversations.com website and submit.",No - not available
+care_connection,"Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",Yes
+care_connection,"Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",No
+continue_full,We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?,Yes - continuing
+continue_full,We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?,No - not continuing

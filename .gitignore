@@ -2,6 +2,8 @@
 data/**
 !data/**/
 !data/**/.gitkeep
+# the generated dictionary is schema only — no respondent data
+!data/processed/data-dictionary.csv
 
 # R
 .Rproj.user/

@@ -9,8 +9,8 @@ execute:
   message: false
 ---
 
-Cleans the raw survey export in `data/raw/survey/` into an analysis-ready file
-in `data/processed/`. Canvassing data cleaning will be added here as well.
+Cleans the raw survey and canvassing exports in `data/raw/` into
+analysis-ready files in `data/processed/`, plus a generated data dictionary.
 
 The main transformation is one-hot encoding the multi-select questions: the raw
 export stores multiple selections as a single pipe-delimited string, and we
@@ -31,6 +31,8 @@ so it can be added deliberately.
 library(tidyverse)
 library(readxl)
 library(here)
+
+source(here("scripts/00_utils.R"))
 ```
 
 ## Read raw survey data
@@ -45,7 +47,8 @@ survey_files <- list.files(
 
 raw <- survey_files |>
   map(read_excel, col_types = "text") |>
-  bind_rows()
+  bind_rows() |>
+  mutate(across(everything(), \(x) na_if(str_trim(x), ""))) # whitespace-only cells -> NA
 
 dim(raw)
 ```
@@ -91,17 +94,7 @@ col_map <- c(
   respondent_id = "Unique ID"
 )
 
-unmatched <- setdiff(names(raw), col_map)
-missing   <- setdiff(col_map, names(raw))
-if (length(unmatched) > 0 || length(missing) > 0) {
-  stop(
-    "Column mismatch between export and col_map.\n",
-    "In export but not mapped:\n", paste0('  "', unmatched, '"\n'),
-    "Mapped but not in export:\n", paste0('  "', missing, '"\n')
-  )
-}
-
-survey <- rename(raw, all_of(col_map))
+survey <- rename_validated(raw, col_map)
 ```
 
 ## PII guard
@@ -177,6 +170,7 @@ multiselect_options <- list(
   ),
   q2a = c(
     unaffordable = "Care is unaffordable",
+    time_flex    = "I don't have enough time or flexibility",
     figure_out   = "It is hard to figure out what help exists or how to get it",
     navigate     = "It is hard to navigate existing care programs",
     job          = "Care affected my job or career",
@@ -185,6 +179,7 @@ multiselect_options <- list(
   q3a = c(
     affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
     backup             = "Backup care for emergencies or unexpected needs",
+    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
     everyday_support   = "Everyday support like meals and transportation",
     other              = "Other"
   ),
@@ -319,6 +314,51 @@ survey <- survey |>
   )
 ```
 
+## Pathway
+
+Each respondent follows exactly one pathway through the survey, determined by
+q1 (see the Survey Pathways table in the questionnaire). `derive_pathway()` in
+`00_utils.R` assigns it with priority current > past > future — verified
+against the data: a respondent eligible for both past and future was shown
+only the past questions.
+
+```{r}
+#| label: pathway
+survey <- derive_pathway(survey)
+
+count(survey, pathway)
+```
+
+## Skip-logic checks
+
+Each pathway question should be answered by exactly the respondents on its
+pathway. Mismatches warn (rather than stop) — they signal an export or
+routing problem to investigate, not necessarily a pipeline bug.
+
+```{r}
+#| label: skip-checks
+skip_rules <- tribble(
+  ~question, ~indicator,         ~expected_pathway,
+  "q2a",     "q2a_unaffordable", "current",
+  "q3a",     "q3a_other",        "current",
+  "q4a",     "q4a_other",        "current",
+  "q2b",     "q2b_job",          "future",
+  "q3b",     "q3b_financial",    "future",
+  "q2c",     "q2c_job",          "past",
+  "q3c",     "q3c_backup",       "past"
+)
+
+pwalk(skip_rules, \(question, indicator, expected_pathway) {
+  mismatch <- xor(!is.na(survey[[indicator]]), survey$pathway == expected_pathway)
+  if (any(mismatch)) {
+    cli::cli_warn(
+      "{question}: {sum(mismatch)} respondent{?s} answered or skipped against
+       skip logic (ID{?s} {.val {survey$respondent_id[mismatch]}})"
+    )
+  }
+})
+```
+
 ## Remaining columns
 
 ```{r}
@@ -330,12 +370,8 @@ if (length(dupes) > 0) {
 
 survey <- survey |>
   mutate(
-    # reading the sheet as all-text leaves datetimes as Excel serial numbers;
     # tz assumed UTC — the platform's actual export timezone is unconfirmed
-    submitted_at = as.POSIXct(
-      round(as.numeric(submitted_at) * 86400),
-      origin = "1899-12-30", tz = "UTC"
-    ),
+    submitted_at = excel_datetime(submitted_at),
     zip = str_pad(zip, width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at)
@@ -359,6 +395,165 @@ write_rds(survey, here("data/processed/survey_clean.rds"))
 write_csv(survey, here("data/processed/survey_clean.csv"))
 ```
 
+## Canvassing data
+
+The canvassing form is a doorstep funnel — canvasser logistics, a short
+screener, then (for those who agree to continue) the same question battery as
+the digital survey, with identical question and option text, so the survey's
+column map and dictionaries are reused. The canvasser-only doorstep challenge
+question uses its own short labels. There are no demographic questions and no
+respondent ZIP; the only geography is the *canvasser's* ZIP.
+
+```{r}
+#| label: canvassing-read
+canvassing_files <- list.files(
+  here("data/raw/canvassing"),
+  pattern = "\\.xlsx$", full.names = TRUE
+) |>
+  str_subset("~\\$", negate = TRUE)
+
+canvassing_raw <- canvassing_files |>
+  map(read_excel, col_types = "text") |>
+  bind_rows() |>
+  mutate(across(everything(), \(x) na_if(str_trim(x), "")))
+
+dim(canvassing_raw)
+```
+
+```{r}
+#| label: canvassing-rename
+battery <- col_map[c(
+  "q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c",
+  "q2d", "q3d", "q4d", "q6"
+)]
+
+col_map_canv <- c(
+  submitted_at        = "Time",
+  canvasser_zip       = "For Canvasser: Enter the ZIP code of the place you are canvassing  (Zip)",
+  canvass_mode        = "For Canvasser: How are you conducting this conversation?",
+  responded           = "For Canvasser: Did the person respond and agree to answer questions?  If no, share the information card or the careconversations.com website and submit.",
+  care_connection     = "Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",
+  doorstep_challenges = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
+  continue_full       = "We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?",
+  battery,
+  q4c                 = "What or who helped you most with care? (Choose your top 3)",
+  respondent_id       = "Unique ID"
+)
+
+canvassing <- rename_validated(canvassing_raw, col_map_canv)
+```
+
+The doorstep challenge question gets its own dictionary; the shared battery
+reuses the survey dictionaries. q4c (like q2d/q3d/q4d) has no responses in the
+test data yet, so it passes through unencoded.
+
+```{r}
+#| label: canvassing-encode
+doorstep_options <- c(
+  cost                = "Cost",
+  time                = "Time",
+  location            = "Location",
+  right_fit           = "Right fit",
+  lack_support        = "Lack of support",
+  no_control          = "No control",
+  worker_availability = "Worker availability",
+  barriers_access     = "Barriers to access",
+  no_challenges       = "No challenges"
+)
+
+canv_multiselect <- c(
+  list(doorstep_challenges = doorstep_options),
+  multiselect_options[c("q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c", "q6")]
+)
+
+canvassing <- reduce(
+  names(canv_multiselect),
+  \(data, col) encode_multiselect(data, col, canv_multiselect[[col]]),
+  .init = canvassing
+) |>
+  derive_pathway()
+```
+
+```{r}
+#| label: canvassing-clean
+canvassing <- canvassing |>
+  mutate(
+    canvass_mode    = to_factor(canvass_mode, c("Door-to-door", "Phone", "Other In Person")),
+    responded       = to_factor(responded, c("Yes - continue with questions", "No - not available")),
+    care_connection = to_factor(care_connection, c("Yes", "No")),
+    continue_full   = to_factor(continue_full, c("Yes - continuing", "No - not continuing")),
+    submitted_at    = excel_datetime(submitted_at),
+    canvasser_zip   = str_pad(canvasser_zip, width = 5, pad = "0")
+  ) |>
+  relocate(respondent_id, submitted_at)
+
+dupes_canv <- canvassing$respondent_id[duplicated(canvassing$respondent_id)]
+if (length(dupes_canv) > 0) {
+  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_canv)}}")
+}
+
+# the battery should be answered by exactly those who agreed to continue
+agreed <- !is.na(canvassing$continue_full) & canvassing$continue_full == "Yes - continuing"
+battery_answered <- !is.na(canvassing$q1_child_now)
+if (any(xor(agreed, battery_answered))) {
+  cli::cli_warn("Battery answered/skipped against the doorstep funnel for
+                 {sum(xor(agreed, battery_answered))} respondent{?s}")
+}
+
+count(canvassing, responded, care_connection, continue_full, pathway)
+```
+
+```{r}
+#| label: canvassing-write
+write_rds(canvassing, here("data/processed/canvassing_clean.rds"))
+write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
+```
+
+## Data dictionary
+
+The column maps and option dictionaries above already document the schema —
+this writes them out as a reviewable CSV: one row per indicator column (or
+factor level), with the source question and option text.
+
+```{r}
+#| label: dictionary
+question_text <- c(col_map, col_map_canv[setdiff(names(col_map_canv), names(col_map))])
+all_multiselect <- c(multiselect_options, list(doorstep_challenges = doorstep_options))
+
+dict_options <- all_multiselect |>
+  imap(\(opts, q) tibble(
+    column   = str_c(q, "_", names(opts)),
+    question = unname(question_text[q]),
+    option   = unname(opts)
+  )) |>
+  list_rbind()
+
+dict_factors <- list(survey, canvassing) |>
+  map(\(data) {
+    data |>
+      select(where(is.factor)) |>
+      as.list() |>
+      imap(\(v, nm) tibble(
+        column   = nm,
+        question = unname(question_text[nm]),
+        option   = levels(v)
+      )) |>
+      list_rbind()
+  }) |>
+  list_rbind() |>
+  distinct()
+
+dictionary <- bind_rows(dict_options, dict_factors) |>
+  mutate(question = if_else(
+    column == "pathway",
+    "Derived from q1 (priority: current > past > future > observer > none)",
+    question
+  ))
+
+write_csv(dictionary, here("data/processed/data-dictionary.csv"))
+dictionary
+```
+
 ## Long view
 
 The wide file is canonical (one row per respondent, the unit of analysis).
@@ -367,8 +562,6 @@ For option-level summaries and plots, `pivot_selections()` in
 
 ```{r}
 #| label: long-view
-source(here("scripts/00_utils.R"))
-
 survey |>
   pivot_selections() |>
   summarise(rate = mean(selected, na.rm = TRUE), .by = c(question, option)) |>
