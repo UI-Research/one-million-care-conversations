@@ -40,7 +40,8 @@ library(here)
 survey_files <- list.files(
   here("data/raw/survey"),
   pattern = "\\.xlsx$", full.names = TRUE
-)
+) |>
+  str_subset("~\\$", negate = TRUE) # Excel lock files, present while a workbook is open
 
 raw <- survey_files |>
   map(read_excel, col_types = "text") |>
@@ -129,25 +130,37 @@ set to `NA` across all of its option columns.
 ```{r}
 #| label: encode-fn
 encode_multiselect <- function(data, col, options) {
-  selections <- strsplit(data[[col]], "|", fixed = TRUE)
+  # tokens are trimmed so "c | e" and "c|e" encode identically
+  selections <- str_split(data[[col]], fixed("|")) |> map(str_trim)
 
   unknown <- setdiff(unique(unlist(selections)), c(options, NA))
   if (length(unknown) > 0) {
-    stop(
-      "New response option(s) in `", col, "` — add them to its dictionary:\n",
-      paste0('  "', unknown, '"', collapse = "\n")
-    )
+    cli::cli_abort(c(
+      "New response option{?s} in {.field {col}} — add {?it/them} to its dictionary:",
+      set_names(paste0('"', unknown, '"'), "x")
+    ))
   }
 
-  for (i in seq_along(options)) {
-    indicator <- map_int(selections, \(s) as.integer(options[[i]] %in% s))
-    indicator[is.na(data[[col]])] <- NA_integer_
-    data[[paste0(col, "_", names(options)[i])]] <- indicator
-  }
+  indicators <- options |>
+    map(\(opt) map_int(selections, \(s) as.integer(opt %in% s))) |>
+    set_names(str_c(col, "_", names(options))) |>
+    as_tibble() |>
+    mutate(across(everything(), \(x) if_else(is.na(data[[col]]), NA, x)))
 
-  data[[col]] <- NULL
-  data
+  data |>
+    select(-all_of(col)) |>
+    bind_cols(indicators)
 }
+```
+
+A quick demonstration on a toy question with options `a`–`f`: a response of
+`"c | e"` gets 1 for c and e and 0 for everything else, and an unanswered row
+is `NA` throughout.
+
+```{r}
+#| label: encode-demo
+tibble(q_demo = c("c | e", "a", NA)) |>
+  encode_multiselect("q_demo", c(a = "a", b = "b", c = "c", d = "d", e = "e", f = "f"))
 ```
 
 ```{r}
@@ -241,9 +254,11 @@ multiselect_options <- list(
   )
 )
 
-for (col in names(multiselect_options)) {
-  survey <- encode_multiselect(survey, col, multiselect_options[[col]])
-}
+survey <- reduce(
+  names(multiselect_options),
+  \(data, col) encode_multiselect(data, col, multiselect_options[[col]]),
+  .init = survey
+)
 ```
 
 The pathway D questions (q2d, q3d, q4d) are entirely `NA` in the test data —
@@ -308,11 +323,15 @@ survey <- survey |>
 
 ```{r}
 #| label: other-cols
-stopifnot(!any(duplicated(survey$respondent_id)))
+dupes <- survey$respondent_id[duplicated(survey$respondent_id)]
+if (length(dupes) > 0) {
+  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes)}}")
+}
 
 survey <- survey |>
   mutate(
-    # reading the sheet as all-text leaves datetimes as Excel serial numbers
+    # reading the sheet as all-text leaves datetimes as Excel serial numbers;
+    # tz assumed UTC — the platform's actual export timezone is unconfirmed
     submitted_at = as.POSIXct(
       round(as.numeric(submitted_at) * 86400),
       origin = "1899-12-30", tz = "UTC"
@@ -320,6 +339,11 @@ survey <- survey |>
     zip = str_pad(zip, width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at)
+
+bad_zip <- survey |> filter(!str_detect(zip, "^\\d{5}$") | is.na(zip))
+if (nrow(bad_zip) > 0) {
+  cli::cli_warn("{nrow(bad_zip)} row{?s} with missing or non-5-digit ZIP: {.val {bad_zip$zip}}")
+}
 ```
 
 ## Validate and write
