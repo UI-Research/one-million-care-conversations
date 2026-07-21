@@ -11,8 +11,18 @@ execute:
   message: false
 ---
 
-Cleans the raw survey and canvassing exports in `data/raw/` into
-analysis-ready files in `data/processed/`, plus a generated data dictionary.
+Cleans the raw survey and canvassing exports into analysis-ready files in
+`data/processed/`, plus a generated data dictionary.
+
+`data/raw/Raw data backups/` is a local mirror of the Box delivery folder,
+kept exactly as Box structures it — the filenames already encode source
+(`surv`/`canv`), collection dates, form version (`f0`, `f1`, ...), and
+complete vs partial, and the accompanying `_ DATA LOG _.xlsx` is the delivery
+manifest keyed to those filenames. Files are selected by name pattern; nothing
+is re-filed by hand. The `f0` files are the pre-launch test delivery (per the
+data log) and are excluded; survey cleaning covers real deliveries (`f1`+),
+with complete and partial responses combined and distinguished by a
+`response_status` column.
 
 The main transformation is one-hot encoding the multi-select questions: the raw
 export stores multiple selections as a single pipe-delimited string, and we
@@ -41,18 +51,16 @@ source(here("scripts/00_utils.R"))
 
 ```{r}
 #| label: read
+raw_dir <- here("data/raw/Raw data backups")
+
 survey_files <- list.files(
-  here("data/raw/survey"),
-  pattern = "\\.xlsx$", full.names = TRUE
+  raw_dir,
+  pattern = "^surv_export_.*_closed.*\\.xlsx$", full.names = TRUE
 ) |>
-  str_subset("~\\$", negate = TRUE) # Excel lock files, present while a workbook is open
+  str_subset("~\\$", negate = TRUE) |> # Excel lock files, present while a workbook is open
+  str_subset("_f0_", negate = TRUE)    # f0 = pre-launch test delivery per the data log
 
-raw <- survey_files |>
-  map(read_excel, col_types = "text") |>
-  bind_rows() |>
-  mutate(across(everything(), \(x) na_if(str_trim(x), ""))) # whitespace-only cells -> NA
-
-dim(raw)
+basename(survey_files)
 ```
 
 ## Rename columns
@@ -60,10 +68,12 @@ dim(raw)
 Column names in the export are the full question text. We map them to short
 IDs keyed to the questionnaire (q1, q2a, ..., q6). The mapping is validated in
 both directions so a new export with added, dropped, or reworded columns fails
-loudly instead of silently misaligning.
+loudly instead of silently misaligning; columns known to vary across form
+versions (the f0-only address fields, q4c which f0 lacked) are marked
+optional. Delivery metadata parsed from each filename travels with every row.
 
-Note the test export does not include q4c or the open-text questions
-(q5a/q5c/q5d, q7); they will need entries here when they appear.
+The open-text questions (q5a/q5c/q5d, q7) come through a separate export and
+will need entries here when they join the closed-text pipeline.
 
 ```{r}
 #| label: rename
@@ -80,6 +90,7 @@ col_map <- c(
   q2d           = "What care challenges, if any, do the people you know experience? (Choose all that apply.)",
   q3d           = "What care support would make a difference for the people you know? (Choose all that apply)",
   q4d           = "What or who helps most with their care? (Choose your top 3)",
+  q4c           = "What or who helped you most with care? (Choose your top 3)",
   q6            = "What would ideal care support and services look like for you? (Choose up to three)",
   address       = "Zipcode (Address)",
   address2      = "Zipcode (Address2)",
@@ -96,7 +107,24 @@ col_map <- c(
   respondent_id = "Unique ID"
 )
 
-survey <- rename_validated(raw, col_map)
+form_varying <- c("address", "address2", "city", "state", "q4c")
+
+read_delivery <- function(path) {
+  read_excel(path, col_types = "text") |>
+    mutate(across(everything(), \(x) na_if(str_trim(x), ""))) |> # whitespace-only cells -> NA
+    rename_validated(col_map, optional = form_varying) |>
+    mutate(delivery = basename(path))
+}
+
+survey <- survey_files |>
+  map(read_delivery) |>
+  bind_rows() |>
+  mutate(
+    form_version    = str_extract(delivery, "f\\d+"),
+    response_status = str_extract(delivery, "complete|partial")
+  )
+
+count(survey, delivery, form_version, response_status)
 ```
 
 ## PII guard
@@ -107,32 +135,48 @@ immediately if they ever are not.
 
 ```{r}
 #| label: pii-guard
-if (any(!is.na(survey$address) | !is.na(survey$address2))) {
-  stop("Address fields are not empty — possible PII in the raw file. Do not proceed; flag to the team.")
+pii_cols <- intersect(c("address", "address2"), names(survey))
+if (length(pii_cols) > 0) {
+  if (any(!is.na(as.matrix(survey[pii_cols])))) {
+    stop("Address fields are not empty — possible PII in the raw file. Do not proceed; flag to the team.")
+  }
+  survey <- select(survey, -all_of(pii_cols))
 }
-
-survey <- select(survey, -address, -address2)
 ```
 
 ## One-hot encode multi-select questions
 
 Selections arrive pipe-delimited in survey order, e.g.
-`"Care is unaffordable|Other"`. Each question becomes one logical column per
-option (`q2a_unaffordable`, `q2a_other`, ...), with every option the
+`"Care is unaffordable|Other: my own words"`. Each question becomes one
+logical column per option (`q2a_unaffordable`, ...), with every option the
 respondent did not select set to `FALSE` and rows where the question was
 unanswered set to `NA` across all of its option columns.
+
+"Other" responses are open form in the real data, and Formstack exports them
+three ways: `"Other: <text>"`, a bare `"Other"`/`"true"` (the checkbox with no
+text), or occasionally the free text alone with no prefix. Any token that
+isn't a known structured option sets `{question}_other = TRUE` and lands
+verbatim in `{question}_other_text` — that text is respondent voice and feeds
+the qualitative/NLP work. As a drift alarm, a free-text value repeating across
+3+ respondents triggers a warning, since repetition suggests a new
+*structured* option missing from the dictionary rather than genuine free text.
 
 ```{r}
 #| label: encode-fn
 encode_multiselect <- function(data, col, options) {
   # tokens are trimmed so "c | e" and "c|e" encode identically
   selections <- str_split(data[[col]], fixed("|")) |> map(str_trim)
+  extras <- map(selections, \(s) s[!is.na(s) & !s %in% options])
 
-  unknown <- setdiff(unique(unlist(selections)), c(options, NA))
-  if (length(unknown) > 0) {
-    cli::cli_abort(c(
-      "New response option{?s} in {.field {col}} — add {?it/them} to its dictionary:",
-      set_names(paste0('"', unknown, '"'), "x")
+  repeated <- table(unlist(extras)) |>
+    keep(\(n) n >= 3) |>
+    names() |>
+    setdiff(c("Other", "true", "TRUE")) |>
+    discard(\(v) str_starts(v, "Other:"))
+  if (length(repeated) > 0) {
+    cli::cli_warn(c(
+      "Free-text value{?s} in {.field {col}} repeated across 3+ respondents — new structured option{?s} missing from the dictionary?",
+      set_names(str_trunc(repeated, 70), "!")
     ))
   }
 
@@ -140,7 +184,14 @@ encode_multiselect <- function(data, col, options) {
     map(\(opt) map_lgl(selections, \(s) opt %in% s)) |>
     set_names(str_c(col, "_", names(options))) |>
     as_tibble() |>
-    mutate(across(everything(), \(x) if_else(is.na(data[[col]]), NA, x)))
+    mutate(
+      "{col}_other"      := map_lgl(extras, \(s) length(s) > 0),
+      "{col}_other_text" := map_chr(extras, \(s) {
+        s <- str_remove(s[!s %in% c("Other", "true", "TRUE")], "^Other:\\s*")
+        if (length(s) > 0) str_flatten(s, collapse = " ; ") else NA_character_
+      }),
+      across(where(is.logical), \(x) if_else(is.na(data[[col]]), NA, x))
+    )
 
   data |>
     select(-all_of(col)) |>
@@ -148,13 +199,13 @@ encode_multiselect <- function(data, col, options) {
 }
 ```
 
-A quick demonstration on a toy question with options `a`–`f`: a response of
-`"c | e"` gets `TRUE` for c and e and `FALSE` for everything else, and an
-unanswered row is `NA` throughout.
+A quick demonstration on a toy question with options `a`–`f`: `"c | e"` gets
+`TRUE` for c and e and `FALSE` for everything else; an "Other" with text sets
+the other flag and captures the text; an unanswered row is `NA` throughout.
 
 ```{r}
 #| label: encode-demo
-tibble(q_demo = c("c | e", "a", NA)) |>
+tibble(q_demo = c("c | e", "a|Other: my own answer", NA)) |>
   encode_multiselect("q_demo", c(a = "a", b = "b", c = "c", d = "d", e = "e", f = "f"))
 ```
 
@@ -166,44 +217,64 @@ multiselect_options <- list(
     aging_now      = "I care for an aging person now",
     disability_now = "I care for someone with a disability or chronic health condition now",
     paid_provider  = "I am a paid care provider. I offer support and services for kids, aging adults, and/or people with disabilities",
+    need_care_now  = "I need care but am not receiving it",
+    receives_care  = "I receive or have received care for a disability or chronic condition",
     cared_past     = "I have cared for an aging adult, child, or someone with a disability or chronic health condition in the past",
     expect_future  = "I am not providing or receiving care right now, but I expect to in the next 5 years",
+    observer       = "None of these apply to me right now, but I know someone who receives or needs care",
     none           = "None of these apply to me"
   ),
   q2a = c(
     unaffordable = "Care is unaffordable",
+    finding      = "It is hard to find care that's available, nearby, or right for my family or me",
     time_flex    = "I don't have enough time or flexibility",
+    help         = "I don't have enough help or support",
     figure_out   = "It is hard to figure out what help exists or how to get it",
     navigate     = "It is hard to navigate existing care programs",
-    job          = "Care affected my job or career",
-    other        = "Other"
+    no_say       = "I don't have a say in how care works for me or my family",
+    job          = "Care affected my job or career"
   ),
   q3a = c(
     affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
     backup             = "Backup care for emergencies or unexpected needs",
-    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
     everyday_support   = "Everyday support like meals and transportation",
-    other              = "Other"
+    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
+    financial          = "Financial support for care expenses",
+    navigation_help    = "Help with finding, understanding, and accessing available care options",
+    schedule_control   = "More control over my schedule at work",
+    paid_time_off      = "Paid time off for care",
+    respite            = "Respite care"
   ),
   q4a = c(
     family_friends       = "Family, friends, or neighbors",
     health_professionals = "Health care professionals",
     paid_provider        = "Paid care provider for home care or personal care, child care, or pre-k",
     community_religious  = "Community organizations or religious groups",
+    government           = "Government support, like paid leave or other care services paid for using federal, state, or county dollars",
     employer             = "Employer support for things like leave, flexibility, benefits",
     support_groups       = "Support groups, online, or in-person",
-    no_help              = "I do not receive help",
-    other                = "Other"
+    technology           = "Technology or online tools",
+    no_help              = "I do not receive help"
   ),
   q2b = c(
-    finding = "Difficulty with finding care that's available, nearby, or right for me or my family",
-    help    = "Not enough help or support with care",
-    job     = "Care could affect my job or career"
+    unaffordable = "Care that's unaffordable",
+    finding      = "Difficulty with finding care that's available, nearby, or right for me or my family",
+    time_flex    = "Not having time or flexibility",
+    help         = "Not enough help or support with care",
+    figure_out   = "Difficulty knowing what help exists or how to get it",
+    navigate     = "Difficulty navigating existing care programs",
+    no_say       = "Not having a say in how care works for my family or me",
+    job          = "Care could affect my job or career"
   ),
   q3b = c(
     affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
+    backup             = "Backup care for emergencies or unexpected needs",
     extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
-    financial          = "Financial support for care expenses"
+    financial          = "Financial support for care expenses",
+    navigation_help    = "Help with finding, understanding, and accessing available care options",
+    schedule_control   = "More control over my schedule at work",
+    paid_time_off      = "Paid time off for care",
+    respite            = "Respite care"
   ),
   q2c = c(
     unaffordable = "Care was unaffordable",
@@ -218,10 +289,52 @@ multiselect_options <- list(
   q3c = c(
     affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
     backup             = "Backup care for emergencies or unexpected needs",
+    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
     financial          = "Financial support for care expenses",
     navigation_help    = "Help with finding, understanding, and accessing available care options",
     schedule_control   = "More control over my schedule at work",
-    paid_time_off      = "Paid time off for care"
+    paid_time_off      = "Paid time off for care",
+    respite            = "Respite care"
+  ),
+  q4c = c(
+    family_friends       = "Family, friends, or neighbors",
+    health_professionals = "Health care professionals",
+    paid_provider        = "Paid care provider for home care or personal care, daycare, childcare, or pre-k",
+    community_religious  = "Community organizations or religious groups",
+    government           = "Government support, like paid leave or other care services paid with federal, state, or county money",
+    employer             = "Employer support for things like leave, flexibility, benefits",
+    support_groups       = "Support groups, online, or in-person",
+    technology           = "Technology or online tools",
+    no_help              = "I did not receive help"
+  ),
+  q2d = c(
+    unaffordable = "Unaffordable care",
+    finding      = "It was hard to find care that's available, nearby, or right for them",
+    time_flex    = "They don't have enough time or flexibility",
+    help         = "They are doing this without enough help or support",
+    figure_out   = "It is hard for them to figure out what help exists or how to get it",
+    navigate     = "It is hard for them to navigate existing care programs",
+    no_say       = "They don't have a say in how care works for them",
+    job          = "Care has affected their jobs or careers"
+  ),
+  q3d = c(
+    affordable_quality = "Affordable, high quality care for an aging adult, a child, someone with a disability, or myself",
+    backup             = "Backup care for emergencies or unexpected needs",
+    extended_childcare = "Extended child care options such as before 9:00AM, after 5:00PM, or during the summer",
+    financial          = "Financial support for care expenses",
+    navigation_help    = "Help with finding, understanding, and accessing available care options",
+    schedule_control   = "More control over my schedule at work",
+    paid_time_off      = "Paid time off for care",
+    respite            = "Respite care"
+  ),
+  q4d = c(
+    family_friends       = "Family, friends, or neighbors",
+    health_professionals = "Health care professionals",
+    paid_provider        = "Paid care provider for home care or personal care, daycare, childcare, or pre-k",
+    community_religious  = "Community organizations or religious groups",
+    government           = "Government support, like paid leave or other care services paid with federal, state, or county money",
+    support_groups       = "Support groups, online, or in-person",
+    technology           = "Technology or online tools"
   ),
   q6 = c(
     there_when_needed = "There when you need it - at every stage of life, no matter your job or family situation",
@@ -232,21 +345,26 @@ multiselect_options <- list(
     reliable          = "Reliable - something you can count on over time",
     clear             = "Clear and transparent - you know what's available and how to get it",
     good_jobs         = "Good jobs for care providers - with fair pay and stability",
+    healthy_dev       = "Support healthy development, well-being, and independence",
+    lived_experience  = "Shaped by people with experience giving, receiving, or needing care",
     secure            = "Keep people who rely on care feeling secure, healthy, and thriving"
   ),
   gender = c(
     woman             = "Woman",
     man               = "Man",
-    other             = "Other",
+    nonbinary         = "Non-binary",
+    transgender       = "Transgender",
     prefer_not_to_say = "Prefer not to say"
   ),
   race = c(
+    aian              = "American Indian or Alaska Native",
+    asian             = "Asian or Asian American",
     black             = "Black or African American",
     hispanic          = "Hispanic, Latino, or Latina",
     mena              = "Middle Eastern or North African",
     nhpi              = "Native Hawaiian or Pacific Islander",
+    white             = "White",
     multiracial       = "Multiracial",
-    other             = "Other",
     prefer_not_to_say = "Prefer not to say"
   )
 )
@@ -258,16 +376,6 @@ survey <- reduce(
 )
 ```
 
-The pathway D questions (q2d, q3d, q4d) are entirely `NA` in the test data —
-no observer-pathway respondents yet — so there are no observed option strings
-to build dictionaries from. They pass through unencoded for now.
-
-```{r}
-#| label: pathway-d-check
-survey |>
-  select(any_of(c("q2d", "q3d", "q4d"))) |>
-  summarise(across(everything(), \(x) sum(!is.na(x))))
-```
 
 ## Single-select questions
 
@@ -291,7 +399,8 @@ to_factor <- function(x, levels) {
 
 survey <- survey |>
   mutate(
-    hh_size = to_factor(hh_size, c(
+    # f1 exports numeric sizes as "2.0", "3.0", ...
+    hh_size = to_factor(str_remove(hh_size, "\\.0$"), c(
       "1, just myself", "2", "3", "4", "5", "6", "7 or more",
       "Prefer not to say"
     )),
@@ -334,28 +443,42 @@ count(survey, pathway)
 ## Skip-logic checks
 
 Each pathway question should be answered by exactly the respondents on its
-pathway. Mismatches warn (rather than stop) — they signal an export or
-routing problem to investigate, not necessarily a pipeline bug.
+pathway. For complete responses the check runs in both directions; partial
+responses may legitimately stop mid-survey, so they are only flagged when they
+*answered* a question outside their pathway. Mismatches warn (rather than
+stop) — they signal an export or routing problem to investigate, not
+necessarily a pipeline bug.
 
 ```{r}
 #| label: skip-checks
 skip_rules <- tribble(
-  ~question, ~indicator,         ~expected_pathway,
-  "q2a",     "q2a_unaffordable", "current",
-  "q3a",     "q3a_other",        "current",
-  "q4a",     "q4a_other",        "current",
-  "q2b",     "q2b_job",          "future",
-  "q3b",     "q3b_financial",    "future",
-  "q2c",     "q2c_job",          "past",
-  "q3c",     "q3c_backup",       "past"
+  ~question, ~indicator,             ~expected_pathway,
+  "q2a",     "q2a_unaffordable",     "current",
+  "q3a",     "q3a_backup",           "current",
+  "q4a",     "q4a_family_friends",   "current",
+  "q2b",     "q2b_job",              "future",
+  "q3b",     "q3b_financial",        "future",
+  "q2c",     "q2c_job",              "past",
+  "q3c",     "q3c_backup",           "past",
+  "q4c",     "q4c_family_friends",   "past",
+  "q2d",     "q2d_unaffordable",     "observer",
+  "q3d",     "q3d_backup",           "observer",
+  "q4d",     "q4d_family_friends",   "observer"
 )
 
 pwalk(skip_rules, \(question, indicator, expected_pathway) {
-  mismatch <- xor(!is.na(survey[[indicator]]), survey$pathway == expected_pathway)
-  if (any(mismatch)) {
+  answered <- !is.na(survey[[indicator]])
+  eligible <- survey$pathway %in% expected_pathway
+  mismatch <- if_else(
+    survey$response_status == "complete",
+    xor(answered, eligible), # completes must answer exactly their pathway
+    answered & !eligible     # partials may stop early, but not cross paths
+  )
+  n_bad <- sum(mismatch, na.rm = TRUE)
+  if (n_bad > 0) {
     cli::cli_warn(
-      "{question}: {sum(mismatch)} respondent{?s} answered or skipped against
-       skip logic (ID{?s} {.val {survey$respondent_id[mismatch]}})"
+      "{question}: {n_bad} respondent{?s} answered or skipped against skip
+       logic (e.g. ID{?s} {.val {head(survey$respondent_id[which(mismatch)], 5)}})"
     )
   }
 })
@@ -376,12 +499,14 @@ survey <- survey |>
     submitted_at = excel_datetime(submitted_at),
     zip = str_pad(zip, width = 5, pad = "0")
   ) |>
-  relocate(respondent_id, submitted_at)
+  relocate(respondent_id, submitted_at, form_version, response_status, delivery)
 
-bad_zip <- survey |> filter(!str_detect(zip, "^\\d{5}$") | is.na(zip))
+# missing ZIPs are expected for partials that stopped before demographics
+bad_zip <- survey |> filter(!is.na(zip), !str_detect(zip, "^\\d{5}$"))
 if (nrow(bad_zip) > 0) {
-  cli::cli_warn("{nrow(bad_zip)} row{?s} with missing or non-5-digit ZIP: {.val {bad_zip$zip}}")
+  cli::cli_warn("{nrow(bad_zip)} row{?s} with non-5-digit ZIP: {.val {unique(bad_zip$zip)}}")
 }
+count(survey, response_status, zip_missing = is.na(zip))
 ```
 
 ## Validate and write
@@ -406,11 +531,15 @@ column map and dictionaries are reused. The canvasser-only doorstep challenge
 question uses its own short labels. There are no demographic questions and no
 respondent ZIP; the only geography is the *canvasser's* ZIP.
 
+Note: the only canvassing delivery so far is the `f0` pre-launch test, so
+unlike the survey it is *not* excluded here — but treat the cleaned canvassing
+output as test data until real deliveries arrive.
+
 ```{r}
 #| label: canvassing-read
 canvassing_files <- list.files(
-  here("data/raw/canvassing"),
-  pattern = "\\.xlsx$", full.names = TRUE
+  raw_dir,
+  pattern = "^canv_export_.*\\.xlsx$", full.names = TRUE
 ) |>
   str_subset("~\\$", negate = TRUE)
 
@@ -524,9 +653,10 @@ all_multiselect <- c(multiselect_options, list(doorstep = doorstep_options))
 
 dict_options <- all_multiselect |>
   imap(\(opts, q) tibble(
-    column   = str_c(q, "_", names(opts)),
+    column   = str_c(q, "_", c(names(opts), "other", "other_text")),
     question = unname(question_text[q]),
-    option   = unname(opts)
+    option   = c(unname(opts), "Other (any response not in the structured options)",
+                 "Free text captured from other responses")
   )) |>
   list_rbind()
 

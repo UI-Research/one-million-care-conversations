@@ -16,9 +16,12 @@ This repo holds only the analysis code — data cleaning and the quantitative an
 
 ```
 data/
-  raw/            # data as delivered (survey/, canvassing/) — never committed
-  processed/      # cleaned outputs — never committed
+  raw/
+    Raw data backups/   # mirror of the Box delivery folder, incl. data log — never committed
+  processed/            # cleaned outputs — never committed (except the data dictionary)
 scripts/
-  survey/         # survey data cleaning + descriptive analysis
-  nlp/            # conversation text: coding, validation, scaling
+  01_clean-data.qmd     # cleans survey + canvassing exports, writes processed data
+  02_explore-data.qmd   # summary stats and visualizations
+  survey/               # survey descriptive analysis
+  nlp/                  # conversation text: coding, validation, scaling
 ```

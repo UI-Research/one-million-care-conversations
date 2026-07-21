@@ -14,10 +14,12 @@ fig-height: 4
 ---
 
 A first look at what the 1M Care Conversations data contains and the kinds of
-analysis it will support. Everything here runs on the **test exports** from the
-week of June 2–8, 2026 — 9 survey respondents and 12 canvassing contacts — so
-every number is illustrative of the *machinery*, not a finding. The same code
-runs unchanged as real deliveries land in `data/raw/`.
+analysis it will support. The survey numbers are now **real**: the first live
+delivery covers June 4 – July 10, 2026, with 327 complete and 158 partial
+responses. Canvassing remains the pre-launch **test** export (12 contacts), so
+survey and canvassing are shown separately and never pooled; canvassing charts
+illustrate the machinery, not findings. The same code runs unchanged as new
+deliveries land in `data/raw/`.
 
 Data comes from `scripts/01_clean-data.qmd`, which documents the cleaning; the
 generated `data/processed/data-dictionary.csv` maps every column to its
@@ -62,10 +64,15 @@ funnel and the canvasser's ZIP.
 ```{r}
 #| label: overview
 bind_rows(
-  survey     = summarise(survey, respondents = n(),
-                         first = min(as_date(submitted_at)), last = max(as_date(submitted_at))),
-  canvassing = summarise(canvassing, respondents = n(),
-                         first = min(as_date(submitted_at)), last = max(as_date(submitted_at))),
+  survey     = survey |>
+    summarise(respondents = n(),
+              first = min(as_date(submitted_at)), last = max(as_date(submitted_at)),
+              .by = response_status),
+  canvassing = canvassing |>
+    mutate(response_status = "test") |>
+    summarise(respondents = n(),
+              first = min(as_date(submitted_at)), last = max(as_date(submitted_at)),
+              .by = response_status),
   .id = "source"
 ) |>
   knitr::kable()
@@ -115,18 +122,19 @@ watch as real deliveries arrive.
 
 ```{r}
 #| label: pathways
-bind_rows(
-  survey     = count(survey, pathway),
-  canvassing = count(drop_na(canvassing, pathway), pathway),
-  .id = "source"
-) |>
-  ggplot(aes(pathway, n, fill = source)) +
-  geom_col(position = position_dodge2(preserve = "single")) +
-  geom_text(aes(label = n), position = position_dodge2(width = 0.9, preserve = "single"), vjust = -0.5) +
+survey |>
+  filter(!is.na(pathway)) |>
+  count(pathway, response_status) |>
+  ggplot(aes(pathway, n, fill = response_status)) +
+  geom_col() +
+  geom_text(
+    aes(label = after_stat(y), group = pathway),
+    stat = "summary", fun = sum, vjust = -0.5
+  ) +
   scale_y_continuous(expand = expansion(mult = c(0, .1))) +
   labs(
-    title = "Respondents by care pathway",
-    subtitle = "Canvassing: among the 4 who agreed to full questions",
+    title = "Survey respondents by care pathway",
+    subtitle = "Real survey data; 15 partials abandoned before q1 excluded",
     x = NULL, y = "Respondents", fill = NULL
   )
 ```
@@ -138,21 +146,21 @@ the share of respondents *shown the question* who picked each option. With
 real volume these become the headline descriptive statistics, with confidence
 intervals and demographic/geographic breakdowns.
 
-### Challenges among current caregivers (q2a)
+### Challenges among current caregivers and recipients (q2a)
 
 ```{r}
 #| label: challenges
 responses |>
-  filter(question |> str_starts("q2a"), !is.na(selected)) |>
-  summarise(n_selected = sum(selected), n_shown = n(), .by = c(option_text)) |>
+  filter(source == "survey", question == "q2a", option != "other_text", !is.na(selected)) |>
+  summarise(n_selected = sum(selected), n_shown = n(), .by = option_text) |>
   mutate(rate = n_selected / n_shown) |>
   ggplot(aes(rate, fct_reorder(option_text, rate))) +
   geom_col() +
   geom_text(aes(label = str_glue("{n_selected} of {n_shown}")), hjust = -0.2) +
   scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .15))) +
   labs(
-    title = "Care challenges reported by current caregivers",
-    subtitle = "Share of respondents shown the question, survey + canvassing combined",
+    title = "Care challenges reported on the current pathway",
+    subtitle = "Share of survey respondents shown the question (completes + partials)",
     x = "Selection rate", y = NULL
   )
 ```
@@ -165,8 +173,9 @@ narrative analysis.
 
 ```{r}
 #| label: ideal
+#| fig-height: 5
 responses |>
-  filter(question |> str_starts("q6"), !is.na(selected)) |>
+  filter(source == "survey", question == "q6", option != "other_text", !is.na(selected)) |>
   summarise(n_selected = sum(selected), n_shown = n(), .by = option_text) |>
   mutate(rate = n_selected / n_shown) |>
   ggplot(aes(rate, fct_reorder(option_text, rate))) +
@@ -175,9 +184,27 @@ responses |>
   scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .15))) +
   labs(
     title = "What would ideal care support look like?",
-    subtitle = "All pathways, survey + canvassing combined (choose up to three)",
+    subtitle = "All pathways, survey respondents shown the question (choose up to three)",
     x = "Selection rate", y = NULL
   )
+```
+
+### Respondents' own words
+
+Open-form "Other" answers are captured verbatim in `*_other_text` columns —
+an early taste of the qualitative corpus before the dedicated open-text
+questions arrive. Counts by question:
+
+```{r}
+#| label: other-text
+survey |>
+  select(ends_with("_other_text")) |>
+  summarise(across(everything(), \(x) sum(!is.na(x)))) |>
+  pivot_longer(everything(), names_to = "question", values_to = "responses") |>
+  mutate(question = str_remove(question, "_other_text")) |>
+  filter(responses > 0) |>
+  arrange(desc(responses)) |>
+  knitr::kable()
 ```
 
 ### Doorstep challenges (canvassing screener)

@@ -3,34 +3,66 @@ q1_child_now,"We would like to know more about your connection to care, if any. 
 q1_aging_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I care for an aging person now
 q1_disability_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I care for someone with a disability or chronic health condition now
 q1_paid_provider,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I am a paid care provider. I offer support and services for kids, aging adults, and/or people with disabilities"
+q1_need_care_now,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I need care but am not receiving it
+q1_receives_care,"We would like to know more about your connection to care, if any. Choose all that apply to you.",I receive or have received care for a disability or chronic condition
 q1_cared_past,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I have cared for an aging adult, child, or someone with a disability or chronic health condition in the past"
 q1_expect_future,"We would like to know more about your connection to care, if any. Choose all that apply to you.","I am not providing or receiving care right now, but I expect to in the next 5 years"
+q1_observer,"We would like to know more about your connection to care, if any. Choose all that apply to you.","None of these apply to me right now, but I know someone who receives or needs care"
 q1_none,"We would like to know more about your connection to care, if any. Choose all that apply to you.",None of these apply to me
+q1_other,"We would like to know more about your connection to care, if any. Choose all that apply to you.",Other (any response not in the structured options)
+q1_other_text,"We would like to know more about your connection to care, if any. Choose all that apply to you.",Free text captured from other responses
 q2a_unaffordable,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Care is unaffordable
+q2a_finding,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)","It is hard to find care that's available, nearby, or right for my family or me"
 q2a_time_flex,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have enough time or flexibility
+q2a_help,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have enough help or support
 q2a_figure_out,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",It is hard to figure out what help exists or how to get it
 q2a_navigate,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",It is hard to navigate existing care programs
+q2a_no_say,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have a say in how care works for me or my family
 q2a_job,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Care affected my job or career
-q2a_other,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Other
+q2a_other,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Other (any response not in the structured options)
+q2a_other_text,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Free text captured from other responses
 q3a_affordable_quality,What care support would make a difference for you or people around you? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
 q3a_backup,What care support would make a difference for you or people around you? (Choose all that apply),Backup care for emergencies or unexpected needs
-q3a_extended_childcare,What care support would make a difference for you or people around you? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
 q3a_everyday_support,What care support would make a difference for you or people around you? (Choose all that apply),Everyday support like meals and transportation
-q3a_other,What care support would make a difference for you or people around you? (Choose all that apply),Other
+q3a_extended_childcare,What care support would make a difference for you or people around you? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
+q3a_financial,What care support would make a difference for you or people around you? (Choose all that apply),Financial support for care expenses
+q3a_navigation_help,What care support would make a difference for you or people around you? (Choose all that apply),"Help with finding, understanding, and accessing available care options"
+q3a_schedule_control,What care support would make a difference for you or people around you? (Choose all that apply),More control over my schedule at work
+q3a_paid_time_off,What care support would make a difference for you or people around you? (Choose all that apply),Paid time off for care
+q3a_respite,What care support would make a difference for you or people around you? (Choose all that apply),Respite care
+q3a_other,What care support would make a difference for you or people around you? (Choose all that apply),Other (any response not in the structured options)
+q3a_other_text,What care support would make a difference for you or people around you? (Choose all that apply),Free text captured from other responses
 q4a_family_friends,What or who helps you most with care? (Choose your top 3),"Family, friends, or neighbors"
 q4a_health_professionals,What or who helps you most with care? (Choose your top 3),Health care professionals
 q4a_paid_provider,What or who helps you most with care? (Choose your top 3),"Paid care provider for home care or personal care, child care, or pre-k"
 q4a_community_religious,What or who helps you most with care? (Choose your top 3),Community organizations or religious groups
+q4a_government,What or who helps you most with care? (Choose your top 3),"Government support, like paid leave or other care services paid for using federal, state, or county dollars"
 q4a_employer,What or who helps you most with care? (Choose your top 3),"Employer support for things like leave, flexibility, benefits"
 q4a_support_groups,What or who helps you most with care? (Choose your top 3),"Support groups, online, or in-person"
+q4a_technology,What or who helps you most with care? (Choose your top 3),Technology or online tools
 q4a_no_help,What or who helps you most with care? (Choose your top 3),I do not receive help
-q4a_other,What or who helps you most with care? (Choose your top 3),Other
+q4a_other,What or who helps you most with care? (Choose your top 3),Other (any response not in the structured options)
+q4a_other_text,What or who helps you most with care? (Choose your top 3),Free text captured from other responses
+q2b_unaffordable,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Care that's unaffordable
 q2b_finding,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)","Difficulty with finding care that's available, nearby, or right for me or my family"
+q2b_time_flex,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Not having time or flexibility
 q2b_help,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Not enough help or support with care
+q2b_figure_out,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Difficulty knowing what help exists or how to get it
+q2b_navigate,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Difficulty navigating existing care programs
+q2b_no_say,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Not having a say in how care works for my family or me
 q2b_job,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Care could affect my job or career
+q2b_other,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Other (any response not in the structured options)
+q2b_other_text,"When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",Free text captured from other responses
 q3b_affordable_quality,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
+q3b_backup,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Backup care for emergencies or unexpected needs
 q3b_extended_childcare,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
 q3b_financial,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Financial support for care expenses
+q3b_navigation_help,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),"Help with finding, understanding, and accessing available care options"
+q3b_schedule_control,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),More control over my schedule at work
+q3b_paid_time_off,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Paid time off for care
+q3b_respite,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Respite care
+q3b_other,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Other (any response not in the structured options)
+q3b_other_text,What types of care support and services do you think will matter most for you or people you know? (Choose all that apply),Free text captured from other responses
 q2c_unaffordable,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Care was unaffordable
 q2c_finding,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)","It was hard to find care that was available, nearby, or right for my family and me"
 q2c_time_flex,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",I didn't have enough time or flexibility
@@ -39,12 +71,58 @@ q2c_figure_out,"When you provided or received care what challenges, if any, did 
 q2c_navigate,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",It was hard to navigate existing care programs
 q2c_no_say,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",I didn't have a say in how care works for me or my family
 q2c_job,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Care affected my job or career
+q2c_other,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Other (any response not in the structured options)
+q2c_other_text,"When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",Free text captured from other responses
 q3c_affordable_quality,What care support would have made a difference for you or people around you? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
 q3c_backup,What care support would have made a difference for you or people around you? (Choose all that apply),Backup care for emergencies or unexpected needs
+q3c_extended_childcare,What care support would have made a difference for you or people around you? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
 q3c_financial,What care support would have made a difference for you or people around you? (Choose all that apply),Financial support for care expenses
 q3c_navigation_help,What care support would have made a difference for you or people around you? (Choose all that apply),"Help with finding, understanding, and accessing available care options"
 q3c_schedule_control,What care support would have made a difference for you or people around you? (Choose all that apply),More control over my schedule at work
 q3c_paid_time_off,What care support would have made a difference for you or people around you? (Choose all that apply),Paid time off for care
+q3c_respite,What care support would have made a difference for you or people around you? (Choose all that apply),Respite care
+q3c_other,What care support would have made a difference for you or people around you? (Choose all that apply),Other (any response not in the structured options)
+q3c_other_text,What care support would have made a difference for you or people around you? (Choose all that apply),Free text captured from other responses
+q4c_family_friends,What or who helped you most with care? (Choose your top 3),"Family, friends, or neighbors"
+q4c_health_professionals,What or who helped you most with care? (Choose your top 3),Health care professionals
+q4c_paid_provider,What or who helped you most with care? (Choose your top 3),"Paid care provider for home care or personal care, daycare, childcare, or pre-k"
+q4c_community_religious,What or who helped you most with care? (Choose your top 3),Community organizations or religious groups
+q4c_government,What or who helped you most with care? (Choose your top 3),"Government support, like paid leave or other care services paid with federal, state, or county money"
+q4c_employer,What or who helped you most with care? (Choose your top 3),"Employer support for things like leave, flexibility, benefits"
+q4c_support_groups,What or who helped you most with care? (Choose your top 3),"Support groups, online, or in-person"
+q4c_technology,What or who helped you most with care? (Choose your top 3),Technology or online tools
+q4c_no_help,What or who helped you most with care? (Choose your top 3),I did not receive help
+q4c_other,What or who helped you most with care? (Choose your top 3),Other (any response not in the structured options)
+q4c_other_text,What or who helped you most with care? (Choose your top 3),Free text captured from other responses
+q2d_unaffordable,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",Unaffordable care
+q2d_finding,"What care challenges, if any, do the people you know experience? (Choose all that apply.)","It was hard to find care that's available, nearby, or right for them"
+q2d_time_flex,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",They don't have enough time or flexibility
+q2d_help,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",They are doing this without enough help or support
+q2d_figure_out,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",It is hard for them to figure out what help exists or how to get it
+q2d_navigate,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",It is hard for them to navigate existing care programs
+q2d_no_say,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",They don't have a say in how care works for them
+q2d_job,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",Care has affected their jobs or careers
+q2d_other,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",Other (any response not in the structured options)
+q2d_other_text,"What care challenges, if any, do the people you know experience? (Choose all that apply.)",Free text captured from other responses
+q3d_affordable_quality,What care support would make a difference for the people you know? (Choose all that apply),"Affordable, high quality care for an aging adult, a child, someone with a disability, or myself"
+q3d_backup,What care support would make a difference for the people you know? (Choose all that apply),Backup care for emergencies or unexpected needs
+q3d_extended_childcare,What care support would make a difference for the people you know? (Choose all that apply),"Extended child care options such as before 9:00AM, after 5:00PM, or during the summer"
+q3d_financial,What care support would make a difference for the people you know? (Choose all that apply),Financial support for care expenses
+q3d_navigation_help,What care support would make a difference for the people you know? (Choose all that apply),"Help with finding, understanding, and accessing available care options"
+q3d_schedule_control,What care support would make a difference for the people you know? (Choose all that apply),More control over my schedule at work
+q3d_paid_time_off,What care support would make a difference for the people you know? (Choose all that apply),Paid time off for care
+q3d_respite,What care support would make a difference for the people you know? (Choose all that apply),Respite care
+q3d_other,What care support would make a difference for the people you know? (Choose all that apply),Other (any response not in the structured options)
+q3d_other_text,What care support would make a difference for the people you know? (Choose all that apply),Free text captured from other responses
+q4d_family_friends,What or who helps most with their care? (Choose your top 3),"Family, friends, or neighbors"
+q4d_health_professionals,What or who helps most with their care? (Choose your top 3),Health care professionals
+q4d_paid_provider,What or who helps most with their care? (Choose your top 3),"Paid care provider for home care or personal care, daycare, childcare, or pre-k"
+q4d_community_religious,What or who helps most with their care? (Choose your top 3),Community organizations or religious groups
+q4d_government,What or who helps most with their care? (Choose your top 3),"Government support, like paid leave or other care services paid with federal, state, or county money"
+q4d_support_groups,What or who helps most with their care? (Choose your top 3),"Support groups, online, or in-person"
+q4d_technology,What or who helps most with their care? (Choose your top 3),Technology or online tools
+q4d_other,What or who helps most with their care? (Choose your top 3),Other (any response not in the structured options)
+q4d_other_text,What or who helps most with their care? (Choose your top 3),Free text captured from other responses
 q6_there_when_needed,What would ideal care support and services look like for you? (Choose up to three),"There when you need it - at every stage of life, no matter your job or family situation"
 q6_easy_to_use,What would ideal care support and services look like for you? (Choose up to three),Easy to find and use - without complicated steps or barriers
 q6_affordable,What would ideal care support and services look like for you? (Choose up to three),Affordable - without causing personal financial strain
@@ -53,27 +131,40 @@ q6_flexible,What would ideal care support and services look like for you? (Choos
 q6_reliable,What would ideal care support and services look like for you? (Choose up to three),Reliable - something you can count on over time
 q6_clear,What would ideal care support and services look like for you? (Choose up to three),Clear and transparent - you know what's available and how to get it
 q6_good_jobs,What would ideal care support and services look like for you? (Choose up to three),Good jobs for care providers - with fair pay and stability
+q6_healthy_dev,What would ideal care support and services look like for you? (Choose up to three),"Support healthy development, well-being, and independence"
+q6_lived_experience,What would ideal care support and services look like for you? (Choose up to three),"Shaped by people with experience giving, receiving, or needing care"
 q6_secure,What would ideal care support and services look like for you? (Choose up to three),"Keep people who rely on care feeling secure, healthy, and thriving"
+q6_other,What would ideal care support and services look like for you? (Choose up to three),Other (any response not in the structured options)
+q6_other_text,What would ideal care support and services look like for you? (Choose up to three),Free text captured from other responses
 gender_woman,What is your gender? (Choose all that apply),Woman
 gender_man,What is your gender? (Choose all that apply),Man
-gender_other,What is your gender? (Choose all that apply),Other
+gender_nonbinary,What is your gender? (Choose all that apply),Non-binary
+gender_transgender,What is your gender? (Choose all that apply),Transgender
 gender_prefer_not_to_say,What is your gender? (Choose all that apply),Prefer not to say
+gender_other,What is your gender? (Choose all that apply),Other (any response not in the structured options)
+gender_other_text,What is your gender? (Choose all that apply),Free text captured from other responses
+race_aian,What is your race or ethnicity? (Choose all that apply),American Indian or Alaska Native
+race_asian,What is your race or ethnicity? (Choose all that apply),Asian or Asian American
 race_black,What is your race or ethnicity? (Choose all that apply),Black or African American
 race_hispanic,What is your race or ethnicity? (Choose all that apply),"Hispanic, Latino, or Latina"
 race_mena,What is your race or ethnicity? (Choose all that apply),Middle Eastern or North African
 race_nhpi,What is your race or ethnicity? (Choose all that apply),Native Hawaiian or Pacific Islander
+race_white,What is your race or ethnicity? (Choose all that apply),White
 race_multiracial,What is your race or ethnicity? (Choose all that apply),Multiracial
-race_other,What is your race or ethnicity? (Choose all that apply),Other
 race_prefer_not_to_say,What is your race or ethnicity? (Choose all that apply),Prefer not to say
-doorstep_challenges_cost,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Cost
-doorstep_challenges_time,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Time
-doorstep_challenges_location,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Location
-doorstep_challenges_right_fit,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Right fit
-doorstep_challenges_lack_support,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Lack of support
-doorstep_challenges_no_control,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No control
-doorstep_challenges_worker_availability,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Worker availability
-doorstep_challenges_barriers_access,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Barriers to access
-doorstep_challenges_no_challenges,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No challenges
+race_other,What is your race or ethnicity? (Choose all that apply),Other (any response not in the structured options)
+race_other_text,What is your race or ethnicity? (Choose all that apply),Free text captured from other responses
+doorstep_cost,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Cost
+doorstep_time,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Time
+doorstep_location,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Location
+doorstep_right_fit,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Right fit
+doorstep_lack_support,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Lack of support
+doorstep_no_control,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No control
+doorstep_worker_availability,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Worker availability
+doorstep_barriers_access,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Barriers to access
+doorstep_no_challenges,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No challenges
+doorstep_other,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Other (any response not in the structured options)
+doorstep_other_text,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Free text captured from other responses
 hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)","1, just myself"
 hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",2
 hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)",3
