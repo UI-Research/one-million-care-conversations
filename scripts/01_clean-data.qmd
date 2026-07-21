@@ -358,3 +358,19 @@ glimpse(survey)
 write_rds(survey, here("data/processed/survey_clean.rds"))
 write_csv(survey, here("data/processed/survey_clean.csv"))
 ```
+
+## Long view
+
+The wide file is canonical (one row per respondent, the unit of analysis).
+For option-level summaries and plots, `pivot_selections()` in
+`scripts/00_utils.R` reshapes it to one row per respondent × option:
+
+```{r}
+#| label: long-view
+source(here("scripts/00_utils.R"))
+
+survey |>
+  pivot_selections() |>
+  summarise(rate = mean(selected, na.rm = TRUE), .by = c(question, option)) |>
+  arrange(question, desc(rate))
+```
