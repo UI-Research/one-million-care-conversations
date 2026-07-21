@@ -4,6 +4,8 @@ format:
   html:
     embed-resources: true
     toc: true
+    code-fold: true
+    code-summary: "Show code"
 execute:
   warning: false
   message: false
@@ -433,7 +435,7 @@ col_map_canv <- c(
   canvass_mode        = "For Canvasser: How are you conducting this conversation?",
   responded           = "For Canvasser: Did the person respond and agree to answer questions?  If no, share the information card or the careconversations.com website and submit.",
   care_connection     = "Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",
-  doorstep_challenges = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
+  doorstep             = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
   continue_full       = "We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?",
   battery,
   q4c                 = "What or who helped you most with care? (Choose your top 3)",
@@ -462,7 +464,7 @@ doorstep_options <- c(
 )
 
 canv_multiselect <- c(
-  list(doorstep_challenges = doorstep_options),
+  list(doorstep = doorstep_options),
   multiselect_options[c("q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c", "q6")]
 )
 
@@ -518,7 +520,7 @@ factor level), with the source question and option text.
 ```{r}
 #| label: dictionary
 question_text <- c(col_map, col_map_canv[setdiff(names(col_map_canv), names(col_map))])
-all_multiselect <- c(multiselect_options, list(doorstep_challenges = doorstep_options))
+all_multiselect <- c(multiselect_options, list(doorstep = doorstep_options))
 
 dict_options <- all_multiselect |>
   imap(\(opts, q) tibble(

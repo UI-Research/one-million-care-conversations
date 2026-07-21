@@ -1,0 +1,238 @@
+---
+title: "Exploring the 1MCC test data"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    code-fold: true
+    code-summary: "Show code"
+execute:
+  warning: false
+  message: false
+fig-width: 7
+fig-height: 4
+---
+
+A first look at what the 1M Care Conversations data contains and the kinds of
+analysis it will support. Everything here runs on the **test exports** from the
+week of June 2–8, 2026 — 9 survey respondents and 12 canvassing contacts — so
+every number is illustrative of the *machinery*, not a finding. The same code
+runs unchanged as real deliveries land in `data/raw/`.
+
+Data comes from `scripts/01_clean-data.qmd`, which documents the cleaning; the
+generated `data/processed/data-dictionary.csv` maps every column to its
+question and option text.
+
+```{r}
+#| label: setup
+library(tidyverse)
+library(here)
+library(urbnthemes)
+library(scales)
+
+set_urbn_defaults(style = "print")
+source(here("scripts/00_utils.R"))
+
+survey     <- read_rds(here("data/processed/survey_clean.rds"))
+canvassing <- read_rds(here("data/processed/canvassing_clean.rds"))
+dictionary <- read_csv(here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
+
+# long view of every multi-select response, both sources, with option text
+responses <- bind_rows(
+  survey     = pivot_selections(survey),
+  canvassing = pivot_selections(canvassing),
+  .id = "source"
+) |>
+  mutate(indicator = str_c(question, "_", option)) |>
+  left_join(
+    dictionary |> select(indicator = column, option_text = option),
+    by = "indicator"
+  ) |>
+  mutate(option_text = str_wrap(coalesce(option_text, option), 40))
+```
+
+## The two data sources
+
+The digital survey and the canvassing form share the same core question
+battery (connection to care, challenges, supports, ideal care), so responses
+can be analyzed jointly. They differ around the edges: the survey collects
+demographics and respondent ZIP; canvassing instead records the doorstep
+funnel and the canvasser's ZIP.
+
+```{r}
+#| label: overview
+bind_rows(
+  survey     = summarise(survey, respondents = n(),
+                         first = min(as_date(submitted_at)), last = max(as_date(submitted_at))),
+  canvassing = summarise(canvassing, respondents = n(),
+                         first = min(as_date(submitted_at)), last = max(as_date(submitted_at))),
+  .id = "source"
+) |>
+  knitr::kable()
+```
+
+### The canvassing funnel
+
+Canvassing is a contact funnel: not everyone approached answers the door, and
+not everyone who answers agrees to the full questions. Analysis of canvassing
+responses needs the right denominator for each stage.
+
+```{r}
+#| label: funnel
+funnel <- tibble(
+  stage = c(
+    "Approached",
+    "Answered and engaged",
+    "Reports a connection to care",
+    "Agreed to full questions"
+  ),
+  n = c(
+    nrow(canvassing),
+    sum(canvassing$responded == "Yes - continue with questions", na.rm = TRUE),
+    sum(canvassing$care_connection == "Yes", na.rm = TRUE),
+    sum(!is.na(canvassing$pathway))
+  )
+) |>
+  mutate(stage = fct_rev(fct_inorder(stage)))
+
+ggplot(funnel, aes(n, stage)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.5) +
+  scale_x_continuous(expand = expansion(mult = c(0, .1))) +
+  labs(
+    title = "Canvassing doorstep funnel",
+    subtitle = "Test data, June 2-8 2026",
+    x = "Contacts", y = NULL
+  )
+```
+
+## Who is answering: care pathways
+
+Each respondent is routed down one pathway by their connection to care —
+current caregivers/recipients get the fullest question set. Pathway
+composition determines which questions have data and is the first thing to
+watch as real deliveries arrive.
+
+```{r}
+#| label: pathways
+bind_rows(
+  survey     = count(survey, pathway),
+  canvassing = count(drop_na(canvassing, pathway), pathway),
+  .id = "source"
+) |>
+  ggplot(aes(pathway, n, fill = source)) +
+  geom_col(position = position_dodge2(preserve = "single")) +
+  geom_text(aes(label = n), position = position_dodge2(width = 0.9, preserve = "single"), vjust = -0.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, .1))) +
+  labs(
+    title = "Respondents by care pathway",
+    subtitle = "Canvassing: among the 4 who agreed to full questions",
+    x = NULL, y = "Respondents", fill = NULL
+  )
+```
+
+## What people report
+
+The workhorse summary for every multi-select question is the selection rate:
+the share of respondents *shown the question* who picked each option. With
+real volume these become the headline descriptive statistics, with confidence
+intervals and demographic/geographic breakdowns.
+
+### Challenges among current caregivers (q2a)
+
+```{r}
+#| label: challenges
+responses |>
+  filter(question |> str_starts("q2a"), !is.na(selected)) |>
+  summarise(n_selected = sum(selected), n_shown = n(), .by = c(option_text)) |>
+  mutate(rate = n_selected / n_shown) |>
+  ggplot(aes(rate, fct_reorder(option_text, rate))) +
+  geom_col() +
+  geom_text(aes(label = str_glue("{n_selected} of {n_shown}")), hjust = -0.2) +
+  scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .15))) +
+  labs(
+    title = "Care challenges reported by current caregivers",
+    subtitle = "Share of respondents shown the question, survey + canvassing combined",
+    x = "Selection rate", y = NULL
+  )
+```
+
+### What ideal care looks like (q6)
+
+Everyone gets q6 regardless of pathway (choose up to three), so it is the
+question with the widest denominator — and likely a centerpiece of the
+narrative analysis.
+
+```{r}
+#| label: ideal
+responses |>
+  filter(question |> str_starts("q6"), !is.na(selected)) |>
+  summarise(n_selected = sum(selected), n_shown = n(), .by = option_text) |>
+  mutate(rate = n_selected / n_shown) |>
+  ggplot(aes(rate, fct_reorder(option_text, rate))) +
+  geom_col() +
+  geom_text(aes(label = str_glue("{n_selected} of {n_shown}")), hjust = -0.2) +
+  scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .15))) +
+  labs(
+    title = "What would ideal care support look like?",
+    subtitle = "All pathways, survey + canvassing combined (choose up to three)",
+    x = "Selection rate", y = NULL
+  )
+```
+
+### Doorstep challenges (canvassing screener)
+
+The canvasser-recorded quick challenges use short labels and a broader
+denominator (everyone who engaged, not just full-question takers).
+
+```{r}
+#| label: doorstep
+doorstep <- responses |>
+  filter(question == "doorstep", !is.na(selected)) |>
+  summarise(n_selected = sum(selected), n_shown = n(), .by = option_text)
+
+ggplot(doorstep, aes(n_selected, fct_reorder(option_text, n_selected))) +
+  geom_col() +
+  geom_text(aes(label = n_selected), hjust = -0.5) +
+  scale_x_continuous(expand = expansion(mult = c(0, .1)), breaks = breaks_width(1)) +
+  labs(
+    title = "Challenges mentioned at the door",
+    subtitle = str_glue("Among {unique(doorstep$n_shown)} engaged contacts"),
+    x = "Mentions", y = NULL
+  )
+```
+
+## Survey demographics
+
+The survey (not canvassing) carries demographics: household size and income,
+age, gender, race/ethnicity, disability, political views, plus respondent ZIP.
+These are the levers for the project's diversity targets and for subgroup
+analysis once counts support it.
+
+```{r}
+#| label: demographics
+survey |>
+  select(age, hh_size, hh_income, disability, political) |>
+  mutate(across(everything(), as.character)) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "value") |>
+  count(variable, value) |>
+  knitr::kable()
+```
+
+## What analysis this supports
+
+As monthly deliveries accumulate, this same structure supports:
+
+- **Theme prevalence** — selection rates for challenges, supports, and ideal
+  care, with uncertainty, overall and over time
+- **Pathway comparisons** — do current, past, and future caregivers name
+  different challenges and ideal supports?
+- **Mode comparisons** — the shared battery lets survey and canvassing
+  responses be pooled or contrasted
+- **Geographic variation** — respondent ZIP (survey) and canvasser ZIP roll up
+  to county/state for maps and for comparison against the state care-policy
+  grades from Research Objective 1
+- **Subgroup analysis** — demographic breakdowns of every rate above, gated on
+  minimum cell sizes
+- **Text analysis** — the open-text questions (q5, q7) are not in the test
+  exports yet; when they arrive they feed the NLP pipeline in `scripts/nlp/`
