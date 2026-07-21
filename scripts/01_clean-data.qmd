@@ -14,10 +14,10 @@ in `data/processed/`. Canvassing data cleaning will be added here as well.
 
 The main transformation is one-hot encoding the multi-select questions: the raw
 export stores multiple selections as a single pipe-delimited string, and we
-break each question into one binary (0/1) column per response option. A `1`
-means the option was selected, a `0` means the respondent saw the question but
-did not select it, and `NA` means the respondent never saw the question (skip
-logic) or skipped it.
+break each question into one logical column per response option. `TRUE` means
+the option was selected, `FALSE` means the respondent saw the question but did
+not select it, and `NA` means the respondent never saw the question (skip
+logic) or skipped it. Selection rates are just `mean(x, na.rm = TRUE)`.
 
 Response option text comes from the observed data, not the survey PDF — the
 live form's wording differs from the June 15 questionnaire document (e.g. the
@@ -122,10 +122,10 @@ survey <- select(survey, -address, -address2)
 ## One-hot encode multi-select questions
 
 Selections arrive pipe-delimited in survey order, e.g.
-`"Care is unaffordable|Other"`. Each question becomes one 0/1 column per
+`"Care is unaffordable|Other"`. Each question becomes one logical column per
 option (`q2a_unaffordable`, `q2a_other`, ...), with every option the
-respondent did not select set to 0 and rows where the question was unanswered
-set to `NA` across all of its option columns.
+respondent did not select set to `FALSE` and rows where the question was
+unanswered set to `NA` across all of its option columns.
 
 ```{r}
 #| label: encode-fn
@@ -142,7 +142,7 @@ encode_multiselect <- function(data, col, options) {
   }
 
   indicators <- options |>
-    map(\(opt) map_int(selections, \(s) as.integer(opt %in% s))) |>
+    map(\(opt) map_lgl(selections, \(s) opt %in% s)) |>
     set_names(str_c(col, "_", names(options))) |>
     as_tibble() |>
     mutate(across(everything(), \(x) if_else(is.na(data[[col]]), NA, x)))
@@ -154,8 +154,8 @@ encode_multiselect <- function(data, col, options) {
 ```
 
 A quick demonstration on a toy question with options `a`–`f`: a response of
-`"c | e"` gets 1 for c and e and 0 for everything else, and an unanswered row
-is `NA` throughout.
+`"c | e"` gets `TRUE` for c and e and `FALSE` for everything else, and an
+unanswered row is `NA` throughout.
 
 ```{r}
 #| label: encode-demo
