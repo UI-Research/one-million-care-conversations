@@ -2,7 +2,7 @@
 
 Data analysis code for the Urban Institute's research partnership with [Caring Across Generations](https://caringacross.org/) on the **1M Conversations About Care** initiative: one million families engaged through surveys and guided conversations about care challenges, ideal supports, and what's working for families.
 
-This repo holds only the analysis code — data cleaning and the quantitative and qualitative pipelines. Written deliverables and project documents, including the scope of work, live on Box.
+This repo holds only the analysis code — data cleaning and the quantitative and qualitative pipelines. Written deliverables and project documents, including the scope of work, live on Box. [SURVEY.md](SURVEY.md) documents the survey instrument as observed in the data (routing, form versions, export quirks).
 
 - **Quantitative** — sampling targets from public microdata (CPS, ATUS, NHIS); descriptive analysis of the coalition's survey data by theme and demographic group
 - **Qualitative** — thematic analysis of conversation text. Hand-coding covers a sample; LLM-assisted coding, validated against the human-coded sample, scales to the full corpus
