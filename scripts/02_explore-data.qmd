@@ -1,5 +1,5 @@
 ---
-title: "Exploring the 1MCC test data"
+title: "Exploring the 1MCC data"
 format:
   html:
     embed-resources: true
@@ -14,12 +14,12 @@ fig-height: 4
 ---
 
 A first look at what the 1M Care Conversations data contains and the kinds of
-analysis it will support. The survey numbers are now **real**: the first live
-delivery covers June 4 – July 10, 2026, with 327 complete and 158 partial
-responses. Canvassing remains the pre-launch **test** export (12 contacts), so
-survey and canvassing are shown separately and never pooled; canvassing charts
-illustrate the machinery, not findings. The same code runs unchanged as new
-deliveries land in `data/raw/`.
+analysis it will support. Survey and canvassing are both **real** now: the
+survey covers the digital form (`f1`, from June 4, 2026) plus the postcard
+channel (`f3`, from July 31), and canvassing covers live `f1` deliveries (from
+June 9). The two tools are shown separately and never pooled. Counts in the
+prose below reflect the deliveries at the time of writing; the code itself
+runs unchanged as new deliveries land in `data/raw/`.
 
 Data comes from `scripts/01_clean-data.qmd`, which documents the cleaning; the
 generated `data/processed/data-dictionary.csv` maps every column to its
@@ -69,7 +69,6 @@ bind_rows(
               first = min(as_date(submitted_at)), last = max(as_date(submitted_at)),
               .by = response_status),
   canvassing = canvassing |>
-    mutate(response_status = "test") |>
     summarise(respondents = n(),
               first = min(as_date(submitted_at)), last = max(as_date(submitted_at)),
               .by = response_status),
@@ -261,5 +260,6 @@ As monthly deliveries accumulate, this same structure supports:
   grades from Research Objective 1
 - **Subgroup analysis** — demographic breakdowns of every rate above, gated on
   minimum cell sizes
-- **Text analysis** — the open-text questions (q5, q7) are not in the test
-  exports yet; when they arrive they feed the NLP pipeline in `scripts/nlp/`
+- **Text analysis** — the open-text questions (q5, q7) arrive as separate
+  `*_opentext` exports (first deliveries received August 2026); they feed the
+  NLP pipeline in `scripts/nlp/`

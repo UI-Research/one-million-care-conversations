@@ -12,7 +12,7 @@ q1_none,"We would like to know more about your connection to care, if any. Choos
 q1_other,"We would like to know more about your connection to care, if any. Choose all that apply to you.",Other (any response not in the structured options)
 q1_other_text,"We would like to know more about your connection to care, if any. Choose all that apply to you.",Free text captured from other responses
 q2a_unaffordable,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",Care is unaffordable
-q2a_finding,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)","It is hard to find care that's available, nearby, or right for my family or me"
+q2a_finding,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)","It is hard to find care that's available, nearby, or right for my family or me [or] It's hard to find care that's available, nearby, or right for me or my family"
 q2a_time_flex,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have enough time or flexibility
 q2a_help,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",I don't have enough help or support
 q2a_figure_out,"What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",It is hard to figure out what help exists or how to get it
@@ -119,20 +119,22 @@ q4d_health_professionals,What or who helps most with their care? (Choose your to
 q4d_paid_provider,What or who helps most with their care? (Choose your top 3),"Paid care provider for home care or personal care, daycare, childcare, or pre-k"
 q4d_community_religious,What or who helps most with their care? (Choose your top 3),Community organizations or religious groups
 q4d_government,What or who helps most with their care? (Choose your top 3),"Government support, like paid leave or other care services paid with federal, state, or county money"
+q4d_employer,What or who helps most with their care? (Choose your top 3),"Employer support for things like leave, flexibility, benefits"
 q4d_support_groups,What or who helps most with their care? (Choose your top 3),"Support groups, online, or in-person"
 q4d_technology,What or who helps most with their care? (Choose your top 3),Technology or online tools
+q4d_no_help,What or who helps most with their care? (Choose your top 3),I did not receive help
 q4d_other,What or who helps most with their care? (Choose your top 3),Other (any response not in the structured options)
 q4d_other_text,What or who helps most with their care? (Choose your top 3),Free text captured from other responses
 q6_there_when_needed,What would ideal care support and services look like for you? (Choose up to three),"There when you need it - at every stage of life, no matter your job or family situation"
-q6_easy_to_use,What would ideal care support and services look like for you? (Choose up to three),Easy to find and use - without complicated steps or barriers
+q6_easy_to_use,What would ideal care support and services look like for you? (Choose up to three),Easy to find and use - without complicated steps or barriers [or] Easy to find and use - without confusing steps or barriers
 q6_affordable,What would ideal care support and services look like for you? (Choose up to three),Affordable - without causing personal financial strain
 q6_in_community,What would ideal care support and services look like for you? (Choose up to three),Available in your community - not far away or out of reach
 q6_flexible,What would ideal care support and services look like for you? (Choose up to three),"Flexible - fitting real schedules, needs, and changing circumstances"
 q6_reliable,What would ideal care support and services look like for you? (Choose up to three),Reliable - something you can count on over time
 q6_clear,What would ideal care support and services look like for you? (Choose up to three),Clear and transparent - you know what's available and how to get it
 q6_good_jobs,What would ideal care support and services look like for you? (Choose up to three),Good jobs for care providers - with fair pay and stability
-q6_healthy_dev,What would ideal care support and services look like for you? (Choose up to three),"Support healthy development, well-being, and independence"
-q6_lived_experience,What would ideal care support and services look like for you? (Choose up to three),"Shaped by people with experience giving, receiving, or needing care"
+q6_healthy_dev,What would ideal care support and services look like for you? (Choose up to three),"Support healthy development, well-being, and independence [or] Supports healthy development, well-being, and independence"
+q6_lived_experience,What would ideal care support and services look like for you? (Choose up to three),"Shaped by people with experience giving, receiving, or needing care [or] Shaped by people with lived care experience"
 q6_secure,What would ideal care support and services look like for you? (Choose up to three),"Keep people who rely on care feeling secure, healthy, and thriving"
 q6_other,What would ideal care support and services look like for you? (Choose up to three),Other (any response not in the structured options)
 q6_other_text,What would ideal care support and services look like for you? (Choose up to three),Free text captured from other responses
@@ -163,6 +165,8 @@ doorstep_no_control,"What challenges, if any, have you or others faced — or do
 doorstep_worker_availability,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Worker availability
 doorstep_barriers_access,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Barriers to access
 doorstep_no_challenges,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",No challenges
+doorstep_availability,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Availability
+doorstep_figure_out,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Hard to figure out
 doorstep_other,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Other (any response not in the structured options)
 doorstep_other_text,"What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",Free text captured from other responses
 hh_size,"How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)","1, just myself"

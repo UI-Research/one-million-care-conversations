@@ -1,0 +1,36 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+R/Quarto analysis code for the Urban Institute × Caring Across Generations "1M Conversations About Care" initiative: cleaning and analyzing survey and canvassing data about care challenges and supports. Only analysis code lives here — data and project documents live on Box.
+
+## Commands
+
+```sh
+Rscript scripts/00_ingest-raw.R            # sync data/raw/ from Box via API (needs box_auth() + BOX_RAW_FOLDER_ID in ~/.Renviron)
+quarto render scripts/01_clean-data.qmd    # clean raw exports → data/processed/ + data dictionary
+quarto render scripts/02_explore-data.qmd  # summary stats and charts (reads processed data)
+```
+
+Run 00 to pull new deliveries (it aborts on Box↔DATA-LOG mismatches, upstream file modifications, and un-PII-skimmed deliveries — resolve with the team, don't bypass), then 01 before 02. Only 00 touches Box; rendering works offline from the local copy. There is no build system, test suite, or renv — packages (tidyverse, readxl, here, cli, urbnthemes) come from the system library. All paths use `here()`, so rendering works from any directory.
+
+## Hard rules
+
+- **No PII, no coalition data in the repo — ever.** `.gitignore` blocks all of `data/` except the generated `data-dictionary.csv` (schema only), plus rendered `.html` (can embed data rows) and `.pdf`. Never weaken these rules or commit data files. If the PII guard in `01_clean-data.qmd` trips (non-empty address fields), stop and flag it — do not work around it.
+- Coalition-collected data must never be described as "nationally representative" in any Urban output.
+
+## Architecture
+
+Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, `data-dictionary.csv`) → `scripts/02_explore-data.qmd`. Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/survey/` and `scripts/nlp/` are placeholders for the descriptive and text-analysis pipelines.
+
+Key design decisions that span files:
+
+- **Fail loudly on export drift.** Export column names are the full question text and change across form versions. `rename_validated()` (00_utils.R) errors on any unmapped or missing column; `encode_multiselect()` errors on unknown option values and warns when a free-text value repeats across 3+ respondents (likely a new structured option). When these fire, the fix is to deliberately update the `col_map` / option dictionaries in `01_clean-data.qmd`, not to relax the validation.
+- **Option dictionaries use observed export text, not the questionnaire PDF.** The live form's wording diverges from the official documents. `SURVEY.md` is the reference for the instrument as it actually behaves (routing, form versions f0/f1, export quirks) — read it before touching cleaning code, and update it when new empirical facts about the instrument are established.
+- **Multi-select encoding semantics.** Each multi-select question becomes one logical column per option (`q2a_unaffordable`, …): `TRUE` = selected, `FALSE` = saw the question but didn't select, `NA` = never saw it (skip logic) or skipped. Selection rates are `mean(x, na.rm = TRUE)`. Anything not in the option dictionary lands in `{q}_other` / `{q}_other_text` (respondent voice, feeds the NLP work).
+- **Pathways.** Respondents route down exactly one of five pathways (current/past/future/observer/none) from q1, with priority current > past > future > observer — `derive_pathway()` in 00_utils.R encodes this, verified empirically. Skip-logic checks in 01 validate that respondents answered exactly their pathway's questions.
+- **Wide is canonical, long is for plotting.** The processed files are one row per respondent; `pivot_selections()` produces the respondent × option long view at the top of summary/plotting code.
+- **File selection is by name pattern.** Delivery filenames encode source (`surv`/`canv`), dates, form version (`f0` = pre-launch test, excluded for survey; `f1`+ = real), and complete vs partial. Nothing in `data/raw/` is renamed or re-filed by hand; `_ DATA LOG _.xlsx` is the delivery manifest.
+- Survey (f1 digital + f3 postcards) and canvassing (f1) are real data; f0 test deliveries are excluded from both. 02 keeps survey and canvassing separate and never pools them. The `*_opentext` and everyaction exports are set aside for the NLP pipeline and not read by 01.

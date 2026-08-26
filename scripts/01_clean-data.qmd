@@ -7,7 +7,7 @@ format:
     code-fold: true
     code-summary: "Show code"
 execute:
-  warning: false
+  warning: true
   message: false
 ---
 
@@ -55,10 +55,25 @@ raw_dir <- here("data/raw/Raw data backups")
 
 survey_files <- list.files(
   raw_dir,
-  pattern = "^surv_export_.*_closed.*\\.xlsx$", full.names = TRUE
+  # deliveries from 2026-08 on carry a "nopii_" prefix (PII-skimmed upstream)
+  pattern = "^(nopii_)?surv_export_.*_closed.*\\.xlsx$", full.names = TRUE
 ) |>
   str_subset("~\\$", negate = TRUE) |> # Excel lock files, present while a workbook is open
   str_subset("_f0_", negate = TRUE)    # f0 = pre-launch test delivery per the data log
+
+# The anchored pattern above is deliberate — but a future prefix change would
+# make it silently skip deliveries. Any closed survey export it didn't claim
+# (f0 aside) is treated as naming drift and stops the render.
+unclaimed <- list.files(raw_dir, pattern = "surv_export_.*_closed.*\\.xlsx$", full.names = TRUE) |>
+  str_subset("~\\$", negate = TRUE) |>
+  str_subset("_f0_", negate = TRUE) |>
+  setdiff(survey_files)
+if (length(unclaimed) > 0) {
+  cli::cli_abort(c(
+    "{length(unclaimed)} closed survey export{?s} not matched by the filename pattern — naming drift? Update the pattern deliberately:",
+    set_names(basename(unclaimed), "x")
+  ))
+}
 
 basename(survey_files)
 ```
@@ -161,12 +176,17 @@ the qualitative/NLP work. As a drift alarm, a free-text value repeating across
 3+ respondents triggers a warning, since repetition suggests a new
 *structured* option missing from the dictionary rather than genuine free text.
 
+A dictionary entry may list several accepted wordings for the same option: the
+August 19, 2026 form revision reworded a handful of options without changing
+their meaning, and the research team combines old and new responses, so any
+listed variant sets the same indicator column.
+
 ```{r}
 #| label: encode-fn
 encode_multiselect <- function(data, col, options) {
   # tokens are trimmed so "c | e" and "c|e" encode identically
   selections <- str_split(data[[col]], fixed("|")) |> map(str_trim)
-  extras <- map(selections, \(s) s[!is.na(s) & !s %in% options])
+  extras <- map(selections, \(s) s[!is.na(s) & !s %in% unlist(options)])
 
   repeated <- table(unlist(extras)) |>
     keep(\(n) n >= 3) |>
@@ -181,7 +201,7 @@ encode_multiselect <- function(data, col, options) {
   }
 
   indicators <- options |>
-    map(\(opt) map_lgl(selections, \(s) opt %in% s)) |>
+    map(\(opt) map_lgl(selections, \(s) any(s %in% opt))) |>
     set_names(str_c(col, "_", names(options))) |>
     as_tibble() |>
     mutate(
@@ -224,9 +244,13 @@ multiselect_options <- list(
     observer       = "None of these apply to me right now, but I know someone who receives or needs care",
     none           = "None of these apply to me"
   ),
-  q2a = c(
+  q2a = list(
     unaffordable = "Care is unaffordable",
-    finding      = "It is hard to find care that's available, nearby, or right for my family or me",
+    finding      = c(
+      "It is hard to find care that's available, nearby, or right for my family or me",
+      # Aug 19 2026 revision — seeded from the questionnaire PDF, not yet observed in an export
+      "It's hard to find care that's available, nearby, or right for me or my family"
+    ),
     time_flex    = "I don't have enough time or flexibility",
     help         = "I don't have enough help or support",
     figure_out   = "It is hard to figure out what help exists or how to get it",
@@ -333,20 +357,35 @@ multiselect_options <- list(
     paid_provider        = "Paid care provider for home care or personal care, daycare, childcare, or pre-k",
     community_religious  = "Community organizations or religious groups",
     government           = "Government support, like paid leave or other care services paid with federal, state, or county money",
+    # in the instrument (per the Aug 19 2026 PDF, wording as in q4c) but unobserved so far
+    employer             = "Employer support for things like leave, flexibility, benefits",
     support_groups       = "Support groups, online, or in-person",
-    technology           = "Technology or online tools"
+    technology           = "Technology or online tools",
+    no_help              = "I did not receive help"
   ),
-  q6 = c(
+  # Aug 19 2026 variants are seeded from the questionnaire PDF with the
+  # formatting pattern of observed exports (plain hyphens, not the PDF's
+  # em-dashes) — confirm against the first export that carries them
+  q6 = list(
     there_when_needed = "There when you need it - at every stage of life, no matter your job or family situation",
-    easy_to_use       = "Easy to find and use - without complicated steps or barriers",
+    easy_to_use       = c(
+      "Easy to find and use - without complicated steps or barriers",
+      "Easy to find and use - without confusing steps or barriers"          # Aug 19 2026
+    ),
     affordable        = "Affordable - without causing personal financial strain",
     in_community      = "Available in your community - not far away or out of reach",
     flexible          = "Flexible - fitting real schedules, needs, and changing circumstances",
     reliable          = "Reliable - something you can count on over time",
     clear             = "Clear and transparent - you know what's available and how to get it",
     good_jobs         = "Good jobs for care providers - with fair pay and stability",
-    healthy_dev       = "Support healthy development, well-being, and independence",
-    lived_experience  = "Shaped by people with experience giving, receiving, or needing care",
+    healthy_dev       = c(
+      "Support healthy development, well-being, and independence",
+      "Supports healthy development, well-being, and independence"          # Aug 19 2026
+    ),
+    lived_experience  = c(
+      "Shaped by people with experience giving, receiving, or needing care",
+      "Shaped by people with lived care experience"                         # Aug 19 2026
+    ),
     secure            = "Keep people who rely on care feeling secure, healthy, and thriving"
   ),
   gender = c(
@@ -497,7 +536,8 @@ survey <- survey |>
   mutate(
     # tz assumed UTC — the platform's actual export timezone is unconfirmed
     submitted_at = excel_datetime(submitted_at),
-    zip = str_pad(zip, width = 5, pad = "0")
+    # same "91401.0" float artifact as hh_size; was invisible while warnings were silenced
+    zip = str_pad(str_remove(zip, "\\.0$"), width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at, form_version, response_status, delivery)
 
@@ -531,24 +571,34 @@ column map and dictionaries are reused. The canvasser-only doorstep challenge
 question uses its own short labels. There are no demographic questions and no
 respondent ZIP; the only geography is the *canvasser's* ZIP.
 
-Note: the only canvassing delivery so far is the `f0` pre-launch test, so
-unlike the survey it is *not* excluded here — but treat the cleaned canvassing
-output as test data until real deliveries arrive.
+Like the survey, the `f0` pre-launch test is excluded and cleaning covers real
+deliveries (`f1`+, complete and partial combined). The `*_opentext` exports
+(here and for the survey) are set aside for the text-analysis pipeline and not
+read by this script.
 
 ```{r}
 #| label: canvassing-read
 canvassing_files <- list.files(
   raw_dir,
-  pattern = "^canv_export_.*\\.xlsx$", full.names = TRUE
+  pattern = "^(nopii_)?canv_export_.*_closed.*\\.xlsx$", full.names = TRUE
 ) |>
-  str_subset("~\\$", negate = TRUE)
+  str_subset("~\\$", negate = TRUE) |>
+  str_subset("_f0_", negate = TRUE)
 
-canvassing_raw <- canvassing_files |>
-  map(read_excel, col_types = "text") |>
-  bind_rows() |>
-  mutate(across(everything(), \(x) na_if(str_trim(x), "")))
+# same naming-drift guard as the survey: a closed canvassing export the
+# pattern didn't claim stops the render instead of being silently skipped
+unclaimed_canv <- list.files(raw_dir, pattern = "canv_export_.*_closed.*\\.xlsx$", full.names = TRUE) |>
+  str_subset("~\\$", negate = TRUE) |>
+  str_subset("_f0_", negate = TRUE) |>
+  setdiff(canvassing_files)
+if (length(unclaimed_canv) > 0) {
+  cli::cli_abort(c(
+    "{length(unclaimed_canv)} closed canvassing export{?s} not matched by the filename pattern — naming drift? Update the pattern deliberately:",
+    set_names(basename(unclaimed_canv), "x")
+  ))
+}
 
-dim(canvassing_raw)
+basename(canvassing_files)
 ```
 
 ```{r}
@@ -571,12 +621,24 @@ col_map_canv <- c(
   respondent_id       = "Unique ID"
 )
 
-canvassing <- rename_validated(canvassing_raw, col_map_canv)
+canvassing <- canvassing_files |>
+  map(\(path) {
+    read_excel(path, col_types = "text") |>
+      mutate(across(everything(), \(x) na_if(str_trim(x), ""))) |>
+      rename_validated(col_map_canv) |>
+      mutate(delivery = basename(path))
+  }) |>
+  bind_rows() |>
+  mutate(
+    form_version    = str_extract(delivery, "f\\d+"),
+    response_status = str_extract(delivery, "complete|partial")
+  )
+
+count(canvassing, delivery, form_version, response_status)
 ```
 
 The doorstep challenge question gets its own dictionary; the shared battery
-reuses the survey dictionaries. q4c (like q2d/q3d/q4d) has no responses in the
-test data yet, so it passes through unencoded.
+reuses the survey dictionaries for every pathway question.
 
 ```{r}
 #| label: canvassing-encode
@@ -589,12 +651,18 @@ doorstep_options <- c(
   no_control          = "No control",
   worker_availability = "Worker availability",
   barriers_access     = "Barriers to access",
-  no_challenges       = "No challenges"
+  no_challenges       = "No challenges",
+  # added to the form between f0 and f1 (surfaced by the repeat-drift alarm)
+  availability        = "Availability",
+  figure_out          = "Hard to figure out"
 )
 
 canv_multiselect <- c(
   list(doorstep = doorstep_options),
-  multiselect_options[c("q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c", "q6")]
+  multiselect_options[c(
+    "q1", "q2a", "q3a", "q4a", "q2b", "q3b",
+    "q2c", "q3c", "q4c", "q2d", "q3d", "q4d", "q6"
+  )]
 )
 
 canvassing <- reduce(
@@ -614,24 +682,32 @@ canvassing <- canvassing |>
     care_connection = to_factor(care_connection, c("Yes", "No")),
     continue_full   = to_factor(continue_full, c("Yes - continuing", "No - not continuing")),
     submitted_at    = excel_datetime(submitted_at),
-    canvasser_zip   = str_pad(canvasser_zip, width = 5, pad = "0")
+    # same float artifact as the survey ZIPs
+    canvasser_zip   = str_pad(str_remove(canvasser_zip, "\\.0$"), width = 5, pad = "0")
   ) |>
-  relocate(respondent_id, submitted_at)
+  relocate(respondent_id, submitted_at, form_version, response_status, delivery)
 
 dupes_canv <- canvassing$respondent_id[duplicated(canvassing$respondent_id)]
 if (length(dupes_canv) > 0) {
   cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_canv)}}")
 }
 
-# the battery should be answered by exactly those who agreed to continue
+# the battery should be answered by exactly those who agreed to continue;
+# partials may legitimately stop before the battery, but not answer it
+# without having agreed
 agreed <- !is.na(canvassing$continue_full) & canvassing$continue_full == "Yes - continuing"
 battery_answered <- !is.na(canvassing$q1_child_now)
-if (any(xor(agreed, battery_answered))) {
+funnel_mismatch <- if_else(
+  canvassing$response_status == "complete",
+  xor(agreed, battery_answered),
+  battery_answered & !agreed
+)
+if (any(funnel_mismatch)) {
   cli::cli_warn("Battery answered/skipped against the doorstep funnel for
-                 {sum(xor(agreed, battery_answered))} respondent{?s}")
+                 {sum(funnel_mismatch)} respondent{?s}")
 }
 
-count(canvassing, responded, care_connection, continue_full, pathway)
+count(canvassing, response_status, responded, care_connection, continue_full, pathway)
 ```
 
 ```{r}
@@ -655,7 +731,9 @@ dict_options <- all_multiselect |>
   imap(\(opts, q) tibble(
     column   = str_c(q, "_", c(names(opts), "other", "other_text")),
     question = unname(question_text[q]),
-    option   = c(unname(opts), "Other (any response not in the structured options)",
+    # aliased options (form revisions) list every accepted wording
+    option   = c(unname(map_chr(opts, str_flatten, collapse = " [or] ")),
+                 "Other (any response not in the structured options)",
                  "Free text captured from other responses")
   )) |>
   list_rbind()

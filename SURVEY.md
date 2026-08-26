@@ -30,8 +30,12 @@ Routing facts established empirically (not stated in any document):
 
 - **Priority when multiple triggers apply: current > past > future > observer
   > none.** A respondent eligible for past *and* future is shown only the past
-  questions; verified against 327 real completes (every complete answers
-  exactly its pathway's questions).
+  questions; verified against 327 real completes.
+- **Exception: paid providers with past experience answer both batteries.**
+  The 4 completes selecting exactly `paid_provider` + `cared_past` (3 f1, 1 f3)
+  answered the current *and* past questions (the only observed cross-pathway
+  completes). `derive_pathway()` still labels them `current`; the skip-logic
+  check warns on them. Routing rule unconfirmed with CAG.
 - **Care recipients route to current**: the q1 options "I need care but am not
   receiving it" and "I receive or have received care..." lead to q2a, not a
   separate track.
@@ -47,6 +51,11 @@ Routing facts established empirically (not stated in any document):
   `"Other"`/`"true"` (checkbox without text), or raw free text with no prefix.
   Cleaning captures all of it in `*_other`/`*_other_text` columns.
 - **Datetimes arrive as Excel serials** (day fractions); timezone unconfirmed.
+- **Numeric-looking text picks up float artifacts**: hh_size `"4.0"`, zip
+  `"91401.0"` (348 of 485 f1 rows; stripped in cleaning). A few respondents
+  enter ZIP+4 (`"89142-1703"`) — flagged by the ZIP check, kept verbatim.
+- **`Unique ID` exports in scientific notation** (`"1.470978936E9"`) — exact
+  at 10 digits, but join keys must come from the same export style.
 - **Complete and partial responses come in separate files with different ID
   schemes** (~1.47e9 vs ~4.0e7 ranges). No ID appears in both, but whether a
   partial that later completes is re-delivered as a new complete ID is
@@ -64,6 +73,23 @@ Routing facts established empirically (not stated in any document):
 | q1 options | 7 observed | 10 (adds recipient ×2 + observer) |
 | hh_size format | `"4"` | `"4.0"` |
 
+- **f3 = "Survey Postcards"** (per the data log; deliveries from Jul 31 2026):
+  a postcard-channel copy of the f1 form — all 23 columns word-for-word
+  identical to f1. No f2 has been delivered; what increments the f-number is
+  unconfirmed with CAG, so treat it as a categorical label, not a timeline.
+- **Aug 19 2026 digital-form revision** ("NEW 1MCC Digital Survey Questions -
+  August 19 2026" PDF; f-number unknown until the first delivery): question
+  text unchanged, four options reworded (q2a `finding`; q6 `easy_to_use`,
+  `lived_experience`, `healthy_dev`). Per Teresa (email 2026-08-26) old and
+  new wording are **combined** — the dictionaries in `01_clean-data.qmd` list
+  both variants as aliases mapping to the same indicator. New variants are
+  seeded from the PDF (hyphen formatting per observed exports) and not yet
+  confirmed against a real export. The PDF also confirms q4d includes
+  `employer` and `no_help` (unobserved so far) and shows an income option typo
+  ("$150,00 - $174,999") — unconfirmed whether it's in the live form.
+- **Deliveries from Aug 2026 carry a `nopii_` filename prefix** (PII-skimmed
+  upstream); file discovery accepts it and aborts on unclaimed exports.
+
 ## Known gaps and open questions
 
 - **Open-text questions (q5a/q5c/q5d, q7) are not in the closed exports** —
@@ -72,8 +98,16 @@ Routing facts established empirically (not stated in any document):
 - The canvassing form embeds this same battery behind a doorstep funnel
   (approach → engaged → care-connection screener → full questions), with
   canvasser-only fields (mode, short-label challenges, canvasser ZIP). No
-  demographics, no respondent ZIP. Only the f0 test delivery exists so far.
+  demographics, no respondent ZIP. Real `f1` deliveries (June 9+, integrated
+  Aug 2026) are column-identical to the f0 test; the f1 form added two
+  doorstep options ("Availability", "Hard to figure out"). One f1 partial
+  answered the battery despite declining to continue (funnel check warns).
 - Timezone of `Time`, partial→complete ID behavior, and the exact trigger
   wording for f-version changes are unconfirmed with CAG.
-- Not yet received in any form: real canvassing, interviews, pre-survey
-  survey.
+- Set aside for the text-analysis pipeline (received Aug 2026, not read by
+  the cleaning script): `f1` survey and canvassing open-text exports (two
+  columns share the identical q5 header — pathway mapping unconfirmed) and
+  the pre-launch "One Question Poll" (everyaction) export.
+- Canvassing complete files use 10-digit survey-style IDs while partial files
+  use 8-digit IDs (two export mechanisms?) — cross-space duplicates are
+  undetectable; parked pending a CAG answer.
