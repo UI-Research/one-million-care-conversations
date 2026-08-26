@@ -4,23 +4,19 @@ data/**
 !data/**/.gitkeep
 # the generated dictionary is schema only — no respondent data
 !data/processed/data-dictionary.csv
-
 # R
 .Rproj.user/
 .Rhistory
 .RData
 .Ruserdata
-
 # Python
 __pycache__/
 .venv/
-
 # Project documents live on Box, not in the repo
 *.pdf
-
 # Rendered outputs can embed data rows
 scripts/*.html
 scripts/*_files/
-
 # OS
 .DS_Store
+~/.boxr-oauth
