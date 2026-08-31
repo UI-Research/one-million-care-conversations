@@ -25,10 +25,17 @@ rename_validated <- function(data, col_map, optional = character()) {
 # same indicator. A free-text value repeating across 3+ respondents warns:
 # repetition suggests a structured option missing from the dictionary.
 encode_multiselect <- function(data, col, options) {
-  # tokens are trimmed so "c | e" and "c|e" encode identically
+  # a wording listed under two options would silently set both indicators
+  if (anyDuplicated(unlist(options)) > 0) {
+    dup <- unlist(options)[duplicated(unlist(options))]
+    cli::cli_abort("Duplicate wording{?s} across {.field {col}} options: {.val {dup}}")
+  }
+
+  # tokens are trimmed so "c | e" and "c|e" encode identically; empty tokens
+  # (a stray trailing pipe) are dropped rather than counted as "other"
   selections <- stringr::str_split(data[[col]], stringr::fixed("|")) |>
     purrr::map(stringr::str_trim)
-  extras <- purrr::map(selections, \(s) s[!is.na(s) & !s %in% unlist(options)])
+  extras <- purrr::map(selections, \(s) s[!is.na(s) & s != "" & !s %in% unlist(options)])
 
   repeated <- table(unlist(extras)) |>
     purrr::keep(\(n) n >= 3) |>
@@ -86,13 +93,22 @@ derive_pathway <- function(data) {
 
 # Unique IDs export in scientific notation ("1.470978936E9"); normalize to
 # plain digit strings so joins across exports are stable regardless of how a
-# given file formats them. Exact for the observed 8-10 digit IDs (doubles are
-# exact to 15 significant digits).
+# given file formats them. Errors on anything non-numeric or too long to
+# represent exactly (doubles are exact to 15 significant digits) rather than
+# passing a corrupted key downstream.
 normalize_id <- function(x) {
-  dplyr::if_else(
+  num <- suppressWarnings(as.numeric(x))
+  out <- dplyr::if_else(
     is.na(x), NA_character_,
-    format(as.numeric(x), scientific = FALSE, trim = TRUE)
+    format(num, scientific = FALSE, trim = TRUE)
   )
+  bad <- !is.na(x) & (is.na(num) | nchar(out) > 15)
+  if (any(bad)) {
+    cli::cli_abort(
+      "ID{?s} not exactly representable as plain digits: {.val {head(unique(x[bad]), 5)}}"
+    )
+  }
+  out
 }
 
 # Sheets read as all-text leave Excel datetimes as day-fraction serial numbers

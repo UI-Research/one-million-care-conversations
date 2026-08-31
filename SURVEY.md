@@ -15,8 +15,8 @@ All dictionaries in `scripts/01_clean-data.qmd` use observed export text.
 ## Structure and routing
 
 Respondents answer q1 (connection to care, multi-select), get routed down
-**exactly one pathway**, then everyone converges on q6 (ideal care) and
-demographics.
+**one pathway** (with one observed exception, below), then everyone converges
+on q6 (ideal care) and demographics.
 
 | Pathway | q1 trigger | Questions shown |
 |---|---|---|
@@ -62,8 +62,9 @@ Routing facts established empirically (not stated in any document):
   schemes** (~1.47e9 vs ~4.0e7 ranges). No ID appears in both, but whether a
   partial that later completes is re-delivered as a new complete ID is
   **unknown** — worth asking CAG before longitudinal claims.
-- The `_ DATA LOG _.xlsx` in the delivery folder is the manifest: test vs real
-  activity, PII-skim flag, ID ranges, source links.
+- The `* DATA LOG *.xlsx` in the delivery folder is the team's manifest: test
+  vs real activity, PII-skim flag, ID ranges, source links.
+  `scripts/00_ingest-raw.R` validates every sync against it.
 
 ## Form versions
 
@@ -105,13 +106,17 @@ Routing facts established empirically (not stated in any document):
   `no_help` (unobserved so far) and shows an income option typo
   ("$150,00 - $174,999") — unconfirmed whether it's in the live form.
 - **Deliveries from Aug 2026 carry a `nopii_` filename prefix** (PII-skimmed
-  upstream); file discovery accepts it and aborts on unclaimed exports.
+  upstream). File discovery in `01_clean-data.qmd` accounts for every file in
+  the mirror — claimed, known set-aside, or loud error — so naming drift
+  (which has happened repeatedly: trailing underscores/spaces,
+  `_opentext` → `_open`) can never silently drop a delivery.
 
 ## Known gaps and open questions
 
 - **Open-text questions (q5a/q5c/q5d, q7) are not in the closed exports** —
-  they come as a separate `*_opentext` export (f0 test version received;
-  respondent IDs match the closed export, so they join on `Unique ID`).
+  they come as separate `*_opentext`/`*_open` exports whose respondent IDs
+  match the paired closed export, so they join on `Unique ID` (after
+  `normalize_id()`).
 - The canvassing form embeds this same battery behind a doorstep funnel
   (approach → engaged → care-connection screener → full questions), with
   canvasser-only fields (mode, short-label challenges, canvasser ZIP). No
@@ -119,8 +124,8 @@ Routing facts established empirically (not stated in any document):
   Aug 2026) are column-identical to the f0 test; the f1 form added two
   doorstep options ("Availability", "Hard to figure out"). One f1 partial
   answered the battery despite declining to continue (funnel check warns).
-- Timezone of `Time`, partial→complete ID behavior, and the exact trigger
-  wording for f-version changes are unconfirmed with CAG.
+- Timezone of `Time` and partial→complete ID behavior are unconfirmed with
+  CAG.
 - Set aside for the text-analysis pipeline (received Aug 2026, not read by
   the cleaning script): survey f1/f2/f3 and canvassing open-text exports (two
   columns share the identical q5 header — pathway mapping unconfirmed) and

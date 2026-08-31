@@ -55,32 +55,47 @@ source(here("scripts/00_utils.R"))
 
 ## Read raw survey data
 
+Every file in the mirror gets exactly one fate: claimed by a cleaning section
+here, recognized as a known set-aside, or a loud error. That way a renamed or
+brand-new delivery type can never be skipped silently — the render stops and
+the fix is a deliberate pattern or set-aside update.
+
 ```{r}
 #| label: read
 raw_dir <- here("data/raw/Raw data backups")
 
-survey_files <- list.files(
-  raw_dir,
-  # deliveries from 2026-08 on carry a "nopii_" prefix (PII-skimmed upstream)
-  pattern = "^(nopii_)?surv_export_.*_closed.*\\.xlsx$", full.names = TRUE
-) |>
-  str_subset("~\\$", negate = TRUE) |> # Excel lock files, present while a workbook is open
-  str_subset("_f0_", negate = TRUE)    # f0 = pre-launch test delivery per the data log
+mirror_files <- list.files(raw_dir) |>
+  str_subset("~\\$", negate = TRUE) # Excel lock files, present while a workbook is open
 
-# The anchored pattern above is deliberate — but a future prefix change would
-# make it silently skip deliveries. Any closed survey export it didn't claim
-# (f0 aside) is treated as naming drift and stops the render.
-unclaimed <- list.files(raw_dir, pattern = "surv_export_.*_closed.*\\.xlsx$", full.names = TRUE) |>
-  str_subset("~\\$", negate = TRUE) |>
-  str_subset("_f0_", negate = TRUE) |>
-  setdiff(survey_files)
-if (length(unclaimed) > 0) {
+# deliveries from 2026-08 on carry a "nopii_" prefix (PII-skimmed upstream);
+# f0 = pre-launch test deliveries, excluded per the data log
+survey_files <- mirror_files |>
+  str_subset("^(nopii_)?surv_export_.*_closed.*\\.xlsx$") |>
+  str_subset("_f0_", negate = TRUE)
+canvassing_files <- mirror_files |>
+  str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
+  str_subset("_f0_", negate = TRUE)
+
+set_aside <- c(
+  "_f0_",        # pre-launch test deliveries (both tools)
+  "opentext",    # open-text exports — text-analysis pipeline, not read here
+  "_open\\.",    # ... newer deliveries shorten the suffix to "_open"
+  "everyaction", # pre-launch One Question Poll — text-analysis pipeline
+  "grp-sf",      # interview holding document
+  "DATA LOG"     # the team's delivery manifest
+)
+unaccounted <- mirror_files |>
+  setdiff(c(survey_files, canvassing_files)) |>
+  str_subset(str_flatten(set_aside, "|"), negate = TRUE)
+if (length(unaccounted) > 0) {
   cli::cli_abort(c(
-    "{length(unclaimed)} closed survey export{?s} not matched by the filename pattern — naming drift? Update the pattern deliberately:",
-    set_names(basename(unclaimed), "x")
+    "{length(unaccounted)} file{?s} in the mirror not claimed by a cleaning section or known set-aside:",
+    set_names(unaccounted, rep("x", length(unaccounted)))
   ))
 }
 
+survey_files <- file.path(raw_dir, survey_files)
+canvassing_files <- file.path(raw_dir, canvassing_files)
 basename(survey_files)
 ```
 
@@ -144,6 +159,11 @@ survey <- survey_files |>
     form_version    = str_extract(delivery, "f\\d+"),
     response_status = str_extract(delivery, "complete|partial")
   )
+
+# the filename f0-exclusion and the parsed form_version must agree
+if (any(survey$form_version == "f0")) {
+  cli::cli_abort("f0 test rows slipped past the filename exclusion")
+}
 
 count(survey, delivery, form_version, response_status)
 ```
@@ -561,26 +581,7 @@ read by this script.
 
 ```{r}
 #| label: canvassing-read
-canvassing_files <- list.files(
-  raw_dir,
-  pattern = "^(nopii_)?canv_export_.*_closed.*\\.xlsx$", full.names = TRUE
-) |>
-  str_subset("~\\$", negate = TRUE) |>
-  str_subset("_f0_", negate = TRUE)
-
-# same naming-drift guard as the survey: a closed canvassing export the
-# pattern didn't claim stops the render instead of being silently skipped
-unclaimed_canv <- list.files(raw_dir, pattern = "canv_export_.*_closed.*\\.xlsx$", full.names = TRUE) |>
-  str_subset("~\\$", negate = TRUE) |>
-  str_subset("_f0_", negate = TRUE) |>
-  setdiff(canvassing_files)
-if (length(unclaimed_canv) > 0) {
-  cli::cli_abort(c(
-    "{length(unclaimed_canv)} closed canvassing export{?s} not matched by the filename pattern — naming drift? Update the pattern deliberately:",
-    set_names(basename(unclaimed_canv), "x")
-  ))
-}
-
+# selected (and drift-guarded) alongside the survey files in the read chunk
 basename(canvassing_files)
 ```
 
@@ -616,6 +617,10 @@ canvassing <- canvassing_files |>
     form_version    = str_extract(delivery, "f\\d+"),
     response_status = str_extract(delivery, "complete|partial")
   )
+
+if (any(canvassing$form_version == "f0")) {
+  cli::cli_abort("f0 test rows slipped past the filename exclusion")
+}
 
 count(canvassing, delivery, form_version, response_status)
 ```

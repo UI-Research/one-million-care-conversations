@@ -8,7 +8,8 @@
 #
 # Everything here fails loudly:
 #   - a file on Box missing from the DATA LOG (or vice versa) stops the sync
-#   - a previously-fetched delivery whose sha1 changed upstream stops the sync
+#   - a previously-fetched delivery modified or deleted upstream stops the sync
+#   - duplicate filenames (which would confuse the log lookup) stop the sync
 #   - a delivery not marked "Yes" under "Skimmed for PII?" is never downloaded
 #
 # One-time setup:
@@ -51,7 +52,7 @@ manifest <- if (file.exists(manifest_path)) {
   tibble(name = character(), id = character(), sha1 = character())
 }
 
-## Upstream modifications are an event, not a refetch --------------------------
+## Upstream modification or deletion is an event, not a refetch ----------------
 
 modified <- listing |>
   filter(!str_detect(name, "DATA LOG")) |> # the log is a living manifest — expected to change
@@ -62,6 +63,15 @@ if (nrow(modified) > 0) {
     "{nrow(modified)} previously-fetched deliver{?y/ies} modified on Box — investigate
      with the team (Box web UI keeps the version history) before re-syncing:",
     set_names(modified$name, rep("x", nrow(modified)))
+  ))
+}
+
+deleted <- anti_join(manifest, listing, by = "id")
+if (nrow(deleted) > 0) {
+  cli::cli_abort(c(
+    "{nrow(deleted)} previously-fetched file{?s} no longer on Box — investigate
+     before re-syncing (the local cop{?y/ies} would otherwise go stale silently):",
+    set_names(deleted$name, rep("x", nrow(deleted)))
   ))
 }
 
@@ -91,6 +101,16 @@ box_names <- listing |>
   tools::file_path_sans_ext() |>
   normalize()
 
+# the PII gate below is keyed by name — duplicate normalized names would let
+# one log row green-light more than one file, so refuse to continue
+dup_names <- c(box_names[duplicated(box_names)], logged_names[duplicated(logged_names)])
+if (length(dup_names) > 0) {
+  cli::cli_abort(c(
+    "Duplicate filename{?s} (after normalization) on Box or in the DATA LOG:",
+    set_names(unique(dup_names), rep("x", length(unique(dup_names))))
+  ))
+}
+
 unlogged <- setdiff(box_names, logged_names)
 missing <- setdiff(logged_names, box_names)
 if (length(unlogged) > 0 || length(missing) > 0) {
@@ -114,7 +134,9 @@ if (length(not_skimmed) > 0) {
 
 ## Fetch new deliveries by file ID --------------------------------------------
 
-new_files <- listing |> anti_join(manifest, by = "id")
+new_files <- listing |>
+  anti_join(manifest, by = "id") |>
+  filter(id != log_entry$id) # the log was already downloaded above
 
 if (nrow(new_files) == 0) {
   cli::cli_inform("Mirror is up to date ({nrow(listing)} files, nothing new).")
@@ -127,6 +149,7 @@ if (nrow(new_files) == 0) {
 }
 
 listing |>
+  # fetched_at means "last verified against Box", not first download
   mutate(fetched_at = format(Sys.time(), tz = "UTC", "%Y-%m-%dT%H:%M:%SZ")) |>
   write_csv(manifest_path)
 
