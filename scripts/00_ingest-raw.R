@@ -54,6 +54,7 @@ manifest <- if (file.exists(manifest_path)) {
 ## Upstream modifications are an event, not a refetch --------------------------
 
 modified <- listing |>
+  filter(!str_detect(name, "DATA LOG")) |> # the log is a living manifest — expected to change
   inner_join(manifest, by = "id", suffix = c("", "_fetched")) |>
   filter(sha1 != sha1_fetched)
 if (nrow(modified) > 0) {

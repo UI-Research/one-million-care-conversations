@@ -55,7 +55,9 @@ Routing facts established empirically (not stated in any document):
   `"91401.0"` (348 of 485 f1 rows; stripped in cleaning). A few respondents
   enter ZIP+4 (`"89142-1703"`) — flagged by the ZIP check, kept verbatim.
 - **`Unique ID` exports in scientific notation** (`"1.470978936E9"`) — exact
-  at 10 digits, but join keys must come from the same export style.
+  at 10 digits. Cleaning normalizes IDs to plain digit strings
+  (`normalize_id()` in `00_utils.R`); apply the same normalization when
+  joining any raw export (e.g. the open-text files).
 - **Complete and partial responses come in separate files with different ID
   schemes** (~1.47e9 vs ~4.0e7 ranges). No ID appears in both, but whether a
   partial that later completes is re-delivered as a new complete ID is
@@ -73,19 +75,34 @@ Routing facts established empirically (not stated in any document):
 | q1 options | 7 observed | 10 (adds recipient ×2 + observer) |
 | hh_size format | `"4"` | `"4.0"` |
 
-- **f3 = "Survey Postcards"** (per the data log; deliveries from Jul 31 2026):
-  a postcard-channel copy of the f1 form — all 23 columns word-for-word
-  identical to f1. No f2 has been delivered; what increments the f-number is
-  unconfirmed with CAG, so treat it as a categorical label, not a timeline.
-- **Aug 19 2026 digital-form revision** ("NEW 1MCC Digital Survey Questions -
-  August 19 2026" PDF; f-number unknown until the first delivery): question
-  text unchanged, four options reworded (q2a `finding`; q6 `easy_to_use`,
-  `lived_experience`, `healthy_dev`). Per Teresa (email 2026-08-26) old and
-  new wording are **combined** — the dictionaries in `01_clean-data.qmd` list
-  both variants as aliases mapping to the same indicator. New variants are
-  seeded from the PDF (hyphen formatting per observed exports) and not yet
-  confirmed against a real export. The PDF also confirms q4d includes
-  `employer` and `no_help` (unobserved so far) and shows an income option typo
+- **f-numbers are distribution channels, not questionnaire revisions**
+  (confirmed by CAG via Jaimie/Teresa, Aug 27 2026). Per Teresa: "All Survey
+  files are the same survey" — keep `form_version` as a source variable.
+  Authoritative mapping (Formstack form names):
+
+  | | Survey | | Canvass |
+  |---|---|---|---|
+  | f1 | May 29 launch link | f1 | Canvass Launch |
+  | f2 | July 21 "Virtual Day of Action" link (second link to stay under Formstack's 100k response limit) | f2 | Daisy Chain event (92618, Other In Person, no survey add-on) |
+  | f3 | Postcards (QR code offered after a canvass) | | |
+  | f4 | E-mail Opt-In | | |
+  | f5 | Spanish — CAG translates responses to English before delivery; methodological implications TBD | | |
+  | f6 | "Take Me Home" film screenings (added Aug 27) | | |
+
+  Delivered so far: survey f1/f2/f3 (closed + open-text), canvass f1.
+  f0 (both tools) was the pre-launch test — a *revision* lineage, unlike
+  f1–f6 which share one instrument.
+- **Aug 19 2026 wording revision** ("NEW 1MCC Digital Survey Questions -
+  August 19 2026" PDF): question text unchanged, four options reworded (q2a
+  `finding`; q6 `easy_to_use`, `lived_experience`, `healthy_dev`). Per Teresa
+  (email 2026-08-26) old and new wording are **combined** — the dictionaries
+  in `01_clean-data.qmd` list both variants as aliases mapping to the same
+  indicator. Since f-numbers are channels, the revision presumably edits the
+  live forms in place — so **wording eras are split by `submitted_at`
+  (before/after 2026-08-19), not by `form_version`**. New variants are seeded
+  from the PDF (hyphen formatting per observed exports) and not yet confirmed
+  against a real export. The PDF also confirms q4d includes `employer` and
+  `no_help` (unobserved so far) and shows an income option typo
   ("$150,00 - $174,999") — unconfirmed whether it's in the live form.
 - **Deliveries from Aug 2026 carry a `nopii_` filename prefix** (PII-skimmed
   upstream); file discovery accepts it and aborts on unclaimed exports.
@@ -105,9 +122,28 @@ Routing facts established empirically (not stated in any document):
 - Timezone of `Time`, partial→complete ID behavior, and the exact trigger
   wording for f-version changes are unconfirmed with CAG.
 - Set aside for the text-analysis pipeline (received Aug 2026, not read by
-  the cleaning script): `f1` survey and canvassing open-text exports (two
+  the cleaning script): survey f1/f2/f3 and canvassing open-text exports (two
   columns share the identical q5 header — pathway mapping unconfirmed) and
-  the pre-launch "One Question Poll" (everyaction) export.
+  the pre-launch "One Question Poll" (everyaction) export. Note the naming
+  drift: newer open-text files are suffixed `_open` rather than `_opentext`.
+- **"One Question Poll"** (Teresa's deliberate label; aka pre-launch survey /
+  EveryAction): one open question from a March 2026 screening event, link
+  partially reused after. CAG may revive/revise it (add to canvas/survey,
+  make it multiple-choice, blast wider) — how it fits the analysis is TBD
+  until they decide. Keep it strictly separate from the 16+ survey files.
+- **Expected but not yet delivered**: survey f4 (E-mail Opt-In), f5 (Spanish
+  — English translations required before delivery), f6 (film screenings),
+  canvass f2 (Daisy Chain event); interviews (short and long form). CAG also
+  reports the canvass open-text question exists but has no answers yet.
+- **~22 file types arrive monthly** (tools × form × closed/open ×
+  complete/partial). Rob is helping CAG automate: up to 4 of the 22 may
+  become daily-updating Google Sheets readable directly from R — would slot
+  into the ingest layer as an alternate transport if it materializes.
+- **Planned analysis note (Aug 27)**: urban/rural via RUCA codes mapped from
+  respondent ZIP, with sensitivity analyses on RUCA recoding, demographic
+  comparison against a nationally representative benchmark, and
+  interview-mention concordance checks — belongs to the descriptive pipeline
+  in `scripts/survey/`.
 - Canvassing complete files use 10-digit survey-style IDs while partial files
   use 8-digit IDs (two export mechanisms?) — cross-space duplicates are
   undetectable; parked pending a CAG answer.
