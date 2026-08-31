@@ -17,6 +17,52 @@ rename_validated <- function(data, col_map, optional = character()) {
   dplyr::rename(data, dplyr::all_of(col_map[col_map %in% names(data)]))
 }
 
+# One-hot encode a pipe-delimited multi-select column into one logical column
+# per option (TRUE = selected, FALSE = saw the question but didn't select,
+# NA = never saw it), plus `{col}_other`/`{col}_other_text` capturing anything
+# not in the dictionary. `options` entries may be a single string or a vector
+# of accepted wordings (aliases across form revisions) — any variant sets the
+# same indicator. A free-text value repeating across 3+ respondents warns:
+# repetition suggests a structured option missing from the dictionary.
+encode_multiselect <- function(data, col, options) {
+  # tokens are trimmed so "c | e" and "c|e" encode identically
+  selections <- stringr::str_split(data[[col]], stringr::fixed("|")) |>
+    purrr::map(stringr::str_trim)
+  extras <- purrr::map(selections, \(s) s[!is.na(s) & !s %in% unlist(options)])
+
+  repeated <- table(unlist(extras)) |>
+    purrr::keep(\(n) n >= 3) |>
+    names() |>
+    setdiff(c("Other", "true", "TRUE")) |>
+    purrr::discard(\(v) stringr::str_starts(v, "Other:"))
+  if (length(repeated) > 0) {
+    cli::cli_warn(c(
+      "Free-text value{?s} in {.field {col}} repeated across 3+ respondents — new structured option{?s} missing from the dictionary?",
+      purrr::set_names(stringr::str_trunc(repeated, 70), "!")
+    ))
+  }
+
+  indicators <- options |>
+    purrr::map(\(opt) purrr::map_lgl(selections, \(s) any(s %in% opt))) |>
+    purrr::set_names(stringr::str_c(col, "_", names(options))) |>
+    tibble::as_tibble() |>
+    dplyr::mutate(
+      "{col}_other"      := purrr::map_lgl(extras, \(s) length(s) > 0),
+      "{col}_other_text" := purrr::map_chr(extras, \(s) {
+        s <- stringr::str_remove(s[!s %in% c("Other", "true", "TRUE")], "^Other:\\s*")
+        if (length(s) > 0) stringr::str_flatten(s, collapse = " ; ") else NA_character_
+      }),
+      dplyr::across(
+        tidyselect::where(is.logical),
+        \(x) dplyr::if_else(is.na(data[[col]]), NA, x)
+      )
+    )
+
+  data |>
+    dplyr::select(-dplyr::all_of(col)) |>
+    dplyr::bind_cols(indicators)
+}
+
 # Assign each respondent their single survey pathway from the encoded q1
 # indicators. Priority current > past > future > observer verified
 # empirically against which questions respondents were actually shown:
@@ -35,6 +81,17 @@ derive_pathway <- function(data) {
       q1_none ~ "none"
     ) |>
       factor(levels = c("current", "past", "future", "observer", "none"))
+  )
+}
+
+# Unique IDs export in scientific notation ("1.470978936E9"); normalize to
+# plain digit strings so joins across exports are stable regardless of how a
+# given file formats them. Exact for the observed 8-10 digit IDs (doubles are
+# exact to 15 significant digits).
+normalize_id <- function(x) {
+  dplyr::if_else(
+    is.na(x), NA_character_,
+    format(as.numeric(x), scientific = FALSE, trim = TRUE)
   )
 }
 

@@ -38,6 +38,12 @@ or children now"). Options not yet observed in the data are therefore not in
 the dictionaries below; the encoding stops with an error listing any new value
 so it can be added deliberately.
 
+**Warnings in this render are expected and monitored, not failures.** They
+are the drift alarms: known skip-logic exceptions (the paid-provider
+dual-battery routing), ZIP+4 entries, and the one canvassing funnel
+violation — all documented in `SURVEY.md`. A *new* warning appearing here is
+the signal to investigate.
+
 ```{r}
 #| label: setup
 library(tidyverse)
@@ -181,52 +187,20 @@ August 19, 2026 form revision reworded a handful of options without changing
 their meaning, and the research team combines old and new responses, so any
 listed variant sets the same indicator column.
 
-```{r}
-#| label: encode-fn
-encode_multiselect <- function(data, col, options) {
-  # tokens are trimmed so "c | e" and "c|e" encode identically
-  selections <- str_split(data[[col]], fixed("|")) |> map(str_trim)
-  extras <- map(selections, \(s) s[!is.na(s) & !s %in% unlist(options)])
-
-  repeated <- table(unlist(extras)) |>
-    keep(\(n) n >= 3) |>
-    names() |>
-    setdiff(c("Other", "true", "TRUE")) |>
-    discard(\(v) str_starts(v, "Other:"))
-  if (length(repeated) > 0) {
-    cli::cli_warn(c(
-      "Free-text value{?s} in {.field {col}} repeated across 3+ respondents — new structured option{?s} missing from the dictionary?",
-      set_names(str_trunc(repeated, 70), "!")
-    ))
-  }
-
-  indicators <- options |>
-    map(\(opt) map_lgl(selections, \(s) any(s %in% opt))) |>
-    set_names(str_c(col, "_", names(options))) |>
-    as_tibble() |>
-    mutate(
-      "{col}_other"      := map_lgl(extras, \(s) length(s) > 0),
-      "{col}_other_text" := map_chr(extras, \(s) {
-        s <- str_remove(s[!s %in% c("Other", "true", "TRUE")], "^Other:\\s*")
-        if (length(s) > 0) str_flatten(s, collapse = " ; ") else NA_character_
-      }),
-      across(where(is.logical), \(x) if_else(is.na(data[[col]]), NA, x))
-    )
-
-  data |>
-    select(-all_of(col)) |>
-    bind_cols(indicators)
-}
-```
-
-A quick demonstration on a toy question with options `a`–`f`: `"c | e"` gets
-`TRUE` for c and e and `FALSE` for everything else; an "Other" with text sets
-the other flag and captures the text; an unanswered row is `NA` throughout.
+`encode_multiselect()` lives in `scripts/00_utils.R`. A quick demonstration
+on a toy question: `"c | e"` gets `TRUE` for c and e and `FALSE` for
+everything else; an "Other" with text sets the other flag and captures the
+text; an unanswered row is `NA` throughout; and option `a` accepts two
+wordings (an alias, as used for the Aug 19 revision) — either one sets
+`q_demo_a`.
 
 ```{r}
 #| label: encode-demo
-tibble(q_demo = c("c | e", "a|Other: my own answer", NA)) |>
-  encode_multiselect("q_demo", c(a = "a", b = "b", c = "c", d = "d", e = "e", f = "f"))
+tibble(q_demo = c("c | e", "a-reworded|Other: my own answer", "a", NA)) |>
+  encode_multiselect(
+    "q_demo",
+    list(a = c("a", "a-reworded"), b = "b", c = "c", d = "d", e = "e", f = "f")
+  )
 ```
 
 ```{r}
@@ -505,6 +479,13 @@ skip_rules <- tribble(
   "q4d",     "q4d_family_friends",   "observer"
 )
 
+# q6 is shown to every pathway, so it has no row in skip_rules — instead a
+# complete response that skipped it entirely signals routing/export drift
+q6_skipped <- survey$response_status == "complete" & is.na(survey$q6_affordable)
+if (any(q6_skipped)) {
+  cli::cli_warn("q6: {sum(q6_skipped)} complete response{?s} with q6 entirely missing")
+}
+
 pwalk(skip_rules, \(question, indicator, expected_pathway) {
   answered <- !is.na(survey[[indicator]])
   eligible <- survey$pathway %in% expected_pathway
@@ -527,19 +508,21 @@ pwalk(skip_rules, \(question, indicator, expected_pathway) {
 
 ```{r}
 #| label: other-cols
-dupes <- survey$respondent_id[duplicated(survey$respondent_id)]
-if (length(dupes) > 0) {
-  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes)}}")
-}
-
 survey <- survey |>
   mutate(
+    respondent_id = normalize_id(respondent_id),
     # tz assumed UTC — the platform's actual export timezone is unconfirmed
     submitted_at = excel_datetime(submitted_at),
     # same "91401.0" float artifact as hh_size; was invisible while warnings were silenced
     zip = str_pad(str_remove(zip, "\\.0$"), width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at, form_version, response_status, delivery)
+
+# after normalization so ID collisions across export formats would surface
+dupes <- survey$respondent_id[duplicated(survey$respondent_id)]
+if (length(dupes) > 0) {
+  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes)}}")
+}
 
 # missing ZIPs are expected for partials that stopped before demographics
 bad_zip <- survey |> filter(!is.na(zip), !str_detect(zip, "^\\d{5}$"))
@@ -677,6 +660,7 @@ canvassing <- reduce(
 #| label: canvassing-clean
 canvassing <- canvassing |>
   mutate(
+    respondent_id   = normalize_id(respondent_id),
     canvass_mode    = to_factor(canvass_mode, c("Door-to-door", "Phone", "Other In Person")),
     responded       = to_factor(responded, c("Yes - continue with questions", "No - not available")),
     care_connection = to_factor(care_connection, c("Yes", "No")),

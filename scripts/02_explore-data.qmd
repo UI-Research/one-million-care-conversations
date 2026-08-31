@@ -107,7 +107,10 @@ ggplot(funnel, aes(n, stage)) +
   scale_x_continuous(expand = expansion(mult = c(0, .1))) +
   labs(
     title = "Canvassing doorstep funnel",
-    subtitle = "Test data, June 2-8 2026",
+    subtitle = str_glue(
+      "f1 deliveries, {format(min(as_date(canvassing$submitted_at)), '%b %e %Y')} - ",
+      "{format(max(as_date(canvassing$submitted_at)), '%b %e %Y')}"
+    ),
     x = "Contacts", y = NULL
   )
 ```
@@ -133,7 +136,9 @@ survey |>
   scale_y_continuous(expand = expansion(mult = c(0, .1))) +
   labs(
     title = "Survey respondents by care pathway",
-    subtitle = "Real survey data; 15 partials abandoned before q1 excluded",
+    subtitle = str_glue(
+      "{sum(is.na(survey$pathway))} partials that abandoned before q1 excluded"
+    ),
     x = NULL, y = "Respondents", fill = NULL
   )
 ```
@@ -150,7 +155,7 @@ intervals and demographic/geographic breakdowns.
 ```{r}
 #| label: challenges
 responses |>
-  filter(source == "survey", question == "q2a", option != "other_text", !is.na(selected)) |>
+  filter(source == "survey", question == "q2a", !is.na(selected)) |>
   summarise(n_selected = sum(selected), n_shown = n(), .by = option_text) |>
   mutate(rate = n_selected / n_shown) |>
   ggplot(aes(rate, fct_reorder(option_text, rate))) +
@@ -174,7 +179,7 @@ narrative analysis.
 #| label: ideal
 #| fig-height: 5
 responses |>
-  filter(source == "survey", question == "q6", option != "other_text", !is.na(selected)) |>
+  filter(source == "survey", question == "q6", !is.na(selected)) |>
   summarise(n_selected = sum(selected), n_shown = n(), .by = option_text) |>
   mutate(rate = n_selected / n_shown) |>
   ggplot(aes(rate, fct_reorder(option_text, rate))) +
