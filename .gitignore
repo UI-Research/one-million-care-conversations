@@ -14,6 +14,7 @@ __pycache__/
 .venv/
 # Project documents live on Box, not in the repo
 *.pdf
+*.docx
 # Rendered outputs can embed data rows
 scripts/*.html
 scripts/*_files/
