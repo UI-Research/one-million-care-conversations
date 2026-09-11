@@ -13,9 +13,15 @@
 
 library(here)
 
-csv_path <- here("data", "processed", "interview-coding", "coded_segments.csv")
+# Optional arg: path to a coded-segments CSV (default = the pilot). Any CSV with columns
+# file, speaker, excerpt, domain, code, confidence, rationale works, e.g. the
+# llm_ellmer_*.csv files written by ellmer_coding_example.R. Output name follows input.
+csv_path <- commandArgs(trailingOnly = TRUE)[1]
+if (is.na(csv_path)) csv_path <- here("data", "processed", "interview-coding", "coded_segments.csv")
 raw_dir  <- here("data", "raw", "interview-transcripts")
-out_path <- here("data", "processed", "interview-coding", "dashboard.html")
+out_path <- if (basename(csv_path) == "coded_segments.csv")
+  here("data", "processed", "interview-coding", "dashboard.html") else
+  sub("\\.csv$", "_dashboard.html", csv_path)
 codebook_path <- here("IMCC Codebook v3.docx")
 
 seg <- read.csv(csv_path, encoding = "UTF-8")

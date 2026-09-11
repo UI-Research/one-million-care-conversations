@@ -113,6 +113,8 @@ coded <- imap(results, \(r, i) {
          rationale = map_chr(r$codes, "rationale"), confidence = map_chr(r$codes, "confidence"),
          possible_new_code = r$possible_new_code %||% NA_character_)
 }) |> list_rbind() |>
+  left_join(distinct(cb, code, .keep_all = TRUE) |> select(code, domain, parent_code = parent),
+            by = "code") |>                             # dashboard needs domain per row
   mutate(model = model_id, run_date = Sys.Date())
 
 unknown <- setdiff(coded$code, cb$code)   # structured output guarantees shape, not vocabulary
