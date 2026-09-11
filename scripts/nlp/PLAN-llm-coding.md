@@ -215,6 +215,19 @@ segmentation before the validation run:
 
 Cost of the run: ~2.4M input tokens (no caching on the ellmer path), about $5.
 
+**Rerun with fixes 1–5 applied to `coding_prompt.md` and Translator turns dropped
+(same day):** 171 assignments on 117 segments (was 241/122). CAREGIVER_FAMILY in the
+long interview 17 → 3, FORMER_CAREGIVER now used (0 → 5), zero cross-turn rationales,
+potential quotes 31 → 13, no IMPROVED_WELLBEING / CARE_MULTIPLE_SETTINGS misfires.
+Against the pilot: precision 42% → 53%, Jaccard 0.39 → 0.46, recall unchanged at 71%.
+Remaining gaps are mostly genuine boundary disagreements to settle in the codebook.
+
+**Model access on Bedrock (us-east-1, default profile):** Sonnet 5, Opus 5, and
+Opus 4.8 respond. Fable 5.1 is listed but returns "data retention mode 'default' is
+not available for this model" — it needs the account's Bedrock data-retention setting
+changed to the 30-day mode first (an AWS-side config; ask Rob). Fable also cannot run
+thinking-disabled, so it needs the Python path, not ellmer.
+
 ## Kickoff prompt for the next session
 
 Paste this into a new Claude Code session in this repo:

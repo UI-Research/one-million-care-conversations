@@ -59,7 +59,8 @@ segment_transcript <- function(docx) {
     summarise(speaker = sub(":.*$", "", first(line)),
               text = paste(c(sub("^[^:]+:\\s*", "", first(line)), line[-1]), collapse = " "),
               .by = turn) |>
-    filter(!grepl("^(Facilitator|Interviewer|Date|Zipcode|Participants)", speaker),
+    # Translator turns restate the preceding Spanish turn; coding both double-counts
+    filter(!grepl("^(Facilitator|Interviewer|Translator|Date|Zipcode|Participants)", speaker),
            nchar(text) >= 40) |>
     transmute(file = stem, speaker, text)
 }
