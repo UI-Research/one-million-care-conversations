@@ -139,6 +139,18 @@ predicts disagreement, that's the human-review triage signal), and the list of
 Write `agreement.md` with the tables and a short interpretation. Never commit it (it
 quotes excerpts).
 
+### 5b. Cost design (decided 2026-09-11 after the ellmer runs)
+
+The per-turn design above re-sends the transcript on every call; without caching that
+made 3 transcripts cost ~$5. For production: (a) prompt caching on codebook +
+transcript, always; (b) for long transcripts, **one call per transcript** returning
+all segments in one structured list (~20K in, few K out: cents on Sonnet, <$0.50 on
+Opus); (c) short canvassing/survey responses are one call each with the codebook
+cached, or several packed per call. Rough list-price scale for 1M short responses:
+Sonnet ~$3K, Opus ~$8K, Fable ~$12K; long transcripts are a rounding error. Keep the
+per-turn mode only as a validation option. Manu's personal AWS account is for
+piloting; production runs on Urban's account.
+
 ### 6. Cost (validation stage only)
 
 Three transcripts, roughly 100 participant segments, transcript context ~10–30K tokens
