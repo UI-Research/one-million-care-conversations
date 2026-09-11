@@ -38,6 +38,8 @@ cb <- docx_to_lines(here("IMCC Codebook v3.docx"), to = "gfm") |>
   list_rbind() |>
   mutate(code = gsub("_+", "_", gsub(" ", "", code)))   # docx typos: "CARE_ PRIMARY", "CARE__DAILY"
 
+write.csv(cb, file.path(out_dir, "codebook.csv"), row.names = FALSE)  # flat copy for Bree + Python
+
 codebook_md <- paste(c(
   "| Domain | Parent | Code | Definition | Include | Exclude | Keywords |",
   "|---|---|---|---|---|---|---|",
