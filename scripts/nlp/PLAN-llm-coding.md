@@ -185,6 +185,36 @@ Bedrock provider errors on reasoning blocks) and there is no prompt caching, so 
 transcript context is billed on every call. The Python version should produce the same
 CSV columns so `validate.py` can read both.
 
+## Findings from the first Sonnet 5 run (2026-09-11, ellmer path, all 122 segments)
+
+241 assignments, reviewed by hand against the codebook. Roughly 80% right, 10%
+defensible, 10% wrong. Versus the pilot: recall 72%, precision 42%, mean Jaccard 0.39
+on the 39 segments both coded. Letter and the institutional-harm sequence were coded
+better than the pilot; Spanish handled correctly; `low` confidence flagged 19 of the 21
+rows I would also question. Systematic problems, all fixable in the prompt or
+segmentation before the validation run:
+
+1. **Role codes re-applied every turn.** CAREGIVER_FAMILY 17× in one interview,
+   CHRONIC_CONDITION_CARE / CHILD_CARE likewise. Rule to add: Participant
+   Characteristics codes are assigned once per participant, on the turn that
+   establishes them, not on every turn that is consistent with them.
+2. **Cross-turn context imported** ("as established earlier"); one excerpt quoted from
+   the adjacent segment. Rule to add: every excerpt and rationale must be supportable
+   from the segment text alone.
+3. **Current vs former caregiving.** The widow was never coded FORMER_CAREGIVER. Rule to
+   add: use tense and the transcript frame; a caregiver whose care recipient has died
+   is FORMER_CAREGIVER.
+4. **_POTENTIAL_QUOTE overuse** (31 vs pilot 12), incl. fragments and another person's
+   reported speech. Rule to add: at most one per segment, self-contained sentence, the
+   participant's own words.
+5. **Translator turns coded as participant speech** (5 rows). Segmentation: drop
+   `Translator` turns, or merge into the preceding Spanish turn.
+6. Individual misfires to use as prompt examples: IMPROVED_WELLBEING for the
+   caregiver's own health; CARE_MULTIPLE_SETTINGS for multiple populations; ACCESS_BARRIER
+   for a clinician ending a call; LOSS_OF_CONTROL for "my goal was for him to stay home."
+
+Cost of the run: ~2.4M input tokens (no caching on the ellmer path), about $5.
+
 ## Kickoff prompt for the next session
 
 Paste this into a new Claude Code session in this repo:
