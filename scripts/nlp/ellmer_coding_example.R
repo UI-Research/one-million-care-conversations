@@ -105,13 +105,18 @@ prompts <- pmap(todo, \(file, speaker, text, segment_id) interpolate(
   "## Full transcript (context only)\n\n{{transcripts[[file]]}}\n\n## Code this segment\n\nsegment_id: {{segment_id}}\nspeaker: {{speaker}}\n\n{{text}}"))
 
 results <- parallel_chat_structured(chat, prompts, type = coded_segment, convert = FALSE)
+saveRDS(results, file.path(out_dir, "llm_ellmer_raw.rds"))   # keep raw before tidying
 
+failed <- todo$segment_id[!map_lgl(results, \(r) is.list(r) && !is.null(r$codes))]
+if (length(failed)) warning("no result for: ", paste(failed, collapse = ", "))
+
+fld <- function(x, f) map_chr(x, \(el) as.character(el[[f]] %||% NA))
 coded <- imap(results, \(r, i) {
-  if (length(r$codes) == 0) return(NULL)
+  if (!is.list(r) || length(r$codes) == 0) return(NULL)
   tibble(segment_id = todo$segment_id[i], file = todo$file[i], speaker = todo$speaker[i],
-         code = map_chr(r$codes, "code"), excerpt = map_chr(r$codes, "excerpt"),
-         rationale = map_chr(r$codes, "rationale"), confidence = map_chr(r$codes, "confidence"),
-         possible_new_code = r$possible_new_code %||% NA_character_)
+         code = fld(r$codes, "code"), excerpt = fld(r$codes, "excerpt"),
+         rationale = fld(r$codes, "rationale"), confidence = fld(r$codes, "confidence"),
+         possible_new_code = as.character(r$possible_new_code %||% NA))
 }) |> list_rbind() |>
   left_join(distinct(cb, code, .keep_all = TRUE) |> select(code, domain, parent_code = parent),
             by = "code") |>                             # dashboard needs domain per row
