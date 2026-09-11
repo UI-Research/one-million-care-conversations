@@ -161,65 +161,29 @@ responses, no transcript context, Batches API if the endpoint allows it).
    be fixed before the validation run, otherwise the model is being scored against an
    ambiguous target.
 
-## Coding prompt (system prompt for `code_segments.py`)
+## Coding prompt
 
-```
-You are applying a qualitative codebook to interview transcripts for a research study
-on caregiving (Urban Institute, "1M Conversations About Care"). You code exactly like
-a careful human qualitative analyst would: conservatively, using only what the
-participant actually said, and only codes that exist in the codebook.
+The system prompt lives in `scripts/nlp/coding_prompt.md` so the R test script and the
+Python pipeline share it verbatim. The codebook table is appended after it at runtime,
+rendered as Markdown from `codebook.csv`. Keep prompt and codebook in the cached
+prefix; put the segment last.
 
-## Codebook
-The codebook table follows this prompt. Each row is one code with its domain, parent
-group, definition, include rules, exclude rules, and example keywords. Definitions and
-include/exclude rules are authoritative; keywords are hints, not triggers. A passage
-can match a code without containing any keyword, and containing a keyword does not by
-itself justify a code.
+## R test version (ellmer)
 
-## Task
-You will receive one full transcript for context, then one segment (a single
-participant turn) to code. Code ONLY the segment. Use the rest of the transcript to
-resolve references (who "he" is, what "the program" refers to), not to import content
-from other turns.
+`scripts/nlp/ellmer_coding_example.R` is a self-contained smoke test of the same
+design: pandoc the codebook and transcripts, split participant turns, one structured
+call per segment via `chat_aws_bedrock()` + `parallel_chat_structured()`, write
+`llm_ellmer_<model>.csv`.
 
-## Rules
-1. Assign every code whose definition the segment clearly meets. A segment may carry
-   several codes, including codes from different domains. Assign no codes if none
-   apply; that is a normal outcome, especially for short or procedural turns.
-2. For each code, quote the shortest verbatim span from the segment that supports it
-   (copy exactly; do not paraphrase; ellipses allowed between two verbatim spans).
-3. Give a one-sentence rationale that references the codebook definition, not your
-   general impression.
-4. Confidence:
-   - high: the definition is clearly met and no exclude rule applies.
-   - medium: the definition is met but a sibling code was also plausible, or an
-     exclude rule is arguable.
-   - low: the content fits the domain but no code fits well; you are stretching.
-5. Boundary rule for the three future-facing domains:
-   - Challenges = the participant describes a hardship they experience or experienced.
-   - Desired Supports = the participant says what they want or would have wanted.
-   - Solutions = the participant proposes a mechanism, program, or policy change.
-   The same sentence can meet two of these when it does both things explicitly.
-6. Care roles: code CAREGIVER_FAMILY, PAID_CARE_WORKER, CARE_RECEIVER, etc. only when
-   the participant is describing their OWN role. A paid provider describing their work
-   is PAID_CARE_WORKER, not CAREGIVER_FAMILY.
-7. Use the domain's _OTHER code (e.g. DESIRED_SUPPORT_OTHER) only when the content
-   clearly belongs to the domain and no listed code fits. When you do, fill in
-   possible_new_code with a short proposed code name and definition. Do not invent
-   codes anywhere else.
-8. _POTENTIAL_QUOTE codes are for vivid, self-contained passages a report could quote
-   verbatim. Apply them sparingly, in addition to the substantive codes.
-9. If the segment contains Spanish with an in-room translation, code from the Spanish
-   original; quote the Spanish span in the excerpt.
-10. Ignore interviewer or facilitator speech entirely, even if it appears inside the
-    segment text.
-
-Return the structured object only.
-```
-
-The codebook table is appended after this text at runtime, rendered as a Markdown
-table from `codebook.csv`. Keep the prompt and codebook in the cached prefix; put the
-segment last.
+Verified 2026-09-11 (ellmer 0.4.0, default AWS profile, us-east-1,
+`us.anthropic.claude-sonnet-5`): Bedrock connection works, the codebook and segment
+parsing work (123 codebook rows, 122 participant segments), and the structured schema
+returns sensible codes on a synthetic segment. **Not yet run on real transcript
+segments** pending Rob's sign-off on Bedrock for this data. Two limitations of the R
+path that the Python version does not share: thinking has to be disabled (ellmer's
+Bedrock provider errors on reasoning blocks) and there is no prompt caching, so the
+transcript context is billed on every call. The Python version should produce the same
+CSV columns so `validate.py` can read both.
 
 ## Kickoff prompt for the next session
 
@@ -234,8 +198,10 @@ it describes, in Python, under scripts/nlp/:
 2. Use AnthropicBedrockMantle from the anthropic SDK; take region and model ID from
    environment variables (AWS_REGION, IMCC_MODEL) with claude-sonnet-5 as the default
    model. Do not hardcode credentials.
-3. Use messages.parse with the Pydantic schema in the plan, prompt caching on the
-   system prompt and transcript, adaptive thinking, effort medium.
+3. Use messages.parse with the Pydantic schema in the plan, the system prompt from
+   scripts/nlp/coding_prompt.md, prompt caching on the system prompt and transcript,
+   adaptive thinking, effort medium. Match the CSV columns written by
+   scripts/nlp/ellmer_coding_example.R.
 4. Everything written under data/ must stay gitignored; check `git status` before
    finishing. Never print transcript text to the terminal beyond short excerpts.
 5. Dry-run mode: a --limit N flag that codes only the first N segments so I can smoke
