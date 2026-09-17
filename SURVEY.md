@@ -32,10 +32,13 @@ Routing facts established empirically (not stated in any document):
   > none.** A respondent eligible for past *and* future is shown only the past
   questions; verified against 327 real completes.
 - **Exception: paid providers with past experience answer both batteries.**
-  The 4 completes selecting exactly `paid_provider` + `cared_past` (3 f1, 1 f3)
-  answered the current *and* past questions (the only observed cross-pathway
-  completes). `derive_pathway()` still labels them `current`; the skip-logic
-  check warns on them. Routing rule unconfirmed with CAG.
+  Completes selecting `paid_provider` + `cared_past` (6 as of the Aug 10
+  deliveries, one also `expect_future`) answered the current *and* past
+  questions — the only cross-pathway completes. `derive_pathway()` still
+  labels them `current`; the skip-logic check warns on them. Routing rule
+  unconfirmed with CAG. Separately, 2 *partials* whose q1 is `none` answered
+  other pathways' questions (one answered all four batteries) — looks like a
+  form glitch or a test; worth asking CAG.
 - **Care recipients route to current**: the q1 options "I need care but am not
   receiving it" and "I receive or have received care..." lead to q2a, not a
   separate track.
@@ -50,6 +53,15 @@ Routing facts established empirically (not stated in any document):
 - **"Other" is open form** and exports three ways: `"Other: <text>"`, bare
   `"Other"`/`"true"` (checkbox without text), or raw free text with no prefix.
   Cleaning captures all of it in `*_other`/`*_other_text` columns.
+- **q6 "choose up to three" is not enforced by the live form.** About a
+  third of respondents who answered q6 chose more than three; ~10% chose all
+  eleven (bursts in the weeks of June 14 and July 19, across channels).
+  Cleaning keeps every selection; the chartbook reports q6 shares both
+  overall and among those who kept to three. Which to headline is a research
+  decision to settle with CAG.
+- **Free text containing a vertical bar** would be split at the bar like a
+  multi-select, since the export uses `|` as the separator. Not observed so
+  far; a fragment would show up as extra `_other_text` pieces.
 - **Datetimes arrive as Excel serials** (day fractions); timezone unconfirmed.
 - **Numeric-looking text picks up float artifacts**: hh_size `"4.0"`, zip
   `"91401.0"` (348 of 485 f1 rows; stripped in cleaning). A few respondents
@@ -144,11 +156,11 @@ Routing facts established empirically (not stated in any document):
   complete/partial). Rob is helping CAG automate: up to 4 of the 22 may
   become daily-updating Google Sheets readable directly from R — would slot
   into the ingest layer as an alternate transport if it materializes.
-- **Planned analysis note (Aug 27)**: urban/rural via RUCA codes mapped from
-  respondent ZIP, with sensitivity analyses on RUCA recoding, demographic
-  comparison against a nationally representative benchmark, and
-  interview-mention concordance checks — belongs to the descriptive pipeline
-  in `scripts/survey/`.
+- **Urban/rural**: the chartbook joins respondent ZIP to USDA ERS 2020 RUCA
+  codes (ZIP file, Sept 2025 release; 786 of 790 ZIPs match) and reports a
+  4-way (metro / micropolitan / small town / rural) and 2-way (RUCA 1–3 vs
+  4–10) split. Still planned: sensitivity to the collapse choice, demographic
+  comparison against a national benchmark, interview-mention concordance.
 - Canvassing complete files use 10-digit survey-style IDs while partial files
   use 8-digit IDs (two export mechanisms?) — cross-space duplicates are
   undetectable; parked pending a CAG answer.

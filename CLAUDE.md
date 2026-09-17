@@ -11,10 +11,12 @@ R/Quarto analysis code for the Urban Institute × Caring Across Generations "1M 
 ```sh
 Rscript scripts/00_ingest-raw.R            # sync data/raw/ from Box via API (needs box_auth() + BOX_RAW_FOLDER_ID in ~/.Renviron)
 quarto render scripts/01_clean-data.qmd    # clean raw exports → data/processed/ + data dictionary
-quarto render scripts/02_explore-data.qmd  # summary stats and charts (reads processed data)
+quarto render scripts/survey/01_chartbook.qmd  # preliminary chartbook (reads processed data)
 ```
 
-Run 00 to pull new deliveries (it aborts on Box↔DATA-LOG mismatches, upstream file modifications, and un-PII-skimmed deliveries — resolve with the team, don't bypass), then 01 before 02. Only 00 touches Box; rendering works offline from the local copy. There is no build system, test suite, or renv — packages (tidyverse, readxl, here, cli, urbnthemes) come from the system library. All paths use `here()`, so rendering works from any directory.
+Run 00 to pull new deliveries (it aborts on Box↔DATA-LOG mismatches, upstream file modifications, and un-PII-skimmed deliveries — resolve with the team, don't bypass), then 01 before the chartbook. Only 00 touches Box; rendering works offline from the local copy. There is no build system, test suite, or renv — packages (tidyverse, readxl, here, cli, urbnthemes, reactable) come from the system library. The chartbook downloads the USDA ERS RUCA ZIP-code file into `data/raw/reference/` on first render (state + rurality lookup). All paths use `here()`, so rendering works from any directory.
+
+The rendered qmds are read by the research lead (a PhD, not a data scientist): prose explains each step in plain language before its chunk, code is folded, and purely mechanical chunks (setup, writes) are hidden. Keep that register when editing them.
 
 ## Hard rules
 
@@ -23,7 +25,7 @@ Run 00 to pull new deliveries (it aborts on Box↔DATA-LOG mismatches, upstream 
 
 ## Architecture
 
-Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, `data-dictionary.csv`) → `scripts/02_explore-data.qmd`. Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/survey/` and `scripts/nlp/` are placeholders for the descriptive and text-analysis pipelines.
+Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, `data-dictionary.csv`) → `scripts/survey/01_chartbook.qmd` (issue #1: counts by state and tool, demographics, selection rates). Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/nlp/` holds the LLM transcript-coding pipeline and its review dashboard.
 
 Key design decisions that span files:
 

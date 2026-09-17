@@ -16,8 +16,10 @@ __pycache__/
 *.pdf
 *.docx
 # Rendered outputs can embed data rows
-scripts/*.html
-scripts/*_files/
+scripts/**/*.html
+scripts/**/*_files/
+# Browser-tool screenshots of rendered pages (embed data)
+.playwright-mcp/
 # OS
 .DS_Store
 # Box API token cache, in case one ever lands in the working tree

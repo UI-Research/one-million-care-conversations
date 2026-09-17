@@ -70,6 +70,20 @@ encode_multiselect <- function(data, col, options) {
     dplyr::bind_cols(indicators)
 }
 
+# Convert a single-select column to a factor with the questionnaire's level
+# order, erroring on any value outside that set so reworded options in a new
+# export surface immediately instead of becoming NA.
+to_factor <- function(x, levels) {
+  unknown <- setdiff(unique(x[!is.na(x)]), levels)
+  if (length(unknown) > 0) {
+    cli::cli_abort(c(
+      "Value{?s} outside the expected levels — add or fix:",
+      purrr::set_names(unknown, rep("x", length(unknown)))
+    ))
+  }
+  factor(x, levels = levels)
+}
+
 # Assign each respondent their single survey pathway from the encoded q1
 # indicators. Priority current > past > future > observer verified
 # empirically against which questions respondents were actually shown:

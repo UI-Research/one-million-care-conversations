@@ -1,5 +1,7 @@
 ---
-title: "Clean test data"
+title: "Cleaning the survey and canvassing data"
+author: "Manuel Alcalá Kovalski, Urban Institute"
+date: today
 format:
   html:
     embed-resources: true
@@ -11,41 +13,36 @@ execute:
   message: false
 ---
 
-Cleans the raw survey and canvassing exports into analysis-ready files in
-`data/processed/`, plus a generated data dictionary.
+*Program that turns the raw survey and canvassing exports from Caring Across
+Generations into clean, analysis-ready files.*
 
-`data/raw/Raw data backups/` is a local mirror of the Box delivery folder,
-kept exactly as Box structures it — the filenames already encode source
-(`surv`/`canv`), collection dates, form version (`f0`, `f1`, ...), and
-complete vs partial, and the accompanying `_ DATA LOG _.xlsx` is the delivery
-manifest keyed to those filenames. Files are selected by name pattern; nothing
-is re-filed by hand. The `f0` files are the pre-launch test delivery (per the
-data log) and are excluded; survey cleaning covers real deliveries (`f1`+),
-with complete and partial responses combined and distinguished by a
-`response_status` column.
+The raw exports arrive as Excel files in a Box folder. `scripts/00_ingest-raw.R`
+copies that folder to `data/raw/Raw data backups/` exactly as it is on Box.
+This program reads that local copy, cleans it, and writes three files to
+`data/processed/`:
 
-The main transformation is one-hot encoding the multi-select questions: the raw
-export stores multiple selections as a single pipe-delimited string, and we
-break each question into one logical column per response option. `TRUE` means
-the option was selected, `FALSE` means the respondent saw the question but did
-not select it, and `NA` means the respondent never saw the question (skip
-logic) or skipped it. Selection rates are just `mean(x, na.rm = TRUE)`.
+- `survey_clean.rds` / `.csv` — one row per survey respondent
+- `canvassing_clean.rds` / `.csv` — one row per canvassing contact
+- `data-dictionary.csv` — every column in those files, with the question and
+  answer text it came from
 
-Response option text comes from the observed data, not the survey PDF — the
-live form's wording differs from the June 15 questionnaire document (e.g. the
-PDF's "Caring for a child/children" appears in the data as "I care for a child
-or children now"). Options not yet observed in the data are therefore not in
-the dictionaries below; the encoding stops with an error listing any new value
-so it can be added deliberately.
+Every step here checks its own work. If a new delivery looks different from
+what we expect — a renamed column, an answer option we have not seen before, a
+file that no rule claims — the program stops and says why, rather than
+guessing. The fix is always to update the rule that failed, never to loosen
+the check. Some checks warn instead of stopping; those warnings appear in this
+document marked with `!`. The ones documented in `SURVEY.md` (the paid-provider
+routing exception, a few ZIP+4 entries, one canvassing funnel violation) are
+expected. A new one is the signal to investigate.
 
-**Warnings in this render are expected and monitored, not failures.** They
-are the drift alarms: known skip-logic exceptions (the paid-provider
-dual-battery routing), ZIP+4 entries, and the one canvassing funnel
-violation — all documented in `SURVEY.md`. A *new* warning appearing here is
-the signal to investigate.
+A note on the questionnaire: the wording in the live form differs from the
+official question documents in many places. Answer text in this program comes
+from what we actually observe in the exports, not from the PDF. `SURVEY.md`
+records what we have learned about how the instrument really behaves.
 
 ```{r}
 #| label: setup
+#| include: false
 library(tidyverse)
 library(readxl)
 library(here)
@@ -53,12 +50,19 @@ library(here)
 source(here("scripts/00_utils.R"))
 ```
 
-## Read raw survey data
+## Find the files to clean
 
-Every file in the mirror gets exactly one fate: claimed by a cleaning section
-here, recognized as a known set-aside, or a loud error. That way a renamed or
-brand-new delivery type can never be skipped silently — the render stops and
-the fix is a deliberate pattern or set-aside update.
+The file names in the Box folder already tell us what each file is: which
+tool (`surv` or `canv`), the date range, the distribution channel (`f1`, `f2`,
+...), whether it holds closed-ended or open-text answers, and whether the
+responses are complete or partial. We select files by those name patterns and
+never rename anything by hand.
+
+Not every file is cleaned here. The `f0` files are the pre-launch test and are
+left out. The open-text exports and the pre-launch poll go to the
+text-analysis pipeline instead. Every file in the folder has to fall into one
+of three groups — cleaned here, deliberately set aside, or an error — so a new
+kind of delivery can never slip through unnoticed.
 
 ```{r}
 #| label: read
@@ -96,20 +100,35 @@ if (length(unaccounted) > 0) {
 
 survey_files <- file.path(raw_dir, survey_files)
 canvassing_files <- file.path(raw_dir, canvassing_files)
+```
+
+These are the survey files cleaned in this run. Each one should appear in the
+team's data log.
+
+```{r}
+#| label: read-list
+#| echo: false
 basename(survey_files)
 ```
 
-## Rename columns
+## Survey
 
-Column names in the export are the full question text. We map them to short
-IDs keyed to the questionnaire (q1, q2a, ..., q6). The mapping is validated in
-both directions so a new export with added, dropped, or reworded columns fails
-loudly instead of silently misaligning; columns known to vary across form
-versions (the f0-only address fields, q4c which f0 lacked) are marked
-optional. Delivery metadata parsed from each filename travels with every row.
+### Give the columns short names
 
-The open-text questions (q5a/q5c/q5d, q7) come through a separate export and
-will need entries here when they join the closed-text pipeline.
+In the export, each column is named with the full question text. We map those
+to short names that follow the questionnaire's numbering: `q1` is the
+connection-to-care question, `q2a`/`q3a`/`q4a` are the current-caregiver
+questions, and so on through `q6`. Demographic columns get plain names such as
+`age` and `hh_income`.
+
+The mapping is checked in both directions. A column in the export that we have
+no name for stops the program, and so does a column we expect but cannot find.
+A few columns are allowed to be missing because they come and go across
+deliveries (the empty address fields in the test delivery, and `q4c`, which
+the test delivery lacked).
+
+The open-text questions (q5 and q7) are not in these files. They arrive in a
+separate export and are handled by the text-analysis pipeline.
 
 ```{r}
 #| label: rename
@@ -164,15 +183,27 @@ survey <- survey_files |>
 if (any(survey$form_version == "f0")) {
   cli::cli_abort("f0 test rows slipped past the filename exclusion")
 }
+```
 
+Count the rows that came from each file. The `form_version` column records
+the distribution channel (the May launch link, the July Virtual Day of Action
+link, postcards, and so on — see `SURVEY.md`); every channel uses the same
+questionnaire. `response_status` separates people who finished the survey from
+those who stopped partway through. Both are kept in the clean file so the
+analysis can decide how to treat them.
+
+```{r}
+#| label: read-count
+#| echo: false
 count(survey, delivery, form_version, response_status)
 ```
 
-## PII guard
+### Check for personal information
 
-Data shared with Urban must contain no PII. ZIP is collected by design, but
-the export includes street-address fields that should always be empty — stop
-immediately if they ever are not.
+The data shared with Urban must contain no personal information. ZIP code is
+collected on purpose; street address is not. The export still carries address
+columns, which should always be empty. If they ever are not, the program stops
+here so the file can be raised with the team before anything else happens.
 
 ```{r}
 #| label: pii-guard
@@ -185,34 +216,44 @@ if (length(pii_cols) > 0) {
 }
 ```
 
-## One-hot encode multi-select questions
+### Split the choose-all-that-apply questions into one column per answer
 
-Selections arrive pipe-delimited in survey order, e.g.
-`"Care is unaffordable|Other: my own words"`. Each question becomes one
-logical column per option (`q2a_unaffordable`, ...), with every option the
-respondent did not select set to `FALSE` and rows where the question was
-unanswered set to `NA` across all of its option columns.
+Most survey questions let people choose more than one answer. The export
+stores all of a person's choices in a single cell, separated by vertical bars,
+for example `"Care is unaffordable|Other: my own words"`. That is hard to
+count, so we split each question into one TRUE/FALSE column per answer option.
+For the challenges question `q2a`, that means columns such as
+`q2a_unaffordable` and `q2a_time_flex`.
 
-"Other" responses are open form in the real data, and Formstack exports them
-three ways: `"Other: <text>"`, a bare `"Other"`/`"true"` (the checkbox with no
-text), or occasionally the free text alone with no prefix. Any token that
-isn't a known structured option sets `{question}_other = TRUE` and lands
-verbatim in `{question}_other_text` — that text is respondent voice and feeds
-the qualitative/NLP work. As a drift alarm, a free-text value repeating across
-3+ respondents triggers a warning, since repetition suggests a new
-*structured* option missing from the dictionary rather than genuine free text.
+Each of those columns can hold one of three values:
 
-A dictionary entry may list several accepted wordings for the same option: the
-August 19, 2026 form revision reworded a handful of options without changing
-their meaning, and the research team combines old and new responses, so any
-listed variant sets the same indicator column.
+- `TRUE` — the person chose this answer
+- `FALSE` — the person saw the question and did not choose this answer
+- `NA` — the person never saw the question (the survey routed them past it) or
+  left it blank
 
-`encode_multiselect()` lives in `scripts/00_utils.R`. A quick demonstration
-on a toy question: `"c | e"` gets `TRUE` for c and e and `FALSE` for
-everything else; an "Other" with text sets the other flag and captures the
-text; an unanswered row is `NA` throughout; and option `a` accepts two
-wordings (an alias, as used for the Aug 19 revision) — either one sets
-`q_demo_a`.
+The share of people choosing an answer is then simply the share of `TRUE`
+among the non-missing values.
+
+"Other" works a little differently. It is a free-text box, and the export
+records it three ways: `"Other: some text"`, a bare `"Other"` when the box
+was ticked but left empty, or occasionally the text alone. Anything that is
+not one of the known answers sets `{question}_other` to `TRUE` and is kept
+word for word in `{question}_other_text`. Those words are respondents'
+own voices and feed the text analysis.
+
+Two safeguards sit inside this step. If the same "other" text appears from
+three or more people, the program warns — repeated text usually means a new
+answer option was added to the form and needs to be added to our list. And
+when the form's wording for an answer changes (as it did on August 19, 2026,
+for four options), both the old and the new wording are listed for that
+answer, so responses from before and after the change land in the same
+column.
+
+A small demonstration on a made-up question with answers `a` through `f`
+shows how the pieces fit: `"c | e"` gets `TRUE` for c and e and `FALSE` for
+the rest; an "Other" with text sets the other flag and keeps the text; a blank
+row is `NA` throughout; and answer `a` accepts two wordings.
 
 ```{r}
 #| label: encode-demo
@@ -222,6 +263,11 @@ tibble(q_demo = c("c | e", "a-reworded|Other: my own answer", "a", NA)) |>
     list(a = c("a", "a-reworded"), b = "b", c = "c", d = "d", e = "e", f = "f")
   )
 ```
+
+The answer options for every question are listed below, in the wording the
+export uses. The short name on the left becomes the column suffix. Where the
+live form does not yet match the official documents, the observed wording
+wins.
 
 ```{r}
 #| label: dictionaries
@@ -409,30 +455,35 @@ survey <- reduce(
 )
 ```
 
+The ideal-care question `q6` asks people to choose up to three answers, but
+the live form does not enforce that limit, and many people choose more. We
+keep every selection as given. The count below shows how many answers people
+actually chose; the analysis should keep this in mind when reading `q6`
+shares.
 
-## Single-select questions
+```{r}
+#| label: q6-limit
+#| echo: false
+survey |>
+  filter(!is.na(q6_affordable)) |>
+  mutate(n_chosen = rowSums(across(starts_with("q6_") & where(is.logical) & !q6_other))) |>
+  count(n_chosen) |>
+  mutate(share = scales::percent(n / sum(n), accuracy = 1))
+```
 
-Ordered categories become factors. Unobserved levels are filled in from the
-questionnaire following the formatting pattern of the observed values;
-`to_factor()` errors on any value not in its level set, so wording drift in a
-future export surfaces immediately.
+### Put single-answer questions in order
+
+The demographic questions with one answer each become ordered categories
+(household size from smallest to largest, income from lowest to highest, and
+so on) so that tables and charts sort sensibly. Levels the export has not
+shown us yet are filled in from the questionnaire, following the format of
+the values we have seen. An answer outside the expected set stops the program.
 
 ```{r}
 #| label: factors
-to_factor <- function(x, levels) {
-  unknown <- setdiff(unique(x[!is.na(x)]), levels)
-  if (length(unknown) > 0) {
-    stop(
-      "Value(s) outside the expected levels — add or fix:\n",
-      paste0('  "', unknown, '"', collapse = "\n")
-    )
-  }
-  factor(x, levels = levels)
-}
-
 survey <- survey |>
   mutate(
-    # f1 exports numeric sizes as "2.0", "3.0", ...
+    # the export writes household size as "2.0", "3.0", ...
     hh_size = to_factor(str_remove(hh_size, "\\.0$"), c(
       "1, just myself", "2", "3", "4", "5", "6", "7 or more",
       "Prefer not to say"
@@ -458,29 +509,73 @@ survey <- survey |>
   )
 ```
 
-## Pathway
+### Work out each person's pathway
 
-Each respondent follows exactly one pathway through the survey, determined by
-q1 (see the Survey Pathways table in the questionnaire). `derive_pathway()` in
-`00_utils.R` assigns it with priority current > past > future — verified
-against the data: a respondent eligible for both past and future was shown
-only the past questions.
+The first question asks about a person's connection to care, and the answer
+decides which questions they see next. There are five pathways: people giving
+or receiving care now (`current`), people who cared for someone in the past
+(`past`), people who expect to in the future (`future`), people who know
+someone who receives care (`observer`), and people with no connection
+(`none`). A person who ticks answers from more than one group is routed to
+the first that applies, in that order. We checked this against the data — for
+example, a person eligible for both `past` and `future` was shown only the
+`past` questions.
+
+The survey's routing, as it behaves in the data:
+
+```{mermaid}
+%%| label: fig-routing
+%%| fig-cap: "How respondents move through the survey. The first pathway that applies wins."
+flowchart TD
+  q1["q1 · Connection to care<br/>(choose all that apply)"]
+  q1 -->|"caring for someone now, paid provider,<br/>or needs / receives care"| A
+  q1 -->|"cared for someone in the past"| C
+  q1 -->|"expects to give or need care"| B
+  q1 -->|"knows someone who receives care"| D
+  q1 -->|"none of these"| E
+
+  A["current<br/>q2a challenges · q3a supports · q4a who helps"]
+  C["past<br/>q2c · q3c · q4c"]
+  B["future<br/>q2b · q3b"]
+  D["observer<br/>q2d · q3d · q4d"]
+  E["none"]
+
+  A --> q6
+  C --> q6
+  B --> q6
+  D --> q6
+  E --> q6
+  q6["q6 · Ideal care (everyone)"] --> demo["Demographics<br/>ZIP · household · income · age · gender<br/>race · disability · political views"]
+```
+
+The open-ended questions (q5 on three of the pathways, q7 for everyone)
+sit between q4 and q6 but arrive in a separate export, so they are not shown.
 
 ```{r}
 #| label: pathway
 survey <- derive_pathway(survey)
+```
 
+Count respondents on each pathway. `NA` here means the person stopped before
+answering the first question.
+
+```{r}
+#| label: pathway-count
+#| echo: false
 count(survey, pathway)
 ```
 
-## Skip-logic checks
+### Check that people answered the questions for their pathway
 
-Each pathway question should be answered by exactly the respondents on its
-pathway. For complete responses the check runs in both directions; partial
-responses may legitimately stop mid-survey, so they are only flagged when they
-*answered* a question outside their pathway. Mismatches warn (rather than
-stop) — they signal an export or routing problem to investigate, not
-necessarily a pipeline bug.
+Each pathway question should be answered by exactly the people on that
+pathway. For complete responses we check both ways: nobody on the pathway
+should have skipped the question, and nobody off it should have answered.
+Partial responses may stop early, so they are only flagged if they answered a
+question outside their pathway. Mismatches produce a warning rather than
+stopping the program, because they point to a routing or export question for
+the team rather than a cleaning error. The known exception is documented in
+`SURVEY.md`: a few paid care providers with past experience were shown two
+sets of questions.
 
 ```{r}
 #| label: skip-checks
@@ -524,7 +619,14 @@ pwalk(skip_rules, \(question, indicator, expected_pathway) {
 })
 ```
 
-## Remaining columns
+### Tidy the remaining columns
+
+Three small fixes. Respondent IDs sometimes export in scientific notation, so
+they are rewritten as plain digits (this also lets us confirm no ID appears
+twice). The submission time arrives as an Excel serial number and is converted
+to a date-time. ZIP codes pick up a stray `.0` from the export and lose their
+leading zeros, so both are repaired; any ZIP that still is not five digits is
+flagged.
 
 ```{r}
 #| label: other-cols
@@ -533,7 +635,6 @@ survey <- survey |>
     respondent_id = normalize_id(respondent_id),
     # tz assumed UTC — the platform's actual export timezone is unconfirmed
     submitted_at = excel_datetime(submitted_at),
-    # same "91401.0" float artifact as hh_size; was invisible while warnings were silenced
     zip = str_pad(str_remove(zip, "\\.0$"), width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at, form_version, response_status, delivery)
@@ -544,44 +645,44 @@ if (length(dupes) > 0) {
   cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes)}}")
 }
 
-# missing ZIPs are expected for partials that stopped before demographics
 bad_zip <- survey |> filter(!is.na(zip), !str_detect(zip, "^\\d{5}$"))
 if (nrow(bad_zip) > 0) {
   cli::cli_warn("{nrow(bad_zip)} row{?s} with non-5-digit ZIP: {.val {unique(bad_zip$zip)}}")
 }
-count(survey, response_status, zip_missing = is.na(zip))
 ```
 
-## Validate and write
+Missing ZIPs are expected among partial responses: ZIP is the first
+demographic question, and many partials stop before reaching it.
 
 ```{r}
-#| label: check
-glimpse(survey)
+#| label: zip-count
+#| echo: false
+count(survey, response_status, zip_missing = is.na(zip))
 ```
 
 ```{r}
 #| label: write
+#| include: false
 write_rds(survey, here("data/processed/survey_clean.rds"))
 write_csv(survey, here("data/processed/survey_clean.csv"))
 ```
 
-## Canvassing data
+## Canvassing
 
-The canvassing form is a doorstep funnel — canvasser logistics, a short
-screener, then (for those who agree to continue) the same question battery as
-the digital survey, with identical question and option text, so the survey's
-column map and dictionaries are reused. The canvasser-only doorstep challenge
-question uses its own short labels. There are no demographic questions and no
-respondent ZIP; the only geography is the *canvasser's* ZIP.
+The canvassing form is used at people's doors. It starts with a few questions
+for the canvasser (where they are, how the conversation is happening, whether
+the person answered), a short screener, and a quick-pick list of care
+challenges. People who agree to continue then get the same question set as
+the survey, word for word, so the survey's column names and answer lists are
+reused. There are no demographic questions and no respondent ZIP; the only
+geography is the canvasser's ZIP.
 
-Like the survey, the `f0` pre-launch test is excluded and cleaning covers real
-deliveries (`f1`+, complete and partial combined). The `*_opentext` exports
-(here and for the survey) are set aside for the text-analysis pipeline and not
-read by this script.
+As with the survey, the `f0` test delivery is left out, and complete and
+partial responses are combined and labelled.
 
 ```{r}
 #| label: canvassing-read
-# selected (and drift-guarded) alongside the survey files in the read chunk
+#| echo: false
 basename(canvassing_files)
 ```
 
@@ -621,12 +722,16 @@ canvassing <- canvassing_files |>
 if (any(canvassing$form_version == "f0")) {
   cli::cli_abort("f0 test rows slipped past the filename exclusion")
 }
+```
 
+```{r}
+#| label: canvassing-count
+#| echo: false
 count(canvassing, delivery, form_version, response_status)
 ```
 
-The doorstep challenge question gets its own dictionary; the shared battery
-reuses the survey dictionaries for every pathway question.
+The doorstep challenge list uses short labels of its own. Everything else
+reuses the survey answer lists.
 
 ```{r}
 #| label: canvassing-encode
@@ -661,6 +766,11 @@ canvassing <- reduce(
   derive_pathway()
 ```
 
+The same tidying as the survey, plus one check specific to canvassing: the
+full question set should be answered by exactly the people who agreed to
+continue. As before, partials may stop early but should not answer questions
+without agreeing.
+
 ```{r}
 #| label: canvassing-clean
 canvassing <- canvassing |>
@@ -681,9 +791,6 @@ if (length(dupes_canv) > 0) {
   cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_canv)}}")
 }
 
-# the battery should be answered by exactly those who agreed to continue;
-# partials may legitimately stop before the battery, but not answer it
-# without having agreed
 agreed <- !is.na(canvassing$continue_full) & canvassing$continue_full == "Yes - continuing"
 battery_answered <- !is.na(canvassing$q1_child_now)
 funnel_mismatch <- if_else(
@@ -695,21 +802,32 @@ if (any(funnel_mismatch)) {
   cli::cli_warn("Battery answered/skipped against the doorstep funnel for
                  {sum(funnel_mismatch)} respondent{?s}")
 }
+```
 
+How contacts move through the doorstep funnel. Each row is one combination of
+answered the door, reported a connection to care, agreed to continue, and
+pathway.
+
+```{r}
+#| label: canvassing-funnel-count
+#| echo: false
 count(canvassing, response_status, responded, care_connection, continue_full, pathway)
 ```
 
 ```{r}
 #| label: canvassing-write
+#| include: false
 write_rds(canvassing, here("data/processed/canvassing_clean.rds"))
 write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
 ```
 
 ## Data dictionary
 
-The column maps and option dictionaries above already document the schema —
-this writes them out as a reviewable CSV: one row per indicator column (or
-factor level), with the source question and option text.
+The column names and answer lists above already describe every column in the
+clean files. This writes them out as a single table — one row per column (or
+per level of a single-answer question), with the question and answer text it
+came from — so anyone reading the clean files can look up what a column means
+without opening this program.
 
 ```{r}
 #| label: dictionary
@@ -750,19 +868,11 @@ dictionary <- bind_rows(dict_options, dict_factors) |>
   ))
 
 write_csv(dictionary, here("data/processed/data-dictionary.csv"))
-dictionary
 ```
 
-## Long view
-
-The wide file is canonical (one row per respondent, the unit of analysis).
-For option-level summaries and plots, `pivot_selections()` in
-`scripts/00_utils.R` reshapes it to one row per respondent × option:
-
 ```{r}
-#| label: long-view
-survey |>
-  pivot_selections() |>
-  summarise(rate = mean(selected, na.rm = TRUE), .by = c(question, option)) |>
-  arrange(question, desc(rate))
+#| label: dictionary-show
+#| echo: false
+dictionary |>
+  knitr::kable()
 ```
