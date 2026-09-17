@@ -27,6 +27,11 @@ Analysis code for the Urban Institute's research partnership with [Caring Across
 │   │   └── reference/              <- Public lookups downloaded on first render (USDA ERS RUCA codes)
 │   └── processed/                  <- Cleaned outputs; only data-dictionary.csv is committed
 │       └── interview-coding/       <- LLM-coded interview segments and the coding dashboard
+├── _quarto.yml               <- Website config: pages, navbar, output to docs/
+├── index.qmd                 <- Website landing page
+├── variables.qmd             <- Column reference generated from the data dictionary
+├── coding-dashboard/         <- Interview coding dashboard (built by scripts/nlp/coding_dashboard.R)
+├── docs/                     <- Rendered website, served by GitHub Pages
 ├── scripts/
 │   ├── 00_ingest-raw.R       <- Sync the Box mirror and validate it against the DATA LOG
 │   ├── 00_utils.R            <- Shared helpers (renaming, multi-select encoding, pathways)
@@ -44,7 +49,7 @@ quarto render scripts/01_clean-data.qmd          # 2. clean → data/processed/
 quarto render scripts/survey/01_chartbook.qmd    # 3. chartbook (reads processed data)
 ```
 
-Only step 1 needs Box access; rendering works offline from the local mirror. The rendered documents (`01_clean-data.html`, `01_chartbook.html`) are the deliverables and are committed with their `.qmd` sources.
+Only step 1 needs Box access; rendering works offline from the local mirror. Steps 2 and 3 also accept `quarto render` at the repo root, which builds the whole website (see below). The rendered site in `docs/` is committed with the sources.
 
 > [!IMPORTANT]
 > Every step fails loudly on anything unexpected: a delivery missing from the DATA LOG, a column or answer option that doesn't match the dictionaries, a file no naming pattern claims. The fix is always a deliberate update to the mapping that failed, never a relaxed check. The cleaning document lists the warnings that are expected.
@@ -80,5 +85,5 @@ Packages come from the system library; there is no lockfile. Required: tidyverse
 * **USDA ERS RUCA codes**: public; downloaded automatically into `data/raw/reference/` the first time the chartbook renders.
 * **LLM coding** (`scripts/nlp/`): credentials for the model endpoint used by `ellmer`; see the notes in `scripts/nlp/PLAN-llm-coding.md`.
 
-## Interview coding dashboard
-Built with `Rscript scripts/nlp/coding_dashboard.R` and published at <https://ui-research.github.io/one-million-care-conversations/>. The dashboard embeds transcript text and lives on the `gh-pages` branch only.
+## Website
+The rendered documents form a Quarto website (`_quarto.yml`): `quarto render` at the repo root builds every page into `docs/`, which GitHub Pages serves at <https://ui-research.github.io/one-million-care-conversations/>. Pages re-execute only when their source changes (`freeze: auto`). The interview coding dashboard is built separately with `Rscript scripts/nlp/coding_dashboard.R` into `coding-dashboard/`, which the site copies in as a resource.

@@ -37,7 +37,7 @@ look like.
 [**Variables**](variables.qmd) — a reference for every column in the clean
 files: the question it came from and the answer text behind it.
 
-[**Coding dashboard**](https://ui-research.github.io/one-million-care-conversations/)
+[**Coding dashboard**](coding-dashboard/index.html)
 — the interview transcripts coded against the project codebook, for review by
 the qualitative team.
 
