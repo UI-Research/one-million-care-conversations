@@ -17,7 +17,36 @@ rename_validated <- function(data, col_map, optional = character()) {
   dplyr::rename(data, dplyr::all_of(col_map[col_map %in% names(data)]))
 }
 
-# One-hot encode a pipe-delimited multi-select column into one logical column
+# Split one multi-select cell into its selections. Two export formats exist:
+# pipe-delimited ("a|b", most files) and comma-delimited ("a, b", the
+# Aug 2026 f1 complete export). Commas also appear inside option text, so a
+# comma-delimited cell is parsed by matching known options from the front,
+# longest first; whatever remains unmatched is free text ("Other").
+# Tokens are trimmed so "c | e" and "c|e" encode identically, and empty
+# tokens (a stray trailing pipe) are dropped rather than counted as "other".
+split_selections <- function(x, options) {
+  if (is.na(x)) return(NA_character_)
+  if (stringr::str_detect(x, stringr::fixed("|"))) {
+    tokens <- stringr::str_trim(stringr::str_split_1(x, stringr::fixed("|")))
+    return(tokens[tokens != ""])
+  }
+  known <- unlist(options)
+  known <- known[order(-nchar(known))]
+  out <- character()
+  rest <- stringr::str_trim(x)
+  while (nchar(rest) > 0) {
+    hit <- known[startsWith(rest, known)]
+    if (length(hit) == 0) {
+      out <- c(out, rest)
+      break
+    }
+    out <- c(out, hit[1])
+    rest <- stringr::str_remove(stringr::str_sub(rest, nchar(hit[1]) + 1), "^\\s*,\\s*")
+  }
+  out
+}
+
+# One-hot encode a multi-select column (see split_selections) into one logical column
 # per option (TRUE = selected, FALSE = saw the question but didn't select,
 # NA = never saw it), plus `{col}_other`/`{col}_other_text` capturing anything
 # not in the dictionary. `options` entries may be a single string or a vector
@@ -31,10 +60,7 @@ encode_multiselect <- function(data, col, options) {
     cli::cli_abort("Duplicate wording{?s} across {.field {col}} options: {.val {dup}}")
   }
 
-  # tokens are trimmed so "c | e" and "c|e" encode identically; empty tokens
-  # (a stray trailing pipe) are dropped rather than counted as "other"
-  selections <- stringr::str_split(data[[col]], stringr::fixed("|")) |>
-    purrr::map(stringr::str_trim)
+  selections <- purrr::map(data[[col]], split_selections, options = options)
   extras <- purrr::map(selections, \(s) s[!is.na(s) & s != "" & !s %in% unlist(options)])
 
   repeated <- table(unlist(extras)) |>
@@ -77,7 +103,7 @@ to_factor <- function(x, levels) {
   unknown <- setdiff(unique(x[!is.na(x)]), levels)
   if (length(unknown) > 0) {
     cli::cli_abort(c(
-      "Value{?s} outside the expected levels — add or fix:",
+      "{length(unknown)} value{?s} outside the expected levels — add or fix:",
       purrr::set_names(unknown, rep("x", length(unknown)))
     ))
   }

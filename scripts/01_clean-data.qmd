@@ -26,19 +26,42 @@ This program reads that local copy, cleans it, and writes three files to
 - `data-dictionary.csv` — every column in those files, with the question and
   answer text it came from
 
-Every step here checks its own work. If a new delivery looks different from
-what we expect — a renamed column, an answer option we have not seen before, a
-file that no rule claims — the program stops and says why, rather than
-guessing. The fix is always to update the rule that failed, never to loosen
-the check. Some checks warn instead of stopping; those warnings appear in this
-document marked with `!`. The ones documented in `SURVEY.md` (the paid-provider
-routing exception, a few ZIP+4 entries, one canvassing funnel violation) are
-expected. A new one is the signal to investigate.
+## The steps at a glance
 
-A note on the questionnaire: the wording in the live form differs from the
-official question documents in many places. Answer text in this program comes
-from what we actually observe in the exports, not from the PDF. `SURVEY.md`
-records what we have learned about how the instrument really behaves.
+1. **Find the files.** Pick the survey and canvassing exports out of the Box
+   mirror by their file names; set aside the test delivery, the open-text
+   exports, and the pre-launch poll. Every file must be claimed by a rule.
+2. **Rename the columns** from full question text to short names (`q1`,
+   `q2a`, `age`, ...), checking that nothing is missing or unexpected.
+3. **Check for personal information.** Address columns must be empty.
+4. **Split the choose-all-that-apply questions** into one TRUE/FALSE column
+   per answer, keeping "Other" text word for word.
+5. **Put single-answer questions in order** (income, age, and so on).
+6. **Work out each person's pathway** through the survey from their first
+   answer, and **check** that they answered the questions for that pathway.
+7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no ID repeats.
+8. **Do the same for canvassing**, reusing the survey's answer lists.
+9. **Write the clean files** and a data dictionary describing every column.
+
+::: {.callout-warning title="Warnings in this document are expected"}
+Every step checks its own work. If a delivery looks different from what we
+expect — a renamed column, an answer we have not seen before, a file no rule
+claims — the program stops and says why, rather than guessing. The fix is
+always to update the rule that failed, never to loosen the check.
+
+Some checks warn instead of stopping; those warnings appear below marked with
+`!`. The ones documented in `SURVEY.md` (the paid-provider routing exception,
+ZIP+4 entries, one canvassing funnel violation) are expected. A *new* warning
+is the signal to investigate.
+:::
+
+::: {.callout-note title="The live form does not match the questionnaire PDF"}
+The wording in the live form differs from the official question documents in
+many places, and the export format itself has changed between deliveries.
+Answer text in this program comes from what we actually observe in the
+exports, not from the PDF. `SURVEY.md` records what we have learned about how
+the instrument really behaves.
+:::
 
 ```{r}
 #| label: setup
@@ -46,8 +69,18 @@ records what we have learned about how the instrument really behaves.
 library(tidyverse)
 library(readxl)
 library(here)
+library(gt)
 
 source(here("scripts/00_utils.R"))
+
+# consistent look for the small tables in this document
+tbl <- function(data, title = NULL) {
+  out <- gt(data) |>
+    sub_missing(missing_text = "—") |>
+    tab_options(table.font.size = px(14), table.align = "left")
+  if (!is.null(title)) out <- tab_header(out, title = title) |> opt_align_table_header("left")
+  out
+}
 ```
 
 ## Find the files to clean
@@ -75,13 +108,13 @@ mirror_files <- list.files(raw_dir) |>
 # f0 = pre-launch test deliveries, excluded per the data log
 survey_files <- mirror_files |>
   str_subset("^(nopii_)?surv_export_.*_closed.*\\.xlsx$") |>
-  str_subset("_f0_", negate = TRUE)
+  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
 canvassing_files <- mirror_files |>
   str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
-  str_subset("_f0_", negate = TRUE)
+  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
 
 set_aside <- c(
-  "_f0_",        # pre-launch test deliveries (both tools)
+  "_[fF]0_",     # pre-launch test deliveries (both tools)
   "opentext",    # open-text exports — text-analysis pipeline, not read here
   "_open\\.",    # ... newer deliveries shorten the suffix to "_open"
   "everyaction", # pre-launch One Question Poll — text-analysis pipeline
@@ -164,9 +197,19 @@ col_map <- c(
 
 form_varying <- c("address", "address2", "city", "state", "q4c")
 
+# exports from Aug 2026 on label the timestamp column "Date submitted"
+# instead of "Time"; same Excel serial values underneath
+timestamp_aliases <- c("Time" = "Date submitted")
+
+# the same export writes en-/em-dashes and curly apostrophes ("$25,000–$49,999",
+# "Affordable — without ...", "I don’t") where every other export writes plain
+# hyphens and straight quotes
+normalize_punctuation <- \(x) str_replace_all(x, c("—" = "-", "–" = "-", "’" = "'", "‘" = "'"))
+
 read_delivery <- function(path) {
   read_excel(path, col_types = "text") |>
-    mutate(across(everything(), \(x) na_if(str_trim(x), ""))) |> # whitespace-only cells -> NA
+    rename(any_of(timestamp_aliases)) |>
+    mutate(across(everything(), \(x) na_if(str_trim(normalize_punctuation(x)), ""))) |> # whitespace-only cells -> NA
     rename_validated(col_map, optional = form_varying) |>
     mutate(delivery = basename(path))
 }
@@ -175,7 +218,8 @@ survey <- survey_files |>
   map(read_delivery) |>
   bind_rows() |>
   mutate(
-    form_version    = str_extract(delivery, "f\\d+"),
+    # filenames are inconsistent about case ("F1")
+    form_version    = str_to_lower(str_extract(delivery, regex("f\\d+", ignore_case = TRUE))),
     response_status = str_extract(delivery, "complete|partial")
   )
 
@@ -195,15 +239,37 @@ analysis can decide how to treat them.
 ```{r}
 #| label: read-count
 #| echo: false
-count(survey, delivery, form_version, response_status)
+count(survey, delivery, form_version, response_status) |>
+  tbl("Rows read from each delivery")
+```
+
+This is what the raw export looks like at this point: one row per person,
+the timestamp as an Excel serial number, and every choose-all-that-apply
+answer packed into a single cell. The two rows below come from two different
+deliveries and show the two formats the export has used — vertical bars, and
+(in the July–August complete file) commas.
+
+```{r}
+#| label: raw-sample
+#| echo: false
+sample_rows <- c(
+  which(str_detect(survey$q2a, fixed("|")))[1],
+  which(str_detect(survey$delivery, "20260710-20260812_f1_complete") & !is.na(survey$q2a))[1]
+)
+
+survey[sample_rows, c("delivery", "submitted_at", "q1", "q2a", "hh_income")] |>
+  mutate(across(c(q1, q2a), \(x) str_trunc(x, 110))) |>
+  tbl("Two raw rows, selected columns")
 ```
 
 ### Check for personal information
 
+::: {.callout-important title="No personal information"}
 The data shared with Urban must contain no personal information. ZIP code is
 collected on purpose; street address is not. The export still carries address
 columns, which should always be empty. If they ever are not, the program stops
 here so the file can be raised with the team before anything else happens.
+:::
 
 ```{r}
 #| label: pii-guard
@@ -219,21 +285,27 @@ if (length(pii_cols) > 0) {
 ### Split the choose-all-that-apply questions into one column per answer
 
 Most survey questions let people choose more than one answer. The export
-stores all of a person's choices in a single cell, separated by vertical bars,
-for example `"Care is unaffordable|Other: my own words"`. That is hard to
-count, so we split each question into one TRUE/FALSE column per answer option.
+stores all of a person's choices in a single cell, usually separated by
+vertical bars, for example `"Care is unaffordable|Other: my own words"`. One
+delivery (the July–August complete responses) separates them with commas
+instead, which is trickier because the answers themselves contain commas; for
+those cells we match the known answers one at a time from the start of the
+cell. Either way, the result is the same: each question is split into one
+TRUE/FALSE column per answer option.
 For the challenges question `q2a`, that means columns such as
 `q2a_unaffordable` and `q2a_time_flex`.
 
-Each of those columns can hold one of three values:
+::: {.callout-tip title="How to read the TRUE/FALSE columns"}
+Each answer column holds one of three values:
 
 - `TRUE` — the person chose this answer
 - `FALSE` — the person saw the question and did not choose this answer
 - `NA` — the person never saw the question (the survey routed them past it) or
   left it blank
 
-The share of people choosing an answer is then simply the share of `TRUE`
-among the non-missing values.
+The share of people choosing an answer is simply the share of `TRUE` among
+the non-missing values.
+:::
 
 "Other" works a little differently. It is a free-text box, and the export
 records it three ways: `"Other: some text"`, a bare `"Other"` when the box
@@ -251,13 +323,14 @@ answer, so responses from before and after the change land in the same
 column.
 
 A small demonstration on a made-up question with answers `a` through `f`
-shows how the pieces fit: `"c | e"` gets `TRUE` for c and e and `FALSE` for
-the rest; an "Other" with text sets the other flag and keeps the text; a blank
-row is `NA` throughout; and answer `a` accepts two wordings.
+shows how the pieces fit: `"c | e"` and the comma form `"c, e"` both get
+`TRUE` for c and e and `FALSE` for the rest; an "Other" with text sets the
+other flag and keeps the text; a blank row is `NA` throughout; and answer `a`
+accepts two wordings.
 
 ```{r}
 #| label: encode-demo
-tibble(q_demo = c("c | e", "a-reworded|Other: my own answer", "a", NA)) |>
+tibble(q_demo = c("c | e", "c, e", "a-reworded|Other: my own answer", "a", NA)) |>
   encode_multiselect(
     "q_demo",
     list(a = c("a", "a-reworded"), b = "b", c = "c", d = "d", e = "e", f = "f")
@@ -455,11 +528,27 @@ survey <- reduce(
 )
 ```
 
-The ideal-care question `q6` asks people to choose up to three answers, but
-the live form does not enforce that limit, and many people choose more. We
-keep every selection as given. The count below shows how many answers people
-actually chose; the analysis should keep this in mind when reading `q6`
-shares.
+The same two rows as before, after this step, for the challenges question
+`q2a`. The packed cell has become ten TRUE/FALSE columns plus the "Other"
+text.
+
+```{r}
+#| label: encoded-sample
+#| echo: false
+survey[sample_rows, ] |>
+  select(starts_with("q2a_")) |>
+  pivot_longer(everything(), names_to = "column", values_to = "value", values_transform = as.character) |>
+  mutate(row = rep(c("row 1", "row 2"), each = n() / 2), .before = 1) |>
+  pivot_wider(names_from = row, values_from = value) |>
+  tbl("The q2a columns for the two sample rows")
+```
+
+::: {.callout-note title="q6 asks for up to three answers, but the form does not enforce it"}
+The ideal-care question `q6` asks people to choose up to three answers. The
+live form does not enforce that limit, and many people choose more. We keep
+every selection as given; the chartbook reports `q6` both ways. The count
+below shows how many answers people actually chose.
+:::
 
 ```{r}
 #| label: q6-limit
@@ -467,8 +556,9 @@ shares.
 survey |>
   filter(!is.na(q6_affordable)) |>
   mutate(n_chosen = rowSums(across(starts_with("q6_") & where(is.logical) & !q6_other))) |>
-  count(n_chosen) |>
-  mutate(share = scales::percent(n / sum(n), accuracy = 1))
+  count(n_chosen, name = "respondents") |>
+  mutate(share = scales::percent(respondents / sum(respondents), accuracy = 1)) |>
+  tbl("Number of q6 answers chosen")
 ```
 
 ### Put single-answer questions in order
@@ -562,7 +652,8 @@ answering the first question.
 ```{r}
 #| label: pathway-count
 #| echo: false
-count(survey, pathway)
+count(survey, pathway, name = "respondents") |>
+  tbl("Respondents by pathway")
 ```
 
 ### Check that people answered the questions for their pathway
@@ -612,8 +703,7 @@ pwalk(skip_rules, \(question, indicator, expected_pathway) {
   n_bad <- sum(mismatch, na.rm = TRUE)
   if (n_bad > 0) {
     cli::cli_warn(
-      "{question}: {n_bad} respondent{?s} answered or skipped against skip
-       logic (e.g. ID{?s} {.val {head(survey$respondent_id[which(mismatch)], 5)}})"
+      "{question}: {n_bad} respondent{?s} answered or skipped against skip logic"
     )
   }
 })
@@ -647,7 +737,7 @@ if (length(dupes) > 0) {
 
 bad_zip <- survey |> filter(!is.na(zip), !str_detect(zip, "^\\d{5}$"))
 if (nrow(bad_zip) > 0) {
-  cli::cli_warn("{nrow(bad_zip)} row{?s} with non-5-digit ZIP: {.val {unique(bad_zip$zip)}}")
+  cli::cli_warn("{nrow(bad_zip)} row{?s} with a ZIP that is not five digits (ZIP+4 entries, kept as typed)")
 }
 ```
 
@@ -657,7 +747,8 @@ demographic question, and many partials stop before reaching it.
 ```{r}
 #| label: zip-count
 #| echo: false
-count(survey, response_status, zip_missing = is.na(zip))
+count(survey, response_status, zip_missing = is.na(zip), name = "respondents") |>
+  tbl("ZIP code present, by response status")
 ```
 
 ```{r}
@@ -665,6 +756,27 @@ count(survey, response_status, zip_missing = is.na(zip))
 #| include: false
 write_rds(survey, here("data/processed/survey_clean.rds"))
 write_csv(survey, here("data/processed/survey_clean.csv"))
+```
+
+The clean survey file has one row per respondent and
+`r ncol(survey)` columns. Most are the TRUE/FALSE answer columns; the rest
+identify the respondent and delivery or hold the single-answer demographics.
+
+```{r}
+#| label: survey-structure
+#| echo: false
+tibble(column = names(survey), type = map_chr(survey, \(x) class(x)[1])) |>
+  mutate(
+    group = case_when(
+      str_detect(column, "^(q\\d[a-d]?|gender|race)_") ~ str_extract(column, "^[^_]+"),
+      TRUE ~ "respondent / delivery"
+    ),
+    type = case_match(type, "logical" ~ "TRUE/FALSE", "factor" ~ "ordered category",
+                      "character" ~ "text", "POSIXct" ~ "date-time", .default = type)
+  ) |>
+  summarise(columns = n(), types = str_flatten(unique(type), ", "),
+            examples = str_flatten(head(column, 3), ", "), .by = group) |>
+  tbl("Columns in the clean survey file")
 ```
 
 ## Canvassing
@@ -709,6 +821,7 @@ col_map_canv <- c(
 canvassing <- canvassing_files |>
   map(\(path) {
     read_excel(path, col_types = "text") |>
+      rename(any_of(timestamp_aliases)) |>
       mutate(across(everything(), \(x) na_if(str_trim(x), ""))) |>
       rename_validated(col_map_canv) |>
       mutate(delivery = basename(path))
@@ -727,7 +840,8 @@ if (any(canvassing$form_version == "f0")) {
 ```{r}
 #| label: canvassing-count
 #| echo: false
-count(canvassing, delivery, form_version, response_status)
+count(canvassing, delivery, form_version, response_status) |>
+  tbl("Rows read from each canvassing delivery")
 ```
 
 The doorstep challenge list uses short labels of its own. Everything else
@@ -811,7 +925,9 @@ pathway.
 ```{r}
 #| label: canvassing-funnel-count
 #| echo: false
-count(canvassing, response_status, responded, care_connection, continue_full, pathway)
+count(canvassing, response_status, responded, care_connection, continue_full, pathway,
+      name = "contacts") |>
+  tbl("Canvassing contacts by funnel stage and pathway")
 ```
 
 ```{r}
@@ -870,9 +986,14 @@ dictionary <- bind_rows(dict_options, dict_factors) |>
 write_csv(dictionary, here("data/processed/data-dictionary.csv"))
 ```
 
+Search or page through the dictionary here; the same table is written to
+`data/processed/data-dictionary.csv`.
+
 ```{r}
 #| label: dictionary-show
 #| echo: false
 dictionary |>
-  knitr::kable()
+  gt() |>
+  tab_options(table.font.size = px(13)) |>
+  opt_interactive(use_search = TRUE, use_page_size_select = TRUE, page_size_default = 15)
 ```

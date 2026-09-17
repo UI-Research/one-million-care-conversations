@@ -24,9 +24,16 @@ library(here)
 library(urbnthemes)
 library(scales)
 library(reactable)
+library(gt)
 
 set_urbn_defaults(style = "print")
 source(here("scripts/00_utils.R"))
+
+tbl <- function(data) {
+  gt(data) |>
+    sub_missing(missing_text = "—") |>
+    tab_options(table.font.size = px(14), table.align = "left")
+}
 
 survey     <- read_rds(here("data/processed/survey_clean.rds"))
 canvassing <- read_rds(here("data/processed/canvassing_clean.rds"))
@@ -99,7 +106,7 @@ share_table <- function(data, var) {
     filter(!is.na({{ var }})) |>
     count({{ var }}, name = "respondents") |>
     mutate(share = percent(respondents / sum(respondents), accuracy = 1)) |>
-    knitr::kable()
+    tbl()
 }
 ```
 
@@ -141,7 +148,7 @@ bind_rows(
     last  = max(as_date(submitted_at)),
     .by = c(tool, response_status)
   ) |>
-  knitr::kable()
+  tbl()
 ```
 
 Responses by week. The survey's peaks line up with the coalition's outreach
@@ -301,17 +308,17 @@ survey_state |>
   count(urban_rural, rurality, name = "respondents") |>
   mutate(share = percent(respondents / sum(respondents), accuracy = 1)) |>
   rename("Urban or rural" = urban_rural, "RUCA group" = rurality) |>
-  knitr::kable()
+  tbl()
 ```
 
-Rural respondents are a small group so far, so splits within the rural
-categories are not yet reliable. The urban/rural split, though, is large
-enough to compare answers — for example, what ideal care looks like:
+Rural respondents are a smaller group, so splits within the rural categories
+are still thin. The urban/rural split is large enough to compare answers —
+for example, what ideal care looks like:
 
 ```{r}
 #| label: q6-by-rurality
 rates_by(survey_state, "q6", urban_rural) |>
-  knitr::kable()
+  tbl()
 ```
 
 ## Who is responding to the survey
@@ -364,7 +371,7 @@ demographics |>
   selection_rates("gender") |>
   transmute(gender = label, respondents = n_selected, share = percent(rate, accuracy = 1)) |>
   arrange(desc(respondents)) |>
-  knitr::kable()
+  tbl()
 ```
 
 ### Household income
@@ -411,7 +418,7 @@ bind_rows(survey = survey, canvassing = canvassing, .id = "tool") |>
   pivot_wider(names_from = tool, values_from = c(n, share)) |>
   select(pathway, survey_n = n_survey, survey_share = share_survey,
          canvassing_n = n_canvassing, canvassing_share = share_canvassing) |>
-  knitr::kable()
+  tbl()
 ```
 
 The answers behind the pathways. People could choose more than one.
@@ -477,7 +484,7 @@ plot_rates(
 
 Everyone sees this question regardless of pathway, so it has the widest base.
 It asks people to choose up to three answers, but the form does not enforce
-that, and about a third of respondents chose more — some chose all eleven.
+that, and roughly four in ten respondents chose more — some chose all eleven.
 The table shows shares two ways: among everyone, and among only the people
 who kept to three or fewer. The ranking is similar either way, but the
 levels differ, and it is worth deciding which version to report.
@@ -515,7 +522,7 @@ q6_all |>
     "Everyone ({unique(q6_all$n_shown)})" := everyone,
     "Chose 3 or fewer ({unique(q6_within$n_shown)})" := three_or_fewer
   ) |>
-  knitr::kable()
+  tbl()
 ```
 
 ### Ideal care by respondent group
@@ -528,13 +535,13 @@ splits can extend to every question and every demographic.
 ```{r}
 #| label: q6-by-age
 rates_by(survey, "q6", age) |>
-  knitr::kable()
+  tbl()
 ```
 
 ```{r}
 #| label: q6-by-disability
 rates_by(survey, "q6", disability) |>
-  knitr::kable()
+  tbl()
 ```
 
 ### In their own words
@@ -552,7 +559,7 @@ survey |>
   mutate(question = str_remove(question, "_other_text")) |>
   filter(respondents > 0) |>
   arrange(desc(respondents)) |>
-  knitr::kable()
+  tbl()
 ```
 
 ## Canvassing
@@ -618,7 +625,7 @@ interviews |>
   left_join(zip_state, by = "zip") |>
   left_join(states, by = "state") |>
   select(transcript, format, zip, state = state_name) |>
-  knitr::kable()
+  tbl()
 ```
 
 ## Not in this chartbook yet

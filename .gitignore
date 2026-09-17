@@ -15,8 +15,7 @@ __pycache__/
 # Project documents live on Box, not in the repo
 *.pdf
 *.docx
-# Rendered outputs can embed data rows
-scripts/**/*.html
+# Rendered HTML is tracked (aggregates only); Quarto's intermediate folders are not
 scripts/**/*_files/
 # Browser-tool screenshots of rendered pages (embed data)
 .playwright-mcp/

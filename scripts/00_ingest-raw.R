@@ -41,7 +41,8 @@ box_auth()
 
 ## Authoritative listing ------------------------------------------------------
 
-listing <- as.data.frame(box_ls(folder_id)) |>
+listing_all <- as.data.frame(box_ls(folder_id))
+listing <- listing_all |>
   filter(type == "file") |>
   select(any_of(c("name", "id", "sha1", "file_version_id", "version_id",
                   "size", "content_modified_at")))
@@ -91,12 +92,31 @@ if (length(name_col) != 1 || length(pii_col) != 1) {
   cli::cli_abort("DATA LOG columns changed — expected one 'Raw file name' and one 'Skimmed for PII' column.")
 }
 
-# log records names without extension, sometimes with stray whitespace/newlines;
-# some delivered filenames carry trailing underscore padding the log omits
-normalize <- \(x) str_remove(str_trim(str_remove_all(x, "[\r\n]")), "_+$")
-logged_names <- normalize(delivery_log[[name_col]])
-box_names <- listing |>
-  filter(id != log_entry$id) |>
+# log records names without extension, with stray whitespace and inconsistent
+# case ("F1"); some delivered filenames carry trailing underscore padding or a
+# space before the extension that the log omits. One log cell may list several
+# files on separate lines (the interview transcripts), so split those first.
+normalize <- \(x) str_to_lower(str_remove(str_trim(x), "_+$"))
+log_rows <- delivery_log |>
+  transmute(name = .data[[name_col]], skimmed = .data[[pii_col]]) |>
+  separate_longer_delim(name, regex("[\r\n]+")) |>
+  mutate(name = normalize(name), skimmed = normalize(skimmed)) |>
+  filter(!is.na(name), name != "")
+logged_names <- log_rows$name
+
+# the log covers subfolders too (interview transcripts, nested by delivery
+# date), so reconcile against every file below the folder; only top-level
+# files are mirrored here
+list_files_below <- function(folder_ids) {
+  if (length(folder_ids) == 0) return(tibble(name = character()))
+  contents <- map(folder_ids, \(id) as.data.frame(box_ls(id))) |> list_rbind()
+  bind_rows(
+    contents |> filter(type == "file") |> select(name),
+    list_files_below(contents |> filter(type == "folder") |> pull(id))
+  )
+}
+subfolder_files <- list_files_below(listing_all |> filter(type == "folder") |> pull(id))
+box_names <- bind_rows(filter(listing, id != log_entry$id), subfolder_files) |>
   pull(name) |>
   tools::file_path_sans_ext() |>
   normalize()
@@ -124,7 +144,7 @@ if (length(unlogged) > 0 || length(missing) > 0) {
   ))
 }
 
-not_skimmed <- logged_names[normalize(delivery_log[[pii_col]]) != "Yes"]
+not_skimmed <- log_rows$name[log_rows$skimmed != "yes"]
 if (length(not_skimmed) > 0) {
   cli::cli_abort(c(
     "{length(not_skimmed)} deliver{?y/ies} not marked PII-skimmed in the DATA LOG — not downloading:",
