@@ -1,0 +1,55 @@
+---
+title: "1M Conversations About Care"
+subtitle: "Data documentation and preliminary results"
+toc: false
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(here)
+survey <- read_rds(here("data/processed/survey_clean.rds"))
+canvassing <- read_rds(here("data/processed/canvassing_clean.rds"))
+data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at))
+```
+
+The Urban Institute is the research partner to
+[Caring Across Generations](https://caringacross.org/) on the 1M Conversations
+About Care initiative: families across the country sharing their experiences
+with care through a digital survey, doorstep canvassing, and interviews. These
+pages document how Urban handles that data and what it shows so far.
+
+**Data through `r format(data_through, "%B %e, %Y")`**: `r format(nrow(survey), big.mark = ",")` survey
+responses and `r nrow(canvassing)` canvassing contacts.
+
+## What's here
+
+[**Cleaning**](scripts/01_clean-data.qmd) — how the raw exports become
+analysis files, step by step, with the checks that run on every delivery.
+Read this to understand what each column in the data means and what we do
+when a delivery looks different from the last one.
+
+[**Chartbook**](scripts/survey/01_chartbook.qmd) — who is responding and what
+they are saying: response counts by state and tool, urban and rural, survey
+demographics, care pathways, challenges, supports, and what ideal care would
+look like.
+
+[**Variables**](variables.qmd) — a reference for every column in the clean
+files: the question it came from and the answer text behind it.
+
+[**Coding dashboard**](https://ui-research.github.io/one-million-care-conversations/)
+— the interview transcripts coded against the project codebook, for review by
+the qualitative team.
+
+## Two things to keep in mind
+
+- The three tools reach different people in different ways and are always
+  reported separately.
+- These are the people who chose to respond. Nothing here is nationally
+  representative, and Urban never describes it that way.
+
+## Contact
+
+Manuel Alcalá Kovalski (data science) and Teresa Kroeger (research lead),
+Urban Institute. Code is on
+[GitHub](https://github.com/UI-Research/one-million-care-conversations).

@@ -2,13 +2,7 @@
 title: "1M Care Conversations: preliminary chartbook"
 author: "Manuel Alcalá Kovalski, Urban Institute"
 date: today
-format:
-  html:
-    embed-resources: true
-    toc: true
-    toc-depth: 2
-    code-fold: true
-    code-summary: "Show code"
+toc-depth: 2
 execute:
   warning: false
   message: false

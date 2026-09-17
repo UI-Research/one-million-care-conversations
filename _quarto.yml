@@ -1,0 +1,40 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - variables.qmd
+    - scripts/01_clean-data.qmd
+    - scripts/survey/01_chartbook.qmd
+
+website:
+  title: "1M Care Conversations"
+  description: "Urban Institute analysis of the 1M Conversations About Care data"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: scripts/01_clean-data.qmd
+        text: Cleaning
+      - href: scripts/survey/01_chartbook.qmd
+        text: Chartbook
+      - href: variables.qmd
+        text: Variables
+      - href: https://ui-research.github.io/one-million-care-conversations/
+        text: Coding dashboard
+    right:
+      - icon: github
+        href: https://github.com/UI-Research/one-million-care-conversations
+  page-footer: "Urban Institute, in partnership with Caring Across Generations"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: true
+    code-summary: "Show code"
+
+# a page re-executes only when its source changes, so rendering the site
+# does not re-run the cleaning; `quarto render <file>` still forces it
+execute:
+  freeze: auto

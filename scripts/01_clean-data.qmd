@@ -2,12 +2,6 @@
 title: "Cleaning the survey and canvassing data"
 author: "Manuel Alcalá Kovalski, Urban Institute"
 date: today
-format:
-  html:
-    embed-resources: true
-    toc: true
-    code-fold: true
-    code-summary: "Show code"
 execute:
   warning: true
   message: false

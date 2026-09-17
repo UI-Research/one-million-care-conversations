@@ -1,0 +1,56 @@
+---
+title: "Variables"
+subtitle: "Every column in the clean files, with the question and answer text behind it"
+---
+
+The clean survey and canvassing files have one row per respondent. Most
+columns are TRUE/FALSE answer columns from choose-all-that-apply questions
+(`TRUE` chosen, `FALSE` seen but not chosen, `NA` not shown or skipped);
+single-answer questions are ordered categories. This page is generated from
+`data/processed/data-dictionary.csv`, which the cleaning program writes.
+
+```{r}
+#| include: false
+library(tidyverse)
+library(here)
+
+dictionary <- read_csv(here("data/processed/data-dictionary.csv"), show_col_types = FALSE) |>
+  mutate(
+    group = if_else(str_detect(column, "_"), str_extract(column, "^[^_]+"), column),
+    # each question's columns keep their survey order; sections follow the questionnaire
+    group = fct_inorder(group)
+  )
+
+section_title <- c(
+  q1 = "q1 — Connection to care", q2a = "q2a — Challenges (current)",
+  q3a = "q3a — Supports (current)", q4a = "q4a — Who helps (current)",
+  q2b = "q2b — Challenges (future)", q3b = "q3b — Supports (future)",
+  q2c = "q2c — Challenges (past)", q3c = "q3c — Supports (past)",
+  q4c = "q4c — Who helped (past)", q2d = "q2d — Challenges (observer)",
+  q3d = "q3d — Supports (observer)", q4d = "q4d — Who helps (observer)",
+  q6 = "q6 — Ideal care", gender = "Gender", race = "Race and ethnicity",
+  doorstep = "Doorstep challenges (canvassing)", hh_size = "Household size",
+  hh_income = "Household income", age = "Age", disability = "Disability",
+  political = "Political views", pathway = "Pathway (derived)",
+  canvass_mode = "Canvassing mode", responded = "Responded (canvassing)",
+  care_connection = "Care connection (canvassing screener)",
+  continue_full = "Agreed to full questions (canvassing)"
+)
+```
+
+```{r}
+#| echo: false
+#| results: asis
+for (g in levels(dictionary$group)) {
+  rows <- filter(dictionary, group == g)
+  cat("## ", coalesce(unname(section_title[g]), g), "\n\n", sep = "")
+  cat("**Question:** ", rows$question[1], "\n\n", sep = "")
+  if (all(rows$column == g)) {
+    cat("**Column:** `", g, "` (ordered category)\n\n", sep = "")
+    cat(knitr::kable(select(rows, Level = option)), sep = "\n")
+  } else {
+    cat(knitr::kable(select(rows, Column = column, `Answer text` = option)), sep = "\n")
+  }
+  cat("\n\n")
+}
+```
