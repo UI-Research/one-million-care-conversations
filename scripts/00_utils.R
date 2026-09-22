@@ -2,19 +2,32 @@
 
 # Rename export columns (full question text) to short IDs, validating in both
 # directions so an export with added, dropped, or reworded columns fails
-# loudly. IDs in `optional` may be absent (columns that vary across form
-# versions, e.g. f1 dropped the address fields and added q4c).
+# loudly. Each `col_map` entry is one or more accepted headers for that ID
+# (the form's question wording was revised in Aug 2026, so a question can
+# appear under either wording); headers are compared with whitespace
+# collapsed, since exports vary in stray double spaces. IDs in `optional` may
+# be absent (columns that vary across form versions, e.g. f1 dropped the
+# address fields and added q4c).
 rename_validated <- function(data, col_map, optional = character()) {
-  unmatched <- setdiff(names(data), col_map)
-  missing   <- setdiff(col_map[!names(col_map) %in% optional], names(data))
-  if (length(unmatched) > 0 || length(missing) > 0) {
+  aliases <- purrr::imap(as.list(col_map), \(headers, id) {
+    tibble::tibble(id = id, header = stringr::str_squish(headers))
+  }) |>
+    purrr::list_rbind()
+  present <- tibble::tibble(original = names(data), header = stringr::str_squish(names(data)))
+  matched <- dplyr::inner_join(present, aliases, by = "header")
+
+  unmatched <- present$original[!present$header %in% aliases$header]
+  missing   <- setdiff(setdiff(names(col_map), optional), matched$id)
+  twice     <- unique(matched$id[duplicated(matched$id)])
+  if (length(unmatched) > 0 || length(missing) > 0 || length(twice) > 0) {
     cli::cli_abort(c(
       "Column mismatch between export and col_map.",
       purrr::set_names(paste0('In export, not mapped: "', unmatched, '"'), "x"),
-      purrr::set_names(paste0('Mapped, not in export: "', missing, '"'), "x")
+      purrr::set_names(paste0('Mapped, not in export: "', missing, '"'), "x"),
+      purrr::set_names(paste0('Two headers in the export map to: "', twice, '"'), "x")
     ))
   }
-  dplyr::rename(data, dplyr::all_of(col_map[col_map %in% names(data)]))
+  dplyr::rename(data, dplyr::all_of(purrr::set_names(matched$original, matched$id)))
 }
 
 # Split one multi-select cell into its selections. Two export formats exist:

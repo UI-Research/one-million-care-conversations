@@ -171,18 +171,30 @@ separate export and are handled by the text-analysis pipeline.
 
 ```{r}
 #| label: rename
-col_map <- c(
+# where a question has two wordings, the first is the original form (June
+# 2026) and the second the revised wording that appears in exports from
+# August 2026; both name the same question
+col_map <- list(
   submitted_at  = "Time",
-  q1            = "We would like to know more about your connection to care, if any. Choose all that apply to you.",
-  q2a           = "What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",
-  q3a           = "What care support would make a difference for you or people around you? (Choose all that apply)",
+  q1            = c("We would like to know more about your connection to care, if any. Choose all that apply to you.",
+                    "Care and caregiving look different for everyone. Choose all that apply to you."),
+  q2a           = c("What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)",
+                    "What's been hard? (Choose all that apply)"),
+  q3a           = c("What care support would make a difference for you or people around you? (Choose all that apply)",
+                    "What help would make a difference for you or the people you care for? (Choose all that apply)"),
   q4a           = "What or who helps you most with care? (Choose your top 3)",
-  q2b           = "When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",
-  q3b           = "What types of care support and services do you think will matter most for you or people you know? (Choose all that apply)",
-  q2c           = "When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",
-  q3c           = "What care support would have made a difference for you or people around you? (Choose all that apply)",
-  q2d           = "What care challenges, if any, do the people you know experience? (Choose all that apply.)",
-  q3d           = "What care support would make a difference for the people you know? (Choose all that apply)",
+  q2b           = c("When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)",
+                    "What do you think will be hard in the future? (Choose all that apply)"),
+  q3b           = c("What types of care support and services do you think will matter most for you or people you know? (Choose all that apply)",
+                    "What help would make a difference? (Choose all that apply)"),
+  q2c           = c("When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",
+                    "What was hard? (Choose all that apply)"),
+  q3c           = c("What care support would have made a difference for you or people around you? (Choose all that apply)",
+                    "What help would have made difference for you or people around you? (Choose all that apply)"),
+  q2d           = c("What care challenges, if any, do the people you know experience? (Choose all that apply.)",
+                    "What’s been hard for the people you know? (Choose all that apply.)"),
+  q3d           = c("What care support would make a difference for the people you know? (Choose all that apply)",
+                    "What help would make a difference for the people you know? (Choose all that apply)"),
   q4d           = "What or who helps most with their care? (Choose your top 3)",
   q4c           = "What or who helped you most with care? (Choose your top 3)",
   q6            = "What would ideal care support and services look like for you? (Choose up to three)",
@@ -1071,11 +1083,13 @@ without opening this program.
 
 ```{r}
 #| label: dictionary
+# the dictionary shows the original wording of each question
 question_text <- c(
   col_map,
   col_map_canv[setdiff(names(col_map_canv), names(col_map))],
   col_map_canv_revised[c("screener", "hard_text")]
-)
+) |>
+  map_chr(\(x) x[1])
 all_multiselect <- c(multiselect_options, list(doorstep = doorstep_options))
 
 dict_options <- all_multiselect |>
