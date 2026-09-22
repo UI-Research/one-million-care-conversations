@@ -156,27 +156,6 @@ to_factor <- function(x, levels) {
   factor(x, levels = levels)
 }
 
-# Assign each respondent their single survey pathway from the encoded q1
-# indicators. Priority current > past > future > observer verified
-# empirically against which questions respondents were actually shown:
-# receiving/needing care routes to current (path A, care recipient);
-# observer-only completes all answered q2d; a past+future respondent was
-# shown only the past questions.
-derive_pathway <- function(data) {
-  dplyr::mutate(
-    data,
-    pathway = dplyr::case_when(
-      q1_child_now | q1_aging_now | q1_disability_now | q1_paid_provider |
-        q1_need_care_now | q1_receives_care ~ "current",
-      q1_cared_past ~ "past",
-      q1_expect_future ~ "future",
-      q1_observer ~ "observer",
-      q1_none ~ "none"
-    ) |>
-      factor(levels = c("current", "past", "future", "observer", "none"))
-  )
-}
-
 # Unique IDs export in scientific notation ("1.470978936E9"); normalize to
 # plain digit strings so joins across exports are stable regardless of how a
 # given file formats them. Errors on anything non-numeric or too long to

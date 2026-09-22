@@ -723,6 +723,7 @@ from the questionnaire; an answer outside it stops the code.
 
 ```{r}
 #| label: factors
+#| code-fold: false
 survey <- survey |>
   mutate(
     # the export writes household size as "2.0", "3.0", ...
@@ -754,11 +755,28 @@ survey <- survey |>
 ### Work out each person's pathway
 
 The first question decides which set of questions a person sees (the five
-pathways are described in "The survey in brief" above). The cleaning assigns
-each person the first pathway that applies, in the questionnaire's order.
+pathways are described in "The survey in brief" above). The rule, exactly as
+the code applies it: a person is assigned the first pathway in this list
+whose answers they ticked.
 
 ```{r}
-#| label: pathway
+#| label: pathway-rule
+#| code-fold: false
+derive_pathway <- function(data) {
+  data |>
+    mutate(
+      pathway = case_when(
+        q1_child_now | q1_aging_now | q1_disability_now | q1_paid_provider |
+          q1_need_care_now | q1_receives_care ~ "current",
+        q1_cared_past    ~ "past",
+        q1_expect_future ~ "future",
+        q1_observer      ~ "observer",
+        q1_none          ~ "none"
+      ) |>
+        factor(levels = c("current", "past", "future", "observer", "none"))
+    )
+}
+
 survey <- derive_pathway(survey)
 ```
 
@@ -788,8 +806,13 @@ The paid-provider exception described in "The survey in brief" appears in
 the table below as answers from outside the pathway on the `past` questions.
 That is expected until Caring Across Generations confirms the routing.
 
+The rules: which question belongs to which pathway. (`q6` is asked of
+everyone, so it has no row here; a complete response that skipped it entirely
+is flagged separately.)
+
 ```{r}
-#| label: skip-checks
+#| label: skip-rules
+#| code-fold: false
 skip_rules <- tribble(
   ~question, ~indicator,             ~expected_pathway,
   "q2a",     "q2a_unaffordable",     "current",
@@ -804,7 +827,10 @@ skip_rules <- tribble(
   "q3d",     "q3d_backup",           "observer",
   "q4d",     "q4d_family_friends",   "observer"
 )
+```
 
+```{r}
+#| label: skip-checks
 # q6 is shown to every pathway, so it has no row in skip_rules — instead a
 # complete response that skipped it entirely signals routing/export drift
 q6_skipped <- survey$response_status == "complete" & is.na(survey$q6_affordable)
