@@ -131,42 +131,9 @@ library(urbnthemes)
 
 set_urbn_defaults(style = "print")
 source(here("scripts/00_utils.R"))
-```
 
-```{=html}
-<style>
-.reactable { margin: 0.75rem 0 1.75rem; }
-.table-title { margin: 1.25rem 0 0.4rem; }
-</style>
-```
-
-```{r}
-#| label: table-helper
-#| include: false
-# one look for every table in this document: sortable, paged past `page_size`
-# rows, and scrolling sideways rather than wrapping when there are many columns
-tbl <- function(data, title = NULL, page_size = 5, searchable = FALSE, min_width = 90,
-                wrap = TRUE, ...) {
-  table <- reactable(
-    data,
-    pagination = nrow(data) > page_size, defaultPageSize = page_size,
-    showPageSizeOptions = FALSE, searchable = searchable,
-    striped = TRUE, resizable = TRUE, wrap = wrap,
-    defaultColDef = colDef(minWidth = min_width),
-    ...,
-    theme = reactableTheme(
-      cellPadding = "8px 12px",
-      headerStyle = list(background = "#f3f4f6", fontWeight = 600),
-      borderColor = "#e5e7eb"
-    ),
-    style = list(fontSize = "14px")
-  )
-  if (is.null(title)) return(table)
-  htmltools::tagList(
-    htmltools::tags$p(htmltools::tags$strong(title), class = "table-title"),
-    table
-  )
-}
+# tables: the shared helper, five rows a page
+tbl <- tbl_interactive
 ```
 
 ## Find the files to clean

@@ -18,15 +18,13 @@ library(here)
 library(urbnthemes)
 library(scales)
 library(reactable)
-library(gt)
 
 set_urbn_defaults(style = "print")
 source(here("scripts/00_utils.R"))
 
-tbl <- function(data) {
-  gt(data) |>
-    sub_missing(missing_text = "—") |>
-    tab_options(table.font.size = px(14), table.align = "left")
+# tables: the shared helper, showing every row (these are summary tables)
+tbl <- function(data, title = NULL, note = NULL, ...) {
+  tbl_interactive(data, title = title, note = note, page_size = 60, ...)
 }
 
 survey             <- read_clean("survey")
@@ -116,23 +114,21 @@ share_table <- function(data, var) {
 ```
 
 This chartbook is a first look at who the 1M Care Conversations campaign is
-reaching and what people are saying. It covers all deliveries received so far,
-through **`r format(data_through, "%B %e, %Y")`**. Counts here will be lower
-than the coalition's own running totals, because deliveries to Urban lag the
-live forms.
+reaching and what people are saying. It covers responses received through
+**`r format(data_through, "%B %e, %Y")`**.
 
 Three things to keep in mind while reading:
 
 - The three tools (the digital survey, canvassing, and interviews) are shown
   separately throughout and never added together. They reach different people
   in different ways.
-- These are the people who chose to respond. The numbers describe them, not
-  the country.
+- These are the people who chose to respond. The numbers shown here describe
+  respondents and are not nationally representative.
 - Survey counts include people who stopped partway through. Each chart says
   which respondents it is based on.
 
-The data were cleaned by `scripts/01_clean-data.qmd`, which explains how the
-raw exports were handled.
+The [Cleaning page](/scripts/01_clean-data.qmd) explains how the raw exports
+were handled.
 
 ## How many responses
 
@@ -339,7 +335,7 @@ from the USDA Economic Research Service. The codes run from 1 (inside a
 metropolitan area) to 10 (rural, far from any town), based on where people in
 that ZIP commute to work. We group them two ways: a four-way split used in
 much rural health research, and the urban/rural split the coalition asked for
-(Jaimie Worker, CAG, September 2026), where "rural" is RUCA 4 to 10. That is
+(Jaimie Worker, Caring Across Generations, September 2026), where "rural" is RUCA 4 to 10. That is
 also the cut the Health Resources and Services Administration's Federal
 Office of Rural Health Policy uses to
 [define rural](https://www.hrsa.gov/rural-health/about-us/what-is-rural) for
@@ -379,8 +375,8 @@ rates_by(survey_state, "q6", urban_rural) |>
 ```
 
 One check on that definition. RUCA codes 2 and 3 are places within
-commuting range of a metropolitan core but outside it — suburbs and
-exurbs — and whether they count as urban or rural is a judgment call. The
+commuting range of a metropolitan core but outside it (suburbs and exurbs),
+and whether they count as urban or rural is a judgment call. The
 same question split three ways shows whether that choice matters: if the
 middle column looks like the first, the definition above is safe; if it looks
 like the last, counting 2 and 3 as rural would change the picture.
@@ -515,17 +511,15 @@ acs_sum <- \(table, idx) sum(acs[sprintf("%s_%03d", table, idx)])
 # one comparison table: category, survey share, US share
 compare_table <- function(survey_shares, us_counts, title, note, us_total = sum(us_counts$us, na.rm = TRUE)) {
   survey_shares |>
-    full_join(us_counts |> mutate(us = us / us_total), by = "category") |>
+    full_join(us_counts |> mutate(us = us / us_total), by = join_by(category)) |>
     mutate(category = factor(category, levels = us_counts$category)) |> # keep the questionnaire's order
     arrange(category) |>
-    gt() |>
-    cols_label(category = "", survey = "Survey", us = "US adults (ACS 2024)") |>
-    fmt_percent(c(survey, us), decimals = 0) |>
-    sub_missing(missing_text = "—") |>
-    tab_header(title = title) |>
-    tab_source_note(note) |>
-    opt_align_table_header("left") |>
-    tab_options(table.font.size = px(14), table.align = "left")
+    transmute(
+      ` ` = as.character(category),
+      Survey = percent(survey, accuracy = 1),
+      `US adults (ACS 2024)` = percent(us, accuracy = 1)
+    ) |>
+    tbl(title, note)
 }
 
 # share of respondents in each level of a single-answer question, dropping
@@ -744,10 +738,11 @@ plot_rates(
 
 Everyone sees this question regardless of pathway, so it has the widest base.
 It asks people to choose up to three answers, but the form does not enforce
-that, and roughly four in ten respondents chose more — some chose all eleven.
-The table shows shares two ways: among everyone, and among only the people
-who kept to three or fewer. The ranking is similar either way, but the
-levels differ, and it is worth deciding which version to report.
+that: roughly four in ten respondents chose more, and some chose all eleven.
+The table shows shares two ways, among everyone and among only the people
+who kept to three or fewer. The order of the answers is nearly the same either way;
+what changes is how big the percentages are, and it is worth deciding which
+version to report.
 
 ```{r}
 #| label: q6
@@ -926,9 +921,9 @@ interviews |>
 
 ## Not in this chartbook yet
 
-- **Rural detail.** Rural respondents can be split further (small towns,
+- **Rural detail**: rural respondents can be split further (small towns,
   remote areas, commuting patterns) once there are enough of them.
-- **Open-ended answers.** The survey's and canvassing's open-text questions
-  are coded separately once the codebook is updated (issue #2).
-- **Later channels.** The email opt-in, Spanish, and film-screening survey
-  links and the second canvassing event have not been delivered yet.
+- **Open-ended answers**: the survey's and canvassing's open-text questions
+  are coded separately once the codebook is updated.
+- **The Spanish survey link**: no responses have been delivered from it yet;
+  they will flow into the same charts when they arrive.

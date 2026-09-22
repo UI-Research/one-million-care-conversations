@@ -255,6 +255,32 @@ read_clean <- function(name) {
   data
 }
 
+# One look for every table on the site: sortable, striped, paged past
+# `page_size` rows, optional title above and note below. Long cells wrap by
+# default; pass wrap = FALSE for wide raw tables so they scroll sideways.
+tbl_interactive <- function(data, title = NULL, note = NULL, page_size = 5,
+                            searchable = FALSE, min_width = 90, wrap = TRUE, ...) {
+  table <- reactable::reactable(
+    data,
+    pagination = nrow(data) > page_size, defaultPageSize = page_size,
+    showPageSizeOptions = FALSE, searchable = searchable,
+    striped = TRUE, resizable = TRUE, wrap = wrap,
+    defaultColDef = reactable::colDef(minWidth = min_width),
+    theme = reactable::reactableTheme(
+      cellPadding = "8px 12px",
+      headerStyle = list(background = "#f3f4f6", fontWeight = 600),
+      borderColor = "#e5e7eb"
+    ),
+    style = list(fontSize = "14px"),
+    ...
+  )
+  htmltools::tagList(
+    if (!is.null(title)) htmltools::tags$p(htmltools::tags$strong(title), class = "table-title"),
+    table,
+    if (!is.null(note)) htmltools::tags$p(note, class = "table-note")
+  )
+}
+
 # Pivot the wide one-row-per-respondent indicators into a long view with one
 # row per respondent x option: `question` ("q2a"), `option` ("unaffordable"),
 # and logical `selected`. Respondent-level columns (id, demographics) carry
