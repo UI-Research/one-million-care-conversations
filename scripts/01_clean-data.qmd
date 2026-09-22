@@ -845,11 +845,14 @@ tbl(skip_checks, "Answers against the survey's routing", page_size = nrow(skip_c
 
 ### Tidy the remaining columns
 
-Two small fixes. Respondent IDs sometimes export in scientific notation, so
-they are rewritten as plain digits, which also lets us confirm that nobody
-appears twice. ZIP codes pick up a stray `.0` from the export and lose their
-leading zeros, so both are repaired; any ZIP that still is not five digits is
-flagged.
+Two small fixes:
+
+- **Respondent IDs** sometimes export in scientific notation, so they are
+  rewritten as plain digits, which also lets us confirm that nobody appears
+  twice.
+- **ZIP codes** pick up a stray `.0` from the export and lose their leading
+  zeros, so both are repaired. Any ZIP that still is not five digits is
+  flagged.
 
 ```{r}
 #| label: other-cols
@@ -872,15 +875,21 @@ if (nrow(bad_zip) > 0) {
 }
 ```
 
-Missing ZIPs are expected among partial responses: ZIP is the first
-demographic question, and many partials stop before reaching it.
-
 ```{r}
-#| label: zip-count
-#| echo: false
-count(survey, response_status, zip_missing = is.na(zip), name = "respondents") |>
-  tbl("ZIP code present, by response status")
+#| label: zip-missing
+#| include: false
+zip_missing <- survey |>
+  summarise(share_missing = mean(is.na(zip)), .by = response_status) |>
+  deframe()
+if (zip_missing[["complete"]] > 0) {
+  cli::cli_warn("{percent(zip_missing[['complete']], accuracy = 0.1)} of complete responses have no ZIP code")
+}
 ```
+
+Every complete response has a ZIP code. Among partial responses,
+`r scales::percent(zip_missing[["partial"]], accuracy = 1)` do not, which is
+expected: ZIP is the first demographic question, and many partials stop
+before reaching it.
 
 ### Check each file against the data log
 
