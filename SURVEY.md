@@ -85,8 +85,18 @@ Routing facts established empirically (not stated in any document):
   partial that later completes is re-delivered as a new complete ID is
   **unknown** — worth asking CAG before longitudinal claims.
 - The `* DATA LOG *.xlsx` in the delivery folder is the team's manifest: test
-  vs real activity, PII-skim flag, ID ranges, source links.
-  `scripts/00_ingest-raw.R` validates every sync against it.
+  vs real activity, tool/form/closed-open/complete-partial, PII-skim flag,
+  collection dates, ID ranges, source links, notes (Details sheet) and a
+  form × month received grid (Overview sheet). `scripts/00_ingest-raw.R`
+  validates every sync against it and writes `data/raw/deliveries.csv`,
+  which the cleaning uses to classify files. Known quirks: tool-type text is
+  hand-typed and inconsistent ("Canvas (C1), closed" / "Canvas (c1), closed"
+  / "Canvas, closed"); collection dates mix "6/4-7/10", "6/8 to 6/9", bare
+  Excel serials, and "Unknown"; one cell can list several files on separate
+  lines; the Overview grid's months are roughly the month the data cover
+  but not consistently (f4 logged 8/21–9/1 sits under August; the poll
+  collected Mar–Apr sits under July). The Deliveries page on the site shows
+  where the two sheets differ.
 
 ## Form versions
 

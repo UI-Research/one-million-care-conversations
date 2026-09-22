@@ -83,62 +83,83 @@ tbl <- function(data, title = NULL) {
 
 ## Find the files to clean
 
-The file names in the Box folder already tell us what each file is: which
-tool (`surv` or `canv`), the date range, the distribution channel (`f1`, `f2`,
-...), whether it holds closed-ended or open-text answers, and whether the
-responses are complete or partial. We select files by those name patterns and
-never rename anything by hand.
+The team's DATA LOG on Box records what every delivered file is: which tool
+(survey or canvassing), which link or form (`f1`, `f2`, `c1`, ...), whether it
+holds closed-ended or open-text answers, complete or partial responses,
+whether it was a pre-launch test, the dates it covers, and the range of
+respondent IDs in it. The sync step (`00_ingest-raw.R`) turns that log into a
+table, `data/raw/deliveries.csv`, with one row per file. This program uses
+that table to decide what each file is; the file name is only a second
+opinion, and the sync warns when the two disagree.
 
-Not every file is cleaned here. The `f0` files are the pre-launch test and are
-left out. The open-text exports and the pre-launch poll go to the
-text-analysis pipeline instead. Every file in the folder has to fall into one
-of three groups — cleaned here, deliberately set aside, or an error — so a new
-kind of delivery can never slip through unnoticed.
+Not every file is cleaned here. Test deliveries are left out. The open-text
+exports, the pre-launch poll, and the interview transcripts go to the
+text-analysis pipeline instead. Every file in the folder has to be accounted
+for, cleaned here or deliberately set aside, so a new kind of delivery can
+never slip through unnoticed.
 
 ```{r}
 #| label: read
 raw_dir <- here("data/raw/Raw data backups")
 
+deliveries <- read_csv(here("data/raw/deliveries.csv"), show_col_types = FALSE)
+
 mirror_files <- list.files(raw_dir) |>
-  str_subset("~\\$", negate = TRUE) # Excel lock files, present while a workbook is open
+  str_subset("~\\$", negate = TRUE) |> # Excel lock files, present while a workbook is open
+  str_subset("DATA LOG", negate = TRUE)
 
-# deliveries from 2026-08 on carry a "nopii_" prefix (PII-skimmed upstream);
-# f0 = pre-launch test deliveries, excluded per the data log
-survey_files <- mirror_files |>
-  str_subset("^(nopii_)?surv_export_.*_closed.*\\.xlsx$") |>
-  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
-# the canvassing form was revised in Aug 2026 (files numbered c1, c2, ...);
-# the earlier form's files say f1. The two ask different questions and are
-# cleaned separately.
-canvassing_files <- mirror_files |>
-  str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
-  str_subset(regex("_f\\d+_", ignore_case = TRUE))  |>
-  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
-canvassing_revised_files <- mirror_files |>
-  str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
-  str_subset(regex("_c\\d+_", ignore_case = TRUE))
-
-set_aside <- c(
-  "_[fFcC]0_",   # pre-launch test deliveries (both tools)
-  "opentext",    # open-text exports — text-analysis pipeline, not read here
-  "_open\\.",    # ... newer deliveries shorten the suffix to "_open"
-  "everyaction", # pre-launch One Question Poll — text-analysis pipeline
-  "grp-sf",      # interview holding document
-  "DATA LOG"     # the team's delivery manifest
-)
-unaccounted <- mirror_files |>
-  setdiff(c(survey_files, canvassing_files, canvassing_revised_files)) |>
-  str_subset(str_flatten(set_aside, "|"), negate = TRUE)
-if (length(unaccounted) > 0) {
+# every mirrored file must be described in the delivery table
+undescribed <- setdiff(mirror_files, deliveries$file)
+if (length(undescribed) > 0) {
   cli::cli_abort(c(
-    "{length(unaccounted)} file{?s} in the mirror not claimed by a cleaning section or known set-aside:",
-    set_names(unaccounted, rep("x", length(unaccounted)))
+    "{length(undescribed)} file{?s} in the mirror not described in deliveries.csv — re-run 00_ingest-raw.R:",
+    set_names(undescribed, rep("x", length(undescribed)))
   ))
 }
+
+real_closed <- deliveries |>
+  filter(folder == "Raw data backups", !test, content == "closed")
+
+survey_files <- real_closed |> filter(tool == "survey") |> pull(file)
+# the canvassing form was revised in Aug 2026 (forms numbered c1, c2, ...);
+# the earlier form's files say f1. The two ask different questions and are
+# cleaned separately.
+canvassing_files         <- real_closed |> filter(tool == "canvass", str_starts(form, "f")) |> pull(file)
+canvassing_revised_files <- real_closed |> filter(tool == "canvass", str_starts(form, "c")) |> pull(file)
+
+set_aside <- deliveries |>
+  filter(!file %in% c(survey_files, canvassing_files, canvassing_revised_files)) |>
+  mutate(why = case_when(
+    test                ~ "pre-launch test delivery",
+    tool == "interview" ~ "interview transcript — text-analysis pipeline",
+    tool == "poll"      ~ "pre-launch One Question Poll — text-analysis pipeline",
+    content == "open"   ~ "open-text export — text-analysis pipeline",
+    TRUE                ~ NA_character_
+  ))
+if (any(is.na(set_aside$why))) {
+  cli::cli_abort(c(
+    "Deliver{?y/ies} neither cleaned here nor covered by a set-aside rule:",
+    set_names(set_aside$file[is.na(set_aside$why)], rep("x", sum(is.na(set_aside$why))))
+  ))
+}
+
+# what the log says about each file, carried onto every row it contributes
+delivery_info <- deliveries |>
+  transmute(delivery = file, form_version = form, response_status = status)
 
 survey_files <- file.path(raw_dir, survey_files)
 canvassing_files <- file.path(raw_dir, canvassing_files)
 canvassing_revised_files <- file.path(raw_dir, canvassing_revised_files)
+```
+
+Files set aside in this run, and why:
+
+```{r}
+#| label: set-aside
+#| echo: false
+set_aside |>
+  count(why, name = "files") |>
+  tbl("Files not cleaned here")
 ```
 
 These are the survey files cleaned in this run. Each one should appear in the
@@ -235,16 +256,7 @@ read_delivery <- function(path) {
 survey <- survey_files |>
   map(read_delivery) |>
   bind_rows() |>
-  mutate(
-    # filenames are inconsistent about case ("F1")
-    form_version    = str_to_lower(str_extract(delivery, regex("f\\d+", ignore_case = TRUE))),
-    response_status = str_extract(delivery, "complete|partial")
-  )
-
-# the filename f0-exclusion and the parsed form_version must agree
-if (any(survey$form_version == "f0")) {
-  cli::cli_abort("f0 test rows slipped past the filename exclusion")
-}
+  left_join(delivery_info, by = "delivery")
 ```
 
 Count the rows that came from each file. The `form_version` column records
@@ -768,6 +780,32 @@ count(survey, response_status, zip_missing = is.na(zip), name = "respondents") |
   tbl("ZIP code present, by response status")
 ```
 
+### Check each file against the data log
+
+The DATA LOG records the dates each file covers and the first and last
+respondent ID in it. Each file's rows are compared with that: submission
+dates should fall inside the logged window and IDs inside the logged range. A
+mismatch means the wrong file was delivered or logged, which nothing else
+would catch.
+
+```{r}
+#| label: log-check
+survey_checks <- check_against_log(survey, deliveries, "Survey")
+```
+
+```{r}
+#| label: log-check-table
+#| echo: false
+survey_checks |>
+  transmute(
+    delivery, rows,
+    `rows cover` = str_c(first_day, " to ", last_day),
+    `log says` = if_else(is.na(collection_start), "not recorded", str_c(collection_start, " to ", collection_end)),
+    `IDs in range` = if_else(is.na(first_id) | is.na(last_id), "not recorded", if_else(ids_ok, "yes", "NO"))
+  ) |>
+  tbl("Survey deliveries against the DATA LOG")
+```
+
 ```{r}
 #| label: write
 #| include: false
@@ -843,14 +881,7 @@ canvassing <- canvassing_files |>
       mutate(delivery = basename(path))
   }) |>
   bind_rows() |>
-  mutate(
-    form_version    = str_to_lower(str_extract(delivery, regex("f\\d+", ignore_case = TRUE))),
-    response_status = str_extract(delivery, "complete|partial")
-  )
-
-if (any(canvassing$form_version == "f0")) {
-  cli::cli_abort("f0 test rows slipped past the filename exclusion")
-}
+  left_join(delivery_info, by = "delivery")
 ```
 
 ```{r}
@@ -920,6 +951,8 @@ dupes_canv <- canvassing$respondent_id[duplicated(canvassing$respondent_id)]
 if (length(dupes_canv) > 0) {
   cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_canv)}}")
 }
+
+canvassing_checks <- check_against_log(canvassing, deliveries, "Canvassing")
 
 agreed <- !is.na(canvassing$continue_full) & canvassing$continue_full == "Yes - continuing"
 battery_answered <- !is.na(canvassing$q1_child_now)
@@ -1005,10 +1038,7 @@ canvassing_revised <- canvassing_revised_files |>
       mutate(delivery = basename(path))
   }) |>
   bind_rows() |>
-  mutate(
-    form_version    = str_to_lower(str_extract(delivery, regex("c\\d+", ignore_case = TRUE))),
-    response_status = str_extract(delivery, "complete|partial")
-  )
+  left_join(delivery_info, by = "delivery")
 
 pii_cols <- intersect(c("canvasser_address", "canvasser_address2"), names(canvassing_revised))
 if (any(!is.na(as.matrix(canvassing_revised[pii_cols])))) {
@@ -1054,6 +1084,7 @@ dupes_rev <- canvassing_revised$respondent_id[duplicated(canvassing_revised$resp
 if (length(dupes_rev) > 0) {
   cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_rev)}}")
 }
+revised_checks <- check_against_log(canvassing_revised, deliveries, "Canvassing (revised form)")
 ```
 
 ```{r}

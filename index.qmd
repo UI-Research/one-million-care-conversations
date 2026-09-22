@@ -55,6 +55,10 @@ look like.
 [**Variables**](variables.qmd): a reference for every column in the clean
 files: the question it came from and the answer text behind it.
 
+[**Deliveries**](deliveries.qmd): every file the coalition has sent, with
+the team's month-by-month view of what has arrived and a check that the two
+agree.
+
 [**Coding dashboard**](coding-dashboard/index.html)
 — the interview transcripts coded against the project codebook, for review by
 the qualitative team.

@@ -4,6 +4,7 @@ project:
   render:
     - index.qmd
     - variables.qmd
+    - deliveries.qmd
     - scripts/01_clean-data.qmd
     - scripts/survey/01_chartbook.qmd
   # the coding dashboard is built by scripts/nlp/coding_dashboard.R, not by
@@ -24,6 +25,8 @@ website:
         text: Chartbook
       - href: variables.qmd
         text: Variables
+      - href: deliveries.qmd
+        text: Deliveries
       - href: coding-dashboard/index.html
         text: Coding dashboard
     right:
