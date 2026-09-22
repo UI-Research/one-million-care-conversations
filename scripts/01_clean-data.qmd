@@ -882,7 +882,7 @@ zip_missing <- survey |>
   summarise(share_missing = mean(is.na(zip)), .by = response_status) |>
   deframe()
 if (zip_missing[["complete"]] > 0) {
-  cli::cli_warn("{percent(zip_missing[['complete']], accuracy = 0.1)} of complete responses have no ZIP code")
+  cli::cli_warn("{scales::percent(zip_missing[['complete']], accuracy = 0.1)} of complete responses have no ZIP code")
 }
 ```
 
