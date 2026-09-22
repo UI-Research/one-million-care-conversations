@@ -66,36 +66,45 @@ form really behaves as deliveries arrive.
 library(tidyverse)
 library(readxl)
 library(here)
-library(gt)
+library(reactable)
 
 source(here("scripts/00_utils.R"))
 
-# consistent look for the small tables in this document
-tbl <- function(data, title = NULL) {
-  out <- gt(data) |>
-    sub_missing(missing_text = "—") |>
-    tab_options(table.font.size = px(14), table.align = "left")
-  if (!is.null(title)) out <- tab_header(out, title = title) |> opt_align_table_header("left")
-  out
+# one look for every table in this document: sortable, paged past `page_size`
+# rows, and scrolling sideways rather than wrapping when there are many columns
+tbl <- function(data, title = NULL, page_size = 10, searchable = FALSE, min_width = 90) {
+  table <- reactable(
+    data,
+    pagination = nrow(data) > page_size, defaultPageSize = page_size,
+    showPageSizeOptions = FALSE, searchable = searchable,
+    striped = TRUE, compact = TRUE, resizable = TRUE,
+    defaultColDef = colDef(minWidth = min_width),
+    style = list(fontSize = "14px")
+  )
+  if (is.null(title)) return(table)
+  htmltools::tagList(
+    htmltools::tags$p(htmltools::tags$strong(title), style = "margin-bottom: 0.3rem"),
+    table
+  )
 }
 ```
 
 ## Find the files to clean
 
-The team's DATA LOG on Box records what every delivered file is: which tool
-(survey or canvassing), which link or form (`f1`, `f2`, `c1`, ...), whether it
-holds closed-ended or open-text answers, complete or partial responses,
-whether it was a pre-launch test, the dates it covers, and the range of
-respondent IDs in it. The sync step (`00_ingest-raw.R`) turns that log into a
-table, `data/raw/deliveries.csv`, with one row per file. This program uses
-that table to decide what each file is; the file name is only a second
-opinion, and the sync warns when the two disagree.
+The research team's data log on Box records what every delivered file is:
+which tool (survey or canvassing), which link or form (`f1`, `f2`, `c1`, ...),
+whether it holds closed-ended or open-text answers, complete or partial
+responses, whether it was a pre-launch test, the dates it covers, and the
+range of respondent IDs in it. This program uses that log to decide what each
+file is. The file name is used only as a cross-check, and a disagreement
+between the two is flagged.
 
-Not every file is cleaned here. Test deliveries are left out. The open-text
-exports, the pre-launch poll, and the interview transcripts go to the
-text-analysis pipeline instead. Every file in the folder has to be accounted
-for, cleaned here or deliberately set aside, so a new kind of delivery can
-never slip through unnoticed.
+This program cleans the closed-ended survey and canvassing exports. It leaves
+out the pre-launch test deliveries, and it does not read the open-text
+exports, the pre-launch poll, or the interview transcripts, which go to the
+text-analysis pipeline. Every file in the folder is either cleaned here or
+deliberately left out for one of those reasons, so a new kind of delivery
+cannot slip through unnoticed.
 
 ```{r}
 #| label: read
@@ -151,23 +160,20 @@ canvassing_files <- file.path(raw_dir, canvassing_files)
 canvassing_revised_files <- file.path(raw_dir, canvassing_revised_files)
 ```
 
-Files set aside in this run, and why:
+The files cleaned in this run, as the data log describes them:
 
 ```{r}
-#| label: set-aside
+#| label: files-cleaned
 #| echo: false
-set_aside |>
-  count(why, name = "files") |>
-  tbl("Files not cleaned here")
-```
-
-These are the survey files cleaned in this run. Each one should appear in the
-team's data log.
-
-```{r}
-#| label: read-list
-#| echo: false
-basename(survey_files)
+deliveries |>
+  filter(file %in% basename(c(survey_files, canvassing_files, canvassing_revised_files))) |>
+  transmute(
+    file, tool, form, status, delivered,
+    covers = if_else(is.na(collection_start), "not recorded",
+                     str_c(collection_start, " to ", collection_end))
+  ) |>
+  arrange(desc(delivered), file) |>
+  tbl(min_width = 110)
 ```
 
 ## Survey
@@ -180,14 +186,11 @@ connection-to-care question, `q2a`/`q3a`/`q4a` are the current-caregiver
 questions, and so on through `q6`. Demographic columns get plain names such as
 `age` and `hh_income`.
 
-The mapping is checked in both directions. A column in the export that we have
-no name for stops the program, and so does a column we expect but cannot find.
-A few columns are allowed to be missing because they come and go across
-deliveries (the empty address fields in the test delivery, and `q4c`, which
-the test delivery lacked).
-
-The open-text questions (q5 and q7) are not in these files. They arrive in a
-separate export and are handled by the text-analysis pipeline.
+The mapping is checked in both directions: a column we have no name for, or
+a column we expect but cannot find, stops the program. Since August the
+exports carry new wording for nine of the questions; both wordings are listed
+for those questions and lead to the same column. The three below show the
+kind of change involved.
 
 ```{r}
 #| label: rename
@@ -244,18 +247,36 @@ timestamp_aliases <- c("Time" = "Date submitted")
 # hyphens and straight quotes
 normalize_punctuation <- \(x) str_replace_all(x, c("—" = "-", "–" = "-", "’" = "'", "‘" = "'"))
 
-read_delivery <- function(path) {
+# Read one export: every cell as text (so IDs and ZIPs keep their digits),
+# then normalize punctuation, blank out whitespace-only cells, map the headers
+# to short names, and turn the timestamp into a date-time.
+read_export <- function(path, col_map, optional = character()) {
   read_excel(path, col_types = "text") |>
     rename(any_of(timestamp_aliases)) |>
-    mutate(across(everything(), \(x) na_if(str_trim(normalize_punctuation(x)), ""))) |> # whitespace-only cells -> NA
-    rename_validated(col_map, optional = form_varying) |>
-    mutate(delivery = basename(path))
+    mutate(across(everything(), \(cell) na_if(str_trim(normalize_punctuation(cell)), ""))) |>
+    rename_validated(col_map, optional = optional) |>
+    mutate(
+      delivery = basename(path),
+      # timezone assumed UTC; the platform's export timezone is unconfirmed
+      submitted_at = excel_datetime(submitted_at)
+    )
 }
 
 survey <- survey_files |>
-  map(read_delivery) |>
-  bind_rows() |>
-  left_join(delivery_info, by = "delivery")
+  map(\(path) read_export(path, col_map, optional = form_varying)) |>
+  list_rbind() |>
+  left_join(delivery_info, by = join_by(delivery))
+```
+
+```{r}
+#| label: wordings
+#| echo: false
+col_map |>
+  keep(\(wordings) length(wordings) == 2) |>
+  imap(\(wordings, column) tibble(column, `wording until July` = wordings[1], `wording from August` = wordings[2])) |>
+  list_rbind() |>
+  slice(1:3) |>
+  tbl(min_width = 220)
 ```
 
 Count the rows that came from each file. The `form_version` column records
@@ -267,27 +288,29 @@ analysis can decide how to treat them.
 ```{r}
 #| label: read-count
 #| echo: false
-count(survey, delivery, form_version, response_status) |>
+count(survey, delivery, form_version, response_status, name = "rows") |>
   tbl("Rows read from each delivery")
 ```
 
 This is what the raw export looks like at this point: one row per person,
-the timestamp as an Excel serial number, and every choose-all-that-apply
-answer packed into a single cell. The two rows below come from two different
-deliveries and show the two formats the export has used — vertical bars, and
-(in the July–August complete file) commas.
+with every choose-all-that-apply answer packed into a single cell. Scroll
+sideways for the rest of the columns; the two formats the export has used
+(answers separated by vertical bars, and in the July–August complete file by
+commas) are both visible in the challenges column.
 
 ```{r}
 #| label: raw-sample
 #| echo: false
+rows_to_show <- 25 # raise to nrow(survey) to page through every row
+
 sample_rows <- c(
   which(str_detect(survey$q2a, fixed("|")))[1],
   which(str_detect(survey$delivery, "20260710-20260812_f1_complete") & !is.na(survey$q2a))[1]
 )
 
-survey[sample_rows, c("delivery", "submitted_at", "q1", "q2a", "hh_income")] |>
-  mutate(across(c(q1, q2a), \(x) str_trunc(x, 110))) |>
-  tbl("Two raw rows, selected columns")
+survey |>
+  slice(c(sample_rows, setdiff(seq_len(rows_to_show), sample_rows))) |>
+  tbl(page_size = 5, min_width = 170)
 ```
 
 ### Check for personal information
@@ -296,18 +319,27 @@ survey[sample_rows, c("delivery", "submitted_at", "q1", "q2a", "hh_income")] |>
 The data shared with Urban must contain no personal information. ZIP code is
 collected on purpose; street address is not. The export still carries address
 columns, which should always be empty. If they ever are not, the program stops
-here so the file can be raised with the team before anything else happens.
+here so the file can be raised with the research team before anything else happens.
 :::
 
 ```{r}
 #| label: pii-guard
-pii_cols <- intersect(c("address", "address2"), names(survey))
-if (length(pii_cols) > 0) {
-  if (any(!is.na(as.matrix(survey[pii_cols])))) {
-    stop("Address fields are not empty — possible PII in the raw file. Do not proceed; flag to the team.")
+# Stop if any of the named address columns holds a value; otherwise drop them.
+assert_no_address <- function(data, address_columns) {
+  address_columns <- intersect(address_columns, names(data))
+  has_values <- data |>
+    select(all_of(address_columns)) |>
+    map_lgl(\(column) any(!is.na(column)))
+  if (any(has_values)) {
+    cli::cli_abort(c(
+      "Address column{?s} {.val {names(has_values)[has_values]}} contain{?s/} values — possible personal information.",
+      "x" = "Do not proceed. Flag the delivery to the research team."
+    ))
   }
-  survey <- select(survey, -all_of(pii_cols))
+  select(data, -all_of(address_columns))
 }
+
+survey <- assert_no_address(survey, c("address", "address2"))
 ```
 
 ### Split the choose-all-that-apply questions into one column per answer
@@ -751,8 +783,6 @@ flagged.
 survey <- survey |>
   mutate(
     respondent_id = normalize_id(respondent_id),
-    # tz assumed UTC — the platform's actual export timezone is unconfirmed
-    submitted_at = excel_datetime(submitted_at),
     zip = str_pad(str_remove(zip, "\\.0$"), width = 5, pad = "0")
   ) |>
   relocate(respondent_id, submitted_at, form_version, response_status, delivery)
@@ -871,21 +901,15 @@ col_map_canv <- c(
 )
 
 canvassing <- canvassing_files |>
-  map(\(path) {
-    read_excel(path, col_types = "text") |>
-      rename(any_of(timestamp_aliases)) |>
-      mutate(across(everything(), \(x) na_if(str_trim(x), ""))) |>
-      rename_validated(col_map_canv) |>
-      mutate(delivery = basename(path))
-  }) |>
-  bind_rows() |>
-  left_join(delivery_info, by = "delivery")
+  map(\(path) read_export(path, col_map_canv)) |>
+  list_rbind() |>
+  left_join(delivery_info, by = join_by(delivery))
 ```
 
 ```{r}
 #| label: canvassing-count
 #| echo: false
-count(canvassing, delivery, form_version, response_status) |>
+count(canvassing, delivery, form_version, response_status, name = "rows") |>
   tbl("Rows read from each canvassing delivery")
 ```
 
@@ -939,7 +963,6 @@ canvassing <- canvassing |>
     responded       = to_factor(responded, c("Yes - continue with questions", "No - not available")),
     care_connection = to_factor(care_connection, c("Yes", "No")),
     continue_full   = to_factor(continue_full, c("Yes - continuing", "No - not continuing")),
-    submitted_at    = excel_datetime(submitted_at),
     # same float artifact as the survey ZIPs
     canvasser_zip   = str_pad(str_remove(canvasser_zip, "\\.0$"), width = 5, pad = "0")
   ) |>
@@ -1026,28 +1049,18 @@ col_map_canv_revised <- c(
 always_present <- c("submitted_at", "screener", "hard_text", "respondent_id")
 
 canvassing_revised <- canvassing_revised_files |>
-  map(\(path) {
-    read_excel(path, col_types = "text") |>
-      rename(any_of(timestamp_aliases)) |>
-      mutate(across(everything(), \(x) na_if(str_trim(normalize_punctuation(x)), ""))) |>
-      rename_validated(col_map_canv_revised,
-                       optional = setdiff(names(col_map_canv_revised), always_present)) |>
-      mutate(delivery = basename(path))
-  }) |>
-  bind_rows() |>
-  left_join(delivery_info, by = "delivery")
-
-pii_cols <- intersect(c("canvasser_address", "canvasser_address2"), names(canvassing_revised))
-if (any(!is.na(as.matrix(canvassing_revised[pii_cols])))) {
-  stop("Canvasser address fields are not empty — flag to the team before proceeding.")
-}
-canvassing_revised <- select(canvassing_revised, -any_of(c(pii_cols, "canvasser_city", "canvasser_state")))
+  map(\(path) read_export(path, col_map_canv_revised,
+                          optional = setdiff(names(col_map_canv_revised), always_present))) |>
+  list_rbind() |>
+  left_join(delivery_info, by = join_by(delivery)) |>
+  assert_no_address(c("canvasser_address", "canvasser_address2")) |>
+  select(-any_of(c("canvasser_city", "canvasser_state")))
 ```
 
 ```{r}
 #| label: canvassing-revised-count
 #| echo: false
-count(canvassing_revised, delivery, form_version, response_status) |>
+count(canvassing_revised, delivery, form_version, response_status, name = "rows") |>
   tbl("Rows read from each revised-form delivery")
 ```
 
@@ -1069,7 +1082,6 @@ canvassing_revised <- canvassing_revised |>
   mutate(
     respondent_id = normalize_id(respondent_id),
     screener      = to_factor(screener, c("Yes", "No")),
-    submitted_at  = excel_datetime(submitted_at),
     across(any_of("canvass_mode"),    \(x) to_factor(x, c("Door-to-door", "Phone", "Other In Person"))),
     across(any_of("responded"),       \(x) to_factor(x, c("Yes - continue with questions", "No - not available"))),
     across(any_of("continue_full"),   \(x) to_factor(x, c("Yes - continuing", "No - not continuing"))),
@@ -1165,7 +1177,5 @@ Search or page through the dictionary here; the same table is written to
 #| label: dictionary-show
 #| echo: false
 dictionary |>
-  gt() |>
-  tab_options(table.font.size = px(13)) |>
-  opt_interactive(use_search = TRUE, use_page_size_select = TRUE, page_size_default = 15)
+  tbl(page_size = 15, searchable = TRUE, min_width = 140)
 ```

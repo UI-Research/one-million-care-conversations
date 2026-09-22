@@ -237,8 +237,9 @@ check_against_log <- function(data, deliveries, label) {
 }
 
 # Sheets read as all-text leave Excel datetimes as day-fraction serial numbers
-excel_datetime <- function(x, tz = "UTC") {
-  as.POSIXct(round(as.numeric(x) * 86400), origin = "1899-12-30", tz = tz)
+# (days since 1899-12-30); turn them into date-times
+excel_datetime <- function(serial, tz = "UTC") {
+  lubridate::as_datetime(round(as.numeric(serial) * 86400), origin = lubridate::ymd("1899-12-30"), tz = tz)
 }
 
 # Read a clean file from data/processed/ with its column types restored from
