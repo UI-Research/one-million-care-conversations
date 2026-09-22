@@ -317,9 +317,10 @@ survey |>
 
 ::: {.callout-important title="No personal information"}
 The data shared with Urban must contain no personal information. ZIP code is
-collected on purpose; street address is not. The export still carries address
-columns, which should always be empty. If they ever are not, the program stops
-here so the file can be raised with the research team before anything else happens.
+collected on purpose; street address is not. Some exports carry address
+columns, which should always be empty. If one ever holds a value, the program
+stops here so the file can be raised with the research team before anything
+else happens.
 :::
 
 ```{r}
@@ -345,15 +346,16 @@ survey <- assert_no_address(survey, c("address", "address2"))
 ### Split the choose-all-that-apply questions into one column per answer
 
 Most survey questions let people choose more than one answer. The export
-stores all of a person's choices in a single cell, usually separated by
-vertical bars, for example `"Care is unaffordable|Other: my own words"`. One
-delivery (the July–August complete responses) separates them with commas
-instead, which is trickier because the answers themselves contain commas; for
-those cells we match the known answers one at a time from the start of the
-cell. Either way, the result is the same: each question is split into one
-TRUE/FALSE column per answer option.
-For the challenges question `q2a`, that means columns such as
-`q2a_unaffordable` and `q2a_time_flex`.
+stores all of a person's choices in a single cell, separated by vertical
+bars, for example `"Care is unaffordable|Other: my own words"`. This step
+splits each question into one TRUE/FALSE column per answer option. For the
+challenges question `q2a`, that means columns such as `q2a_unaffordable` and
+`q2a_time_flex`.
+
+One delivery (the July–August complete responses) separates the answers with
+commas instead. That is trickier, because the answers themselves contain
+commas, so for those cells the known answers are matched one at a time from
+the start of the cell. The result is the same either way.
 
 ::: {.callout-tip title="How to read the TRUE/FALSE columns"}
 Each answer column holds one of three values:
@@ -363,8 +365,8 @@ Each answer column holds one of three values:
 - `NA`: the person never saw the question (the survey routed them past it) or
   left it blank
 
-The share of people choosing an answer is simply the share of `TRUE` among
-the non-missing values.
+The share of people choosing an answer is the share of `TRUE` among the
+non-missing values.
 :::
 
 "Other" works a little differently. It is a free-text box, and the export
@@ -375,12 +377,11 @@ word for word in `{question}_other_text`. Those words are respondents'
 own voices and feed the text analysis.
 
 Two safeguards sit inside this step. If the same "other" text appears from
-three or more people, the program warns — repeated text usually means a new
+three or more people, the program warns: repeated text usually means a new
 answer option was added to the form and needs to be added to our list. And
-when the form's wording for an answer changes (as it did on August 19, 2026,
-for four options), both the old and the new wording are listed for that
-answer, so responses from before and after the change land in the same
-column.
+when the form's wording for an answer changes, both the old and the new
+wording are listed for that answer, so responses from before and after the
+change land in the same column.
 
 A small demonstration on a made-up question with answers `a` through `f`
 shows how the pieces fit: `"c | e"` and the comma form `"c, e"` both get
@@ -394,7 +395,8 @@ tibble(q_demo = c("c | e", "c, e", "a-reworded|Other: my own answer", "a", NA)) 
   encode_multiselect(
     "q_demo",
     list(a = c("a", "a-reworded"), b = "b", c = "c", d = "d", e = "e", f = "f")
-  )
+  ) |>
+  tbl()
 ```
 
 The answer options for every question are listed below, in the wording the
@@ -588,9 +590,9 @@ survey <- reduce(
 )
 ```
 
-The same two rows as before, after this step, for the challenges question
-`q2a`. The packed cell has become ten TRUE/FALSE columns plus the "Other"
-text.
+The first two rows of the raw table above, after this step, for the
+challenges question `q2a`. The packed cell has become ten TRUE/FALSE columns
+plus the "Other" text.
 
 ```{r}
 #| label: encoded-sample
