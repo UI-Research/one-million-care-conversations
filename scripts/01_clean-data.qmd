@@ -707,9 +707,14 @@ decides which questions they see next. There are five pathways:
 - `observer`: knows someone who receives or needs care
 - `none`: none of these
 
-A person who ticks answers from more than one group is routed to the first
-that applies, in that order. We checked this against the data: a person
-eligible for both `past` and `future` was shown only the `past` questions.
+According to the questionnaire, a person who ticks answers from more than
+one group should be routed to the first that applies, in that order. The
+data mostly bear that out (a person eligible for both `past` and `future` was
+shown only the `past` questions), with one exception: paid care providers who
+also cared for someone in the past were shown both the `current` and the
+`past` questions. We have not yet confirmed with Caring Across Generations
+whether that is intended. The cleaning assigns those respondents to
+`current`.
 
 The survey's routing, as it behaves in the data:
 
