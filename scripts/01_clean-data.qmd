@@ -7,8 +7,7 @@ execute:
   message: false
 ---
 
-The coalition delivers raw exports as Excel files to a Box folder. This
-program reads a local copy of that folder, cleans it, and writes four files:
+The coalition delivers raw exports as Excel files to a Box folder. This code reads a local copy of that folder, cleans it, and writes four files:
 
 - `survey_clean.csv`: one row per survey respondent
 - `canvassing_clean.csv`: one row per canvassing contact (original form)
@@ -103,7 +102,7 @@ column with the question and answer text behind it.
 ::: {.callout-warning title="Warnings in this document are expected"}
 Each step compares the delivery with what we have seen before. A renamed
 column, an answer option not on our list, or a file the data log does not
-describe stops the program with a message saying what changed. When that
+describe stops the code with a message saying what changed. When that
 happens, the fix is to update the list or the rule, not to skip the check.
 
 Some checks warn instead of stopping. Those warnings appear below marked with
@@ -116,7 +115,7 @@ continue) are expected. A new one is the signal to investigate.
 The wording in the live form differs from the official question documents in
 many places, and the export format itself has changed between deliveries
 (how answers are separated, punctuation, and the wording of nine questions).
-Answer and question text in this program comes from what we actually observe
+Answer and question text in this code comes from what we actually observe
 in the exports, not from the PDF, and we keep a running record of how the
 form really behaves as deliveries arrive.
 :::
@@ -176,11 +175,11 @@ The research team's data log on Box records what every delivered file is:
 which tool (survey or canvassing), which link or form (`f1`, `f2`, `c1`, ...),
 whether it holds closed-ended or open-text answers, complete or partial
 responses, whether it was a pre-launch test, the dates it covers, and the
-range of respondent IDs in it. This program uses that log to decide what each
+range of respondent IDs in it. This code uses that log to decide what each
 file is. The file name is used only as a cross-check, and a disagreement
 between the two is flagged.
 
-This program cleans the closed-ended survey and canvassing exports. It leaves
+This code cleans the closed-ended survey and canvassing exports. It leaves
 out the pre-launch test deliveries, and it does not read the open-text
 exports, the pre-launch poll, or the interview transcripts, which go to the
 text-analysis pipeline. Every file in the folder is either cleaned here or
@@ -272,7 +271,7 @@ to the short names described in "The survey in brief" above (`q2a`, `q3d`,
 `age`, ...).
 
 The mapping is checked in both directions: a column we have no name for, or
-a column we expect but cannot find, stops the program. Since August the
+a column we expect but cannot find, stops the code. Since August the
 exports carry new wording for nine of the questions; both wordings are listed
 for those questions and lead to the same column. The three below show the
 kind of change involved.
@@ -404,7 +403,7 @@ survey |>
 ::: {.callout-important title="No personal information"}
 The data shared with Urban must contain no personal information. ZIP code is
 collected on purpose; street address is not. Some exports carry address
-columns, which should always be empty. If one ever holds a value, the program
+columns, which should always be empty. If one ever holds a value, the code
 stops here so the file can be raised with the research team before anything
 else happens.
 :::
@@ -687,7 +686,7 @@ tibble(`export cell` = raw_q2a[example_rows]) |>
 ```
 
 Two safeguards sit inside this step. If the same "other" text appears from
-three or more people, the program warns: repeated text usually means a new
+three or more people, the code warns: repeated text usually means a new
 answer option was added to the form and needs to be added to our list. And
 when the form's wording for an answer changes, both the old and the new
 wording are listed for that answer, so responses from before and after the
@@ -720,7 +719,7 @@ survey |>
 The demographic questions with one answer each become ordered categories
 (household size from smallest to largest, income from lowest to highest, and
 so on) so that tables and charts sort sensibly. The set of answers comes
-from the questionnaire; an answer outside it stops the program.
+from the questionnaire; an answer outside it stops the code.
 
 ```{r}
 #| label: factors
