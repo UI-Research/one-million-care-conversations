@@ -16,7 +16,8 @@ This program reads that local copy, cleans it, and writes three files to
 `data/processed/`:
 
 - `survey_clean.rds` / `.csv` — one row per survey respondent
-- `canvassing_clean.rds` / `.csv` — one row per canvassing contact
+- `canvassing_clean.rds` / `.csv` — one row per canvassing contact (original form)
+- `canvassing_revised_clean.rds` / `.csv` — one row per contact on the revised form (August 2026 on)
 - `data-dictionary.csv` — every column in those files, with the question and
   answer text it came from
 
@@ -34,7 +35,9 @@ This program reads that local copy, cleans it, and writes three files to
 6. **Work out each person's pathway** through the survey from their first
    answer, and **check** that they answered the questions for that pathway.
 7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no ID repeats.
-8. **Do the same for canvassing**, reusing the survey's answer lists.
+8. **Do the same for canvassing**, reusing the survey's answer lists — once
+   for the original form and once for the revised form introduced in August,
+   which asks different questions.
 9. **Write the clean files** and a data dictionary describing every column.
 
 ::: {.callout-warning title="Warnings in this document are expected"}
@@ -103,17 +106,19 @@ mirror_files <- list.files(raw_dir) |>
 survey_files <- mirror_files |>
   str_subset("^(nopii_)?surv_export_.*_closed.*\\.xlsx$") |>
   str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
+# the canvassing form was revised in Aug 2026 (files numbered c1, c2, ...);
+# the earlier form's files say f1. The two ask different questions and are
+# cleaned separately.
 canvassing_files <- mirror_files |>
   str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
-  str_subset(regex("_[fc]0_", ignore_case = TRUE), negate = TRUE) |>
-  # the c1-c3 forms (Aug 2026 on) are a revised canvassing instrument with
-  # different questions per form; not cleaned until the team decides how they
-  # combine with the earlier form — see issue #12
-  str_subset(regex("_c\\d+_", ignore_case = TRUE), negate = TRUE)
+  str_subset(regex("_f\\d+_", ignore_case = TRUE))  |>
+  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
+canvassing_revised_files <- mirror_files |>
+  str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
+  str_subset(regex("_c\\d+_", ignore_case = TRUE))
 
 set_aside <- c(
   "_[fFcC]0_",   # pre-launch test deliveries (both tools)
-  "_[cC]\\d+_",  # revised canvassing forms c1-c3 — issue #12
   "opentext",    # open-text exports — text-analysis pipeline, not read here
   "_open\\.",    # ... newer deliveries shorten the suffix to "_open"
   "everyaction", # pre-launch One Question Poll — text-analysis pipeline
@@ -121,7 +126,7 @@ set_aside <- c(
   "DATA LOG"     # the team's delivery manifest
 )
 unaccounted <- mirror_files |>
-  setdiff(c(survey_files, canvassing_files)) |>
+  setdiff(c(survey_files, canvassing_files, canvassing_revised_files)) |>
   str_subset(str_flatten(set_aside, "|"), negate = TRUE)
 if (length(unaccounted) > 0) {
   cli::cli_abort(c(
@@ -132,6 +137,7 @@ if (length(unaccounted) > 0) {
 
 survey_files <- file.path(raw_dir, survey_files)
 canvassing_files <- file.path(raw_dir, canvassing_files)
+canvassing_revised_files <- file.path(raw_dir, canvassing_revised_files)
 ```
 
 These are the survey files cleaned in this run. Each one should appear in the
@@ -827,14 +833,11 @@ canvassing <- canvassing_files |>
   }) |>
   bind_rows() |>
   mutate(
-    # canvassing forms are numbered c1, c2, ... from Sept 2026; earlier
-    # deliveries of the same forms used f1, so both spell the same channel
-    form_version    = str_to_lower(str_extract(delivery, regex("[fc]\\d+", ignore_case = TRUE))) |>
-      str_replace("^f", "c"),
+    form_version    = str_to_lower(str_extract(delivery, regex("f\\d+", ignore_case = TRUE))),
     response_status = str_extract(delivery, "complete|partial")
   )
 
-if (any(canvassing$form_version == "c0")) {
+if (any(canvassing$form_version == "f0")) {
   cli::cli_abort("f0 test rows slipped past the filename exclusion")
 }
 ```
@@ -939,6 +942,125 @@ write_rds(canvassing, here("data/processed/canvassing_clean.rds"))
 write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
 ```
 
+## Canvassing, revised form
+
+In August 2026 the coalition changed the canvassing form. The yes/no
+"connection to care" question and the doorstep challenge checklist are gone;
+in their place are two questions — "Do you need care or is there someone in
+your life you help take care of?" and, as free text, "What's been hard about
+that?" The revised form comes in three versions (`c1`, `c2`, `c3`) with
+different sets of questions: `c1` keeps the canvasser fields and the full
+survey questions, `c2` (used at the Daisy Chain event) has only the two new
+questions, and `c3` has the canvasser fields and the two questions but not the
+survey questions. Because the questions differ from the earlier form's, these
+responses are cleaned into their own file and reported separately.
+
+```{r}
+#| label: canvassing-revised-read
+#| echo: false
+basename(canvassing_revised_files)
+```
+
+Every column any version can carry is mapped; the ones a given version lacks
+are simply absent for its rows. The canvasser's street-address columns, which
+`c3` carries, must be empty, as for the survey.
+
+```{r}
+#| label: canvassing-revised-rename
+col_map_canv_revised <- c(
+  submitted_at      = "Time",
+  canvasser_address  = "For Canvasser: Enter the ZIP code of the place you are canvassing  (Address)",
+  canvasser_address2 = "For Canvasser: Enter the ZIP code of the place you are canvassing  (Address2)",
+  canvasser_city     = "For Canvasser: Enter the ZIP code of the place you are canvassing  (City)",
+  canvasser_state    = "For Canvasser: Enter the ZIP code of the place you are canvassing  (State)",
+  canvasser_zip     = col_map_canv[["canvasser_zip"]],
+  canvass_mode      = col_map_canv[["canvass_mode"]],
+  responded         = col_map_canv[["responded"]],
+  screener          = "1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?",
+  hard_text         = "2. What’s been hard about that?",
+  continue_full     = col_map_canv[["continue_full"]],
+  battery,
+  q4c               = col_map_canv[["q4c"]],
+  respondent_id     = "Unique ID"
+)
+always_present <- c("submitted_at", "screener", "hard_text", "respondent_id")
+
+canvassing_revised <- canvassing_revised_files |>
+  map(\(path) {
+    read_excel(path, col_types = "text") |>
+      rename(any_of(timestamp_aliases)) |>
+      mutate(across(everything(), \(x) na_if(str_trim(normalize_punctuation(x)), ""))) |>
+      rename_validated(col_map_canv_revised,
+                       optional = setdiff(names(col_map_canv_revised), always_present)) |>
+      mutate(delivery = basename(path))
+  }) |>
+  bind_rows() |>
+  mutate(
+    form_version    = str_to_lower(str_extract(delivery, regex("c\\d+", ignore_case = TRUE))),
+    response_status = str_extract(delivery, "complete|partial")
+  )
+
+pii_cols <- intersect(c("canvasser_address", "canvasser_address2"), names(canvassing_revised))
+if (any(!is.na(as.matrix(canvassing_revised[pii_cols])))) {
+  stop("Canvasser address fields are not empty — flag to the team before proceeding.")
+}
+canvassing_revised <- select(canvassing_revised, -any_of(c(pii_cols, "canvasser_city", "canvasser_state")))
+```
+
+```{r}
+#| label: canvassing-revised-count
+#| echo: false
+count(canvassing_revised, delivery, form_version, response_status) |>
+  tbl("Rows read from each revised-form delivery")
+```
+
+The survey questions, where a version carries them, are split into TRUE/FALSE
+columns with the same answer lists as before. The free-text answers are kept
+word for word for the text analysis and are not summarized here.
+
+```{r}
+#| label: canvassing-revised-clean
+present <- intersect(names(canv_multiselect), names(canvassing_revised))
+canvassing_revised <- reduce(
+  present,
+  \(data, col) encode_multiselect(data, col, canv_multiselect[[col]]),
+  .init = canvassing_revised
+)
+if ("q1" %in% present) canvassing_revised <- derive_pathway(canvassing_revised)
+
+canvassing_revised <- canvassing_revised |>
+  mutate(
+    respondent_id = normalize_id(respondent_id),
+    screener      = to_factor(screener, c("Yes", "No")),
+    submitted_at  = excel_datetime(submitted_at),
+    across(any_of("canvass_mode"),    \(x) to_factor(x, c("Door-to-door", "Phone", "Other In Person"))),
+    across(any_of("responded"),       \(x) to_factor(x, c("Yes - continue with questions", "No - not available"))),
+    across(any_of("continue_full"),   \(x) to_factor(x, c("Yes - continuing", "No - not continuing"))),
+    across(any_of("canvasser_zip"),   \(x) str_pad(str_remove(x, "\\.0$"), width = 5, pad = "0"))
+  ) |>
+  relocate(respondent_id, submitted_at, form_version, response_status, delivery)
+
+dupes_rev <- canvassing_revised$respondent_id[duplicated(canvassing_revised$respondent_id)]
+if (length(dupes_rev) > 0) {
+  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes_rev)}}")
+}
+```
+
+```{r}
+#| label: canvassing-revised-summary
+#| echo: false
+canvassing_revised |>
+  count(form_version, response_status, screener, wrote_text = !is.na(hard_text), name = "contacts") |>
+  tbl("Revised-form contacts by version, status, screener answer, and free text")
+```
+
+```{r}
+#| label: canvassing-revised-write
+#| include: false
+write_rds(canvassing_revised, here("data/processed/canvassing_revised_clean.rds"))
+write_csv(canvassing_revised, here("data/processed/canvassing_revised_clean.csv"))
+```
+
 ## Data dictionary
 
 The column names and answer lists above already describe every column in the
@@ -949,7 +1071,11 @@ without opening this program.
 
 ```{r}
 #| label: dictionary
-question_text <- c(col_map, col_map_canv[setdiff(names(col_map_canv), names(col_map))])
+question_text <- c(
+  col_map,
+  col_map_canv[setdiff(names(col_map_canv), names(col_map))],
+  col_map_canv_revised[c("screener", "hard_text")]
+)
 all_multiselect <- c(multiselect_options, list(doorstep = doorstep_options))
 
 dict_options <- all_multiselect |>
@@ -963,7 +1089,7 @@ dict_options <- all_multiselect |>
   )) |>
   list_rbind()
 
-dict_factors <- list(survey, canvassing) |>
+dict_factors <- list(survey, canvassing, canvassing_revised) |>
   map(\(data) {
     data |>
       select(where(is.factor)) |>
@@ -978,7 +1104,12 @@ dict_factors <- list(survey, canvassing) |>
   list_rbind() |>
   distinct()
 
-dictionary <- bind_rows(dict_options, dict_factors) |>
+dictionary <- bind_rows(
+  dict_options,
+  dict_factors,
+  tibble(column = "hard_text", question = unname(question_text["hard_text"]),
+         option = "Free text, kept verbatim (revised canvassing form)")
+) |>
   mutate(question = if_else(
     column == "pathway",
     "Derived from q1 (priority: current > past > future > observer > none)",

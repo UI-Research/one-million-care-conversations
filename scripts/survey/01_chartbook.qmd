@@ -29,11 +29,13 @@ tbl <- function(data) {
     tab_options(table.font.size = px(14), table.align = "left")
 }
 
-survey     <- read_rds(here("data/processed/survey_clean.rds"))
-canvassing <- read_rds(here("data/processed/canvassing_clean.rds"))
+survey             <- read_rds(here("data/processed/survey_clean.rds"))
+canvassing         <- read_rds(here("data/processed/canvassing_clean.rds"))
+canvassing_revised <- read_rds(here("data/processed/canvassing_revised_clean.rds"))
 dictionary <- read_csv(here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
 
-data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at))
+data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at),
+                    as_date(canvassing_revised$submitted_at))
 
 # answer text for every TRUE/FALSE column, in the wording the form uses
 # (the first wording where a revision added an alias)
@@ -132,8 +134,9 @@ demographic questions.
 ```{r}
 #| label: counts
 bind_rows(
-  survey     = survey,
-  canvassing = canvassing,
+  "survey"                    = survey,
+  "canvassing"                = canvassing,
+  "canvassing (revised form)" = canvassing_revised,
   .id = "tool"
 ) |>
   summarise(
@@ -278,12 +281,16 @@ state_counts |>
 ### Rural and urban
 
 The same ZIP lookup classifies each ZIP code by how rural it is, using the
-USDA's Rural-Urban Commuting Area (RUCA) codes. The codes run from 1 (inside
-a metropolitan area) to 10 (rural, far from any town), based on where people
-in that ZIP commute to work. We group them two ways: a four-way split used in
-much rural health research, and the simple urban/rural split the coalition
-asked about, where "rural" is everything outside metropolitan areas (RUCA 4
-to 10).
+[Rural-Urban Commuting Area (RUCA) codes](https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes)
+from the USDA Economic Research Service. The codes run from 1 (inside a
+metropolitan area) to 10 (rural, far from any town), based on where people in
+that ZIP commute to work. We group them two ways: a four-way split used in
+much rural health research, and the urban/rural split the coalition asked for
+(Jaimie Worker, CAG, September 2026), where "rural" is RUCA 4 to 10. That is
+also the cut the Health Resources and Services Administration's Federal
+Office of Rural Health Policy uses to
+[define rural](https://www.hrsa.gov/rural-health/about-us/what-is-rural) for
+its programs.
 
 ```{r}
 #| label: ruca
@@ -314,6 +321,25 @@ for example, what ideal care looks like:
 ```{r}
 #| label: q6-by-rurality
 rates_by(survey_state, "q6", urban_rural) |>
+  tbl()
+```
+
+One check on that definition. RUCA codes 2 and 3 are places within
+commuting range of a metropolitan core but outside it — suburbs and
+exurbs — and whether they count as urban or rural is a judgment call. The
+same question split three ways shows whether that choice matters: if the
+middle column looks like the first, the definition above is safe; if it looks
+like the last, counting 2 and 3 as rural would change the picture.
+
+```{r}
+#| label: q6-by-ruca3
+survey_state |>
+  mutate(ruca_group = case_when(
+    ruca == 1        ~ "RUCA 1 (metro core)",
+    ruca %in% 2:3    ~ "RUCA 2-3 (metro commuting)",
+    ruca >= 4        ~ "RUCA 4-10 (rural)"
+  ) |> factor(levels = c("RUCA 1 (metro core)", "RUCA 2-3 (metro commuting)", "RUCA 4-10 (rural)"))) |>
+  rates_by("q6", ruca_group) |>
   tbl()
 ```
 
@@ -792,6 +818,39 @@ The full question set was answered by too few canvassing contacts to chart
 yet (`r sum(!is.na(canvassing$q1_child_now))` so far). Those answers are in
 the clean file and will be added here as canvassing grows.
 
+### The revised form (August on)
+
+In August the coalition changed the canvassing form: the yes/no
+connection-to-care question and the challenge checklist were replaced by
+"Do you need care or is there someone in your life you help take care of?"
+and a free-text "What's been hard about that?" There are three versions of
+the revised form, with different questions; almost all responses so far come
+from the Daisy Chain event (`c2`), which asked only the two new questions.
+Because the questions differ, these contacts are kept apart from the funnel
+and challenge charts above.
+
+```{r}
+#| label: canvassing-revised
+canvassing_revised |>
+  count(form_version, response_status, name = "contacts") |>
+  rename("Form version" = form_version, "Status" = response_status) |>
+  tbl()
+```
+
+```{r}
+#| label: canvassing-revised-screener
+canvassing_revised |>
+  mutate(screener = fct_na_value_to_level(screener, "Not answered")) |>
+  count(screener, wrote_text = !is.na(hard_text), name = "contacts") |>
+  rename("Needs care or helps care for someone" = screener,
+         "Wrote something for \"What's been hard\"" = wrote_text) |>
+  tbl()
+```
+
+The `r sum(!is.na(canvassing_revised$hard_text))` free-text answers are
+respondents' own words and go to the text analysis with the open-ended
+survey questions.
+
 ## Interviews
 
 Five interview transcripts have been delivered: two group sessions and three
@@ -814,9 +873,5 @@ interviews |>
   remote areas, commuting patterns) once there are enough of them.
 - **Open-ended answers.** The survey's and canvassing's open-text questions
   are coded separately once the codebook is updated (issue #2).
-- **The revised canvassing forms.** Canvassing deliveries from August on use
-  a revised form with different questions (and the forms differ from each
-  other); they are set aside until it is decided how they combine with the
-  earlier form, so the canvassing figures above stop at early August.
 - **Later channels.** The email opt-in, Spanish, and film-screening survey
   links and the second canvassing event have not been delivered yet.

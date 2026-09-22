@@ -127,8 +127,9 @@ Routing facts established empirically (not stated in any document):
   of…" and an open-text "2. What's been hard about that?" (delivered inside
   the *closed* export). Column sets differ by form (c2 = only those two
   questions; c3 = canvasser fields + the two questions, no battery; `c3`
-  not in CAG's form table). Set aside in cleaning pending a decision on how
-  the two instruments combine — issue #12.
+  not in CAG's form table). Cleaned into its own file
+  (`canvassing_revised_clean`) and reported separately in the chartbook;
+  how (or whether) the two forms combine is still open — issue #12.
 - **Delivery file-name drift seen so far** (all handled by the file-selection
   patterns in `01_clean-data.qmd` and the name normalization in
   `00_ingest-raw.R`): trailing underscore padding (`_____`), a space before

@@ -9,7 +9,10 @@ toc: false
 library(tidyverse)
 library(here)
 survey <- read_rds(here("data/processed/survey_clean.rds"))
-canvassing <- read_rds(here("data/processed/canvassing_clean.rds"))
+canvassing <- bind_rows(
+  read_rds(here("data/processed/canvassing_clean.rds")),
+  read_rds(here("data/processed/canvassing_revised_clean.rds"))
+)
 data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at))
 ```
 
