@@ -76,20 +76,29 @@ plot_rates <- function(rates, title, subtitle = NULL) {
     labs(title = title, subtitle = subtitle, x = NULL, y = NULL)
 }
 
-# the same shares, split by a respondent characteristic; groups with fewer
-# than `min_n` respondents are left out rather than shown on thin evidence
-rates_by <- function(data, q, group, min_n = 30) {
+# the same shares, split by a respondent characteristic, following the
+# project's standard for subgroup reporting (Population Data Memo, July 2026):
+# fewer than 50 respondents is suppressed, 50-199 is shown with a caution
+# note, 200 or more is reported plainly
+report_min <- 50
+report_plain <- 200
+
+rates_by <- function(data, q, group) {
   data |>
     filter(!is.na({{ group }})) |>
     pivot_selections() |>
     filter(question == q, option != "other", !is.na(selected)) |>
     summarise(rate = mean(selected), n = n(), .by = c({{ group }}, option)) |>
-    filter(n >= min_n) |>
+    filter(n >= report_min) |>
     arrange({{ group }}) |>
     mutate(
       indicator = str_c(q, "_", option),
       group_value = {{ group }},
-      group = str_glue("{group_value} (n = {n})"),
+      group = if_else(
+        n < report_plain,
+        str_glue("{group_value} (n = {n}; interpret with caution)"),
+        str_glue("{group_value} (n = {n})")
+      ),
       rate = percent(rate, accuracy = 1)
     ) |>
     left_join(option_labels, by = "indicator") |>
@@ -223,6 +232,28 @@ states <- tibble(
   state_name = c(state.name, "District of Columbia")
 )
 
+# adults (18+) per state from the ACS 2024 1-year, pulled once and cached
+# like the national benchmarks below
+acs_state_path <- here("data/raw/reference/acs2024_state_adults.csv")
+if (!file.exists(acs_state_path)) {
+  tidycensus::get_acs(
+    "state", variables = sprintf("B01001_%03d", c(7:25, 31:49)),
+    year = 2024, survey = "acs1"
+  ) |>
+    summarise(adults = sum(estimate), .by = NAME) |>
+    rename(state_name = NAME) |>
+    write_csv(acs_state_path)
+}
+state_adults <- read_csv(acs_state_path, show_col_types = FALSE) |>
+  filter(state_name != "Puerto Rico") |>
+  mutate(share_us_adults = adults / sum(adults))
+
+# The Century Foundation's 2024 care-policy report card grade for each state
+# (Gutierrez et al. 2024), as tabulated in the Population Data Memo; entered
+# by hand because the report card is not available as data
+care_grades <- read_csv(here("data/raw/reference/care_policy_grades_2024.csv"), show_col_types = FALSE)
+failing_grades <- c("F", "D-", "D", "D+")
+
 state_counts <- list(
   survey = survey_state,
   canvassing = canvassing_state,
@@ -235,16 +266,33 @@ state_counts <- list(
     state_name = coalesce(state_name, state),
     across(c(survey, canvassing, interviews), \(x) replace_na(x, 0L))
   ) |>
+  left_join(care_grades, by = "state_name") |>
+  left_join(select(state_adults, state_name, share_us_adults), by = "state_name") |>
+  mutate(share_survey = survey / sum(survey)) |>
   arrange(desc(survey), state_name)
+
+share_failing <- \(x) sum(x[state_counts$care_policy_grade %in% failing_grades]) / sum(x)
 ```
 
 Every state is listed, including those with no responses yet, so gaps are
-visible. Click a column heading to sort.
+visible. Two columns give the comparison that matters for outreach: each
+state's share of all survey respondents next to its share of US adults, so a
+state with a much smaller survey share than population share is one the
+campaign is under-reaching. The grade is the state's score on the Century
+Foundation's 2024 care-policy report card, which the coalition's outreach
+guidance uses to prioritize states with D and F grades. Those states hold
+`r percent(share_failing(state_counts$share_us_adults), accuracy = 1)` of US
+adults and `r percent(share_failing(state_counts$survey), accuracy = 1)` of
+survey respondents so far. Click a column heading to sort.
 
 ```{r}
 #| label: states-table
 state_counts |>
-  select(State = state_name, Survey = survey, Canvassing = canvassing, Interviews = interviews) |>
+  transmute(
+    State = state_name, Grade = care_policy_grade,
+    Survey = survey, `Share of survey` = share_survey, `Share of US adults` = share_us_adults,
+    Canvassing = canvassing, Interviews = interviews
+  ) |>
   reactable(
     defaultSorted = list(Survey = "desc"),
     pagination = FALSE,
@@ -252,7 +300,12 @@ state_counts |>
     compact = TRUE,
     searchable = TRUE,
     defaultColDef = colDef(footer = \(values) if (is.numeric(values)) sum(values) else "Total"),
-    columns = list(State = colDef(minWidth = 160))
+    columns = list(
+      State = colDef(minWidth = 160),
+      Grade = colDef(maxWidth = 70, footer = ""),
+      `Share of survey` = colDef(format = colFormat(percent = TRUE, digits = 1), footer = \(v) percent(sum(v), accuracy = 1)),
+      `Share of US adults` = colDef(format = colFormat(percent = TRUE, digits = 1), footer = \(v) percent(sum(v), accuracy = 1))
+    )
   )
 ```
 
@@ -315,8 +368,9 @@ survey_state |>
 ```
 
 Rural respondents are a smaller group, so splits within the rural categories
-are still thin. The urban/rural split is large enough to compare answers —
-for example, what ideal care looks like:
+are still thin. The urban/rural split is large enough to compare answers
+under the project's subgroup standard (200 or more respondents per group).
+For example, what ideal care looks like:
 
 ```{r}
 #| label: q6-by-rurality
@@ -735,8 +789,11 @@ q6_all |>
 
 The same question, split by age and by disability status. Each column is one
 group; the number in the heading is how many people in that group answered.
-Groups with fewer than 30 respondents are left out. With more responses these
-splits can extend to every question and every demographic.
+These splits follow the project's standard for reporting on subgroups: a
+group with fewer than 50 respondents is not shown, a group with 50 to 199 is
+marked "interpret with caution," and a group with 200 or more is reported
+plainly. With more responses these splits can extend to every question and
+every demographic.
 
 ```{r}
 #| label: q6-by-age

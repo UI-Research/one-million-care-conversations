@@ -26,7 +26,7 @@ The Urban Institute (WorkRise) is the research partner: it brings rigor to that 
 │   │   ├── box-manifest.csv        <- What was fetched from Box (file IDs, checksums)
 │   │   ├── Raw data backups/       <- Mirror of the Box delivery folder, incl. the DATA LOG
 │   │   ├── interview-transcripts/  <- Interview transcripts pulled from Box
-│   │   └── reference/              <- Public lookups downloaded on first render (USDA ERS RUCA codes)
+│   │   └── reference/              <- Lookups: RUCA codes and ACS figures downloaded on first render; care-policy grades entered by hand
 │   └── processed/                  <- Cleaned outputs; only data-dictionary.csv is committed
 │       └── interview-coding/       <- LLM-coded interview segments and the coding dashboard
 ├── _quarto.yml               <- Website config: pages, navbar, output to docs/
@@ -84,7 +84,9 @@ Packages come from the system library; there is no lockfile. Required: tidyverse
 
 ## Access and credentials
 * **Box**: run `boxr::box_auth()` once in an R console (browser login; the token caches locally), and add the delivery folder's ID — the number in its Box URL — to `~/.Renviron` as `BOX_RAW_FOLDER_ID=<id>`. You need read access to the delivery folder.
+* **Census API key**: the chartbook pulls ACS figures (national benchmarks, adults per state) through `tidycensus` on first render, which needs `CENSUS_API_KEY` in `~/.Renviron` ([get one here](https://api.census.gov/data/key_signup.html)). The pulls are cached in `data/raw/reference/`, so later renders work offline.
 * **USDA ERS RUCA codes**: public; downloaded automatically into `data/raw/reference/` the first time the chartbook renders.
+* **Care-policy grades**: `data/raw/reference/care_policy_grades_2024.csv` is the one hand-entered reference file — each state's grade from the Century Foundation's *Care Matters: A 2024 Report Card for Policies in the States*, as tabulated in the project's Population Data Memo (Box). It is gitignored with the rest of `data/`; re-create it from the memo's state table if missing.
 * **LLM coding** (`scripts/nlp/`): credentials for the model endpoint used by `ellmer`; see the notes in `scripts/nlp/PLAN-llm-coding.md`.
 
 ## Website
