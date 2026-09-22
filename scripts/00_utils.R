@@ -197,6 +197,45 @@ normalize_id <- function(x) {
   out
 }
 
+# Compare each delivery's rows with what the team's DATA LOG says the file
+# covers: submission dates inside the logged collection window (one day of
+# slack for timezone) and respondent IDs inside the logged first-last range.
+# Returns one row per delivery with the check results; warns on any failure.
+# `data` needs `delivery`, `submitted_at` (POSIXct), and `respondent_id`
+# (digit strings); `deliveries` is data/raw/deliveries.csv.
+check_against_log <- function(data, deliveries, label) {
+  checks <- data |>
+    dplyr::mutate(day = as.Date(submitted_at), id = suppressWarnings(as.numeric(respondent_id))) |>
+    dplyr::summarise(
+      rows = dplyr::n(),
+      first_day = min(day, na.rm = TRUE), last_day = max(day, na.rm = TRUE),
+      min_id = min(id, na.rm = TRUE), max_id = max(id, na.rm = TRUE),
+      .by = delivery
+    ) |>
+    dplyr::inner_join(
+      dplyr::select(deliveries, delivery = file, collection_start, collection_end, first_id, last_id),
+      by = "delivery"
+    ) |>
+    dplyr::mutate(
+      dates_ok = is.na(collection_start) |
+        (first_day >= collection_start - 1 & last_day <= collection_end + 1),
+      ids_ok = is.na(first_id) | is.na(last_id) | (min_id >= first_id & max_id <= last_id)
+    )
+  bad <- dplyr::filter(checks, !dates_ok | !ids_ok)
+  if (nrow(bad) > 0) {
+    cli::cli_warn(c(
+      "{label}: {nrow(bad)} deliver{?y/ies} outside what the DATA LOG says {?it covers/they cover}:",
+      purrr::set_names(paste0(
+        bad$delivery, " — rows ", bad$first_day, " to ", bad$last_day,
+        " (log: ", bad$collection_start, " to ", bad$collection_end, "); IDs ",
+        format(bad$min_id, scientific = FALSE), "-", format(bad$max_id, scientific = FALSE),
+        " (log: ", format(bad$first_id, scientific = FALSE), "-", format(bad$last_id, scientific = FALSE), ")"
+      ), "!")
+    ))
+  }
+  checks
+}
+
 # Sheets read as all-text leave Excel datetimes as day-fraction serial numbers
 excel_datetime <- function(x, tz = "UTC") {
   as.POSIXct(round(as.numeric(x) * 86400), origin = "1899-12-30", tz = tz)

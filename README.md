@@ -24,6 +24,7 @@ The Urban Institute (WorkRise) is the research partner: it brings rigor to that 
 ├── data/
 │   ├── raw/
 │   │   ├── box-manifest.csv        <- What was fetched from Box (file IDs, checksums)
+│   │   ├── deliveries.csv          <- One row per file: what the DATA LOG says it is
 │   │   ├── Raw data backups/       <- Mirror of the Box delivery folder, incl. the DATA LOG
 │   │   ├── interview-transcripts/  <- Interview transcripts pulled from Box
 │   │   └── reference/              <- Lookups: RUCA codes and ACS figures downloaded on first render; care-policy grades entered by hand
@@ -32,6 +33,7 @@ The Urban Institute (WorkRise) is the research partner: it brings rigor to that 
 ├── _quarto.yml               <- Website config: pages, navbar, output to docs/
 ├── index.qmd                 <- Website landing page
 ├── variables.qmd             <- Column reference generated from the data dictionary
+├── deliveries.qmd            <- Delivery register and month-by-month grid from the DATA LOG
 ├── coding-dashboard/         <- Interview coding dashboard (built by scripts/nlp/coding_dashboard.R)
 ├── docs/                     <- Rendered website; `quarto publish gh-pages` pushes it to GitHub Pages
 ├── scripts/
@@ -59,8 +61,9 @@ Only step 1 needs Box access; rendering works offline from the local mirror. Ste
 ## Development
 
 ### Scripts and documents
-* `00_ingest-raw.R` is the only script that touches Box. It downloads by file ID, records checksums in `data/raw/box-manifest.csv`, and refuses to sync if the Box folder and the team's `* DATA LOG *.xlsx` disagree or a delivery isn't marked PII-skimmed.
-* `01_clean-data.qmd` must claim every file in the mirror (cleaned, set aside, or error), and writes `survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, and `data-dictionary.csv`. Shared helpers live in `00_utils.R` and are sourced by every document.
+* `00_ingest-raw.R` is the only script that touches Box. It downloads by file ID (top-level deliveries to the mirror, the "Interview Transcripts" subfolder to `data/raw/interview-transcripts/`), records checksums in `data/raw/box-manifest.csv`, and refuses to sync if the Box folder and the team's `* DATA LOG *.xlsx` disagree or a delivery isn't marked PII-skimmed. It also parses the log's Details sheet into `data/raw/deliveries.csv`: one row per file with tool, form, closed/open, complete/partial, test flag, collection window, ID range, and notes. The file name is only a second opinion; the sync warns when it disagrees with the log.
+* `01_clean-data.qmd` classifies files from `deliveries.csv` (never from file-name patterns), must account for every file in the mirror (cleaned or set aside with a reason), checks each file's dates and IDs against the log, and writes `survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, `canvassing_revised_clean.rds/.csv`, and `data-dictionary.csv`. Shared helpers live in `00_utils.R` and are sourced by every document.
+* `deliveries.qmd` renders the log as a site page: the file register, the team's month-by-month grid, and a cross-check between the two.
 * Analysis documents go in `scripts/survey/` (descriptive) or `scripts/nlp/` (text). They read only from `data/processed/`.
 * Documents are written for the research lead, not for programmers: each step is explained in plain language before its code, code is folded, and mechanical chunks are hidden.
 
