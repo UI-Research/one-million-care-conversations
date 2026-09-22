@@ -65,7 +65,7 @@ Only step 1 needs Box access; rendering works offline from the local mirror. Ste
 * `01_clean-data.qmd` classifies files from `deliveries.csv` (never from file-name patterns), must account for every file in the mirror (cleaned or set aside with a reason), checks each file's dates and IDs against the log, and writes `survey_clean.csv`, `canvassing_clean.csv`, `canvassing_revised_clean.csv`, and `data-dictionary.csv`. Pages read the CSVs with `read_clean()`, which restores column types from the dictionary (ordered categories, logicals, text IDs and ZIPs), so the dictionary is the one description of the files. Shared helpers live in `00_utils.R` and are sourced by every document.
 * `deliveries.qmd` renders the log as a site page: the file register, the team's month-by-month grid, and a cross-check between the two.
 * Analysis documents go in `scripts/survey/` (descriptive) or `scripts/nlp/` (text). They read only from `data/processed/`.
-* Documents are written for the research lead, not for programmers: each step is explained in plain language before its code, code is folded, and mechanical chunks are hidden.
+* Documents are written for the research lead, not for programmers: each step is explained in plain language before its code; code is folded except where the code itself states a rule (the pathway priority, the routing rules, the answer orders), and mechanical chunks are hidden.
 
 ### Column conventions
 * Questions keep the questionnaire's numbering: `q1` (connection to care), `q2x`/`q3x`/`q4x` (challenges / supports / who helps, `x` = pathway letter a–d), `q6` (ideal care). Demographics get plain names (`age`, `hh_income`, `zip`).
