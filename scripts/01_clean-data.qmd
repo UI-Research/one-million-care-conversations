@@ -649,8 +649,12 @@ below shows how many answers people actually chose.
 #| echo: false
 survey |>
   filter(!is.na(q6_affordable)) |>
-  mutate(n_chosen = rowSums(across(starts_with("q6_") & where(is.logical) & !q6_other))) |>
-  count(n_chosen, name = "respondents") |>
+  mutate(
+    n_chosen = rowSums(across(starts_with("q6_") & where(is.logical) & !q6_other)),
+    answers  = if_else(n_chosen > 3, "more than 3", as.character(n_chosen)) |>
+      factor(levels = c("1", "2", "3", "more than 3"))
+  ) |>
+  count(answers, name = "respondents") |>
   mutate(share = scales::percent(respondents / sum(respondents), accuracy = 1)) |>
   tbl("Number of q6 answers chosen")
 ```
