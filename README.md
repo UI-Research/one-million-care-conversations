@@ -38,7 +38,7 @@ The Urban Institute (WorkRise) is the research partner: it brings rigor to that 
 ├── docs/                     <- Rendered website; `quarto publish gh-pages` pushes it to GitHub Pages
 ├── scripts/
 │   ├── 00_ingest-raw.R       <- Sync the Box mirror and validate it against the DATA LOG
-│   ├── 00_utils.R            <- Shared helpers (renaming, multi-select encoding, pathways)
+│   ├── 00_utils.R            <- Shared helpers (header matching, multi-select encoding, IDs, reading clean files)
 │   ├── 01_clean-data.qmd     <- Clean survey + canvassing exports; write processed data + dictionary
 │   ├── survey/
 │   │   └── 01_chartbook.qmd  <- Preliminary chartbook: counts by state, demographics, what people report
