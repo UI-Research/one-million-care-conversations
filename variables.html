@@ -1,0 +1,1903 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Variables – 1M Care Conversations</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">1M Care Conversations</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./scripts/01_clean-data.html"> 
+<span class="menu-text">Cleaning</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./scripts/survey/01_chartbook.html"> 
+<span class="menu-text">Chartbook</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./variables.html" aria-current="page"> 
+<span class="menu-text">Variables</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./coding-dashboard/index.html"> 
+<span class="menu-text">Coding dashboard</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/UI-Research/one-million-care-conversations"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#q1-connection-to-care" id="toc-q1-connection-to-care" class="nav-link active" data-scroll-target="#q1-connection-to-care">q1 — Connection to care</a></li>
+  <li><a href="#q2a-challenges-current" id="toc-q2a-challenges-current" class="nav-link" data-scroll-target="#q2a-challenges-current">q2a — Challenges (current)</a></li>
+  <li><a href="#q3a-supports-current" id="toc-q3a-supports-current" class="nav-link" data-scroll-target="#q3a-supports-current">q3a — Supports (current)</a></li>
+  <li><a href="#q4a-who-helps-current" id="toc-q4a-who-helps-current" class="nav-link" data-scroll-target="#q4a-who-helps-current">q4a — Who helps (current)</a></li>
+  <li><a href="#q2b-challenges-future" id="toc-q2b-challenges-future" class="nav-link" data-scroll-target="#q2b-challenges-future">q2b — Challenges (future)</a></li>
+  <li><a href="#q3b-supports-future" id="toc-q3b-supports-future" class="nav-link" data-scroll-target="#q3b-supports-future">q3b — Supports (future)</a></li>
+  <li><a href="#q2c-challenges-past" id="toc-q2c-challenges-past" class="nav-link" data-scroll-target="#q2c-challenges-past">q2c — Challenges (past)</a></li>
+  <li><a href="#q3c-supports-past" id="toc-q3c-supports-past" class="nav-link" data-scroll-target="#q3c-supports-past">q3c — Supports (past)</a></li>
+  <li><a href="#q4c-who-helped-past" id="toc-q4c-who-helped-past" class="nav-link" data-scroll-target="#q4c-who-helped-past">q4c — Who helped (past)</a></li>
+  <li><a href="#q2d-challenges-observer" id="toc-q2d-challenges-observer" class="nav-link" data-scroll-target="#q2d-challenges-observer">q2d — Challenges (observer)</a></li>
+  <li><a href="#q3d-supports-observer" id="toc-q3d-supports-observer" class="nav-link" data-scroll-target="#q3d-supports-observer">q3d — Supports (observer)</a></li>
+  <li><a href="#q4d-who-helps-observer" id="toc-q4d-who-helps-observer" class="nav-link" data-scroll-target="#q4d-who-helps-observer">q4d — Who helps (observer)</a></li>
+  <li><a href="#q6-ideal-care" id="toc-q6-ideal-care" class="nav-link" data-scroll-target="#q6-ideal-care">q6 — Ideal care</a></li>
+  <li><a href="#gender" id="toc-gender" class="nav-link" data-scroll-target="#gender">Gender</a></li>
+  <li><a href="#race-and-ethnicity" id="toc-race-and-ethnicity" class="nav-link" data-scroll-target="#race-and-ethnicity">Race and ethnicity</a></li>
+  <li><a href="#doorstep-challenges-canvassing" id="toc-doorstep-challenges-canvassing" class="nav-link" data-scroll-target="#doorstep-challenges-canvassing">Doorstep challenges (canvassing)</a></li>
+  <li><a href="#hh" id="toc-hh" class="nav-link" data-scroll-target="#hh">hh</a></li>
+  <li><a href="#age" id="toc-age" class="nav-link" data-scroll-target="#age">Age</a></li>
+  <li><a href="#disability" id="toc-disability" class="nav-link" data-scroll-target="#disability">Disability</a></li>
+  <li><a href="#political-views" id="toc-political-views" class="nav-link" data-scroll-target="#political-views">Political views</a></li>
+  <li><a href="#pathway-derived" id="toc-pathway-derived" class="nav-link" data-scroll-target="#pathway-derived">Pathway (derived)</a></li>
+  <li><a href="#canvass" id="toc-canvass" class="nav-link" data-scroll-target="#canvass">canvass</a></li>
+  <li><a href="#responded-canvassing" id="toc-responded-canvassing" class="nav-link" data-scroll-target="#responded-canvassing">Responded (canvassing)</a></li>
+  <li><a href="#care" id="toc-care" class="nav-link" data-scroll-target="#care">care</a></li>
+  <li><a href="#continue" id="toc-continue" class="nav-link" data-scroll-target="#continue">continue</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Variables</h1>
+<p class="subtitle lead">Every column in the clean files, with the question and answer text behind it</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The clean survey and canvassing files have one row per respondent. Most columns are TRUE/FALSE answer columns from choose-all-that-apply questions (<code>TRUE</code> chosen, <code>FALSE</code> seen but not chosen, <code>NA</code> not shown or skipped); single-answer questions are ordered categories. This page is generated from <code>data/processed/data-dictionary.csv</code>, which the cleaning program writes.</p>
+<section id="q1-connection-to-care" class="level2">
+<h2 class="anchored" data-anchor-id="q1-connection-to-care">q1 — Connection to care</h2>
+<p><strong>Question:</strong> We would like to know more about your connection to care, if any. Choose all that apply to you.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 13%">
+<col style="width: 86%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q1_child_now</td>
+<td style="text-align: left;">I care for a child or children now</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_aging_now</td>
+<td style="text-align: left;">I care for an aging person now</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q1_disability_now</td>
+<td style="text-align: left;">I care for someone with a disability or chronic health condition now</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_paid_provider</td>
+<td style="text-align: left;">I am a paid care provider. I offer support and services for kids, aging adults, and/or people with disabilities</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q1_need_care_now</td>
+<td style="text-align: left;">I need care but am not receiving it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_receives_care</td>
+<td style="text-align: left;">I receive or have received care for a disability or chronic condition</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q1_cared_past</td>
+<td style="text-align: left;">I have cared for an aging adult, child, or someone with a disability or chronic health condition in the past</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_expect_future</td>
+<td style="text-align: left;">I am not providing or receiving care right now, but I expect to in the next 5 years</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q1_observer</td>
+<td style="text-align: left;">None of these apply to me right now, but I know someone who receives or needs care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_none</td>
+<td style="text-align: left;">None of these apply to me</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q1_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q1_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q2a-challenges-current" class="level2">
+<h2 class="anchored" data-anchor-id="q2a-challenges-current">q2a — Challenges (current)</h2>
+<p><strong>Question:</strong> What challenges, if any, have you experienced with providing, finding, or receiving care? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 90%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q2a_unaffordable</td>
+<td style="text-align: left;">Care is unaffordable</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2a_finding</td>
+<td style="text-align: left;">It is hard to find care that’s available, nearby, or right for my family or me [or] It’s hard to find care that’s available, nearby, or right for me or my family</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2a_time_flex</td>
+<td style="text-align: left;">I don’t have enough time or flexibility</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2a_help</td>
+<td style="text-align: left;">I don’t have enough help or support</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2a_figure_out</td>
+<td style="text-align: left;">It is hard to figure out what help exists or how to get it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2a_navigate</td>
+<td style="text-align: left;">It is hard to navigate existing care programs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2a_no_say</td>
+<td style="text-align: left;">I don’t have a say in how care works for me or my family</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2a_job</td>
+<td style="text-align: left;">Care affected my job or career</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2a_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2a_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q3a-supports-current" class="level2">
+<h2 class="anchored" data-anchor-id="q3a-supports-current">q3a — Supports (current)</h2>
+<p><strong>Question:</strong> What care support would make a difference for you or people around you? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q3a_affordable_quality</td>
+<td style="text-align: left;">Affordable, high quality care for an aging adult, a child, someone with a disability, or myself</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3a_backup</td>
+<td style="text-align: left;">Backup care for emergencies or unexpected needs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3a_everyday_support</td>
+<td style="text-align: left;">Everyday support like meals and transportation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3a_extended_childcare</td>
+<td style="text-align: left;">Extended child care options such as before 9:00AM, after 5:00PM, or during the summer</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3a_financial</td>
+<td style="text-align: left;">Financial support for care expenses</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3a_navigation_help</td>
+<td style="text-align: left;">Help with finding, understanding, and accessing available care options</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3a_schedule_control</td>
+<td style="text-align: left;">More control over my schedule at work</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3a_paid_time_off</td>
+<td style="text-align: left;">Paid time off for care</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3a_respite</td>
+<td style="text-align: left;">Respite care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3a_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3a_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q4a-who-helps-current" class="level2">
+<h2 class="anchored" data-anchor-id="q4a-who-helps-current">q4a — Who helps (current)</h2>
+<p><strong>Question:</strong> What or who helps you most with care? (Choose your top 3)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 18%">
+<col style="width: 81%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q4a_family_friends</td>
+<td style="text-align: left;">Family, friends, or neighbors</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4a_health_professionals</td>
+<td style="text-align: left;">Health care professionals</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4a_paid_provider</td>
+<td style="text-align: left;">Paid care provider for home care or personal care, child care, or pre-k</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4a_community_religious</td>
+<td style="text-align: left;">Community organizations or religious groups</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4a_government</td>
+<td style="text-align: left;">Government support, like paid leave or other care services paid for using federal, state, or county dollars</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4a_employer</td>
+<td style="text-align: left;">Employer support for things like leave, flexibility, benefits</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4a_support_groups</td>
+<td style="text-align: left;">Support groups, online, or in-person</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4a_technology</td>
+<td style="text-align: left;">Technology or online tools</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4a_no_help</td>
+<td style="text-align: left;">I do not receive help</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4a_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4a_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q2b-challenges-future" class="level2">
+<h2 class="anchored" data-anchor-id="q2b-challenges-future">q2b — Challenges (future)</h2>
+<p><strong>Question:</strong> When you think about the care you, a family member, or friend might need 5 years from now, what challenges, if any, concern you most? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 83%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q2b_unaffordable</td>
+<td style="text-align: left;">Care that’s unaffordable</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2b_finding</td>
+<td style="text-align: left;">Difficulty with finding care that’s available, nearby, or right for me or my family</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2b_time_flex</td>
+<td style="text-align: left;">Not having time or flexibility</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2b_help</td>
+<td style="text-align: left;">Not enough help or support with care</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2b_figure_out</td>
+<td style="text-align: left;">Difficulty knowing what help exists or how to get it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2b_navigate</td>
+<td style="text-align: left;">Difficulty navigating existing care programs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2b_no_say</td>
+<td style="text-align: left;">Not having a say in how care works for my family or me</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2b_job</td>
+<td style="text-align: left;">Care could affect my job or career</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2b_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2b_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q3b-supports-future" class="level2">
+<h2 class="anchored" data-anchor-id="q3b-supports-future">q3b — Supports (future)</h2>
+<p><strong>Question:</strong> What types of care support and services do you think will matter most for you or people you know? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q3b_affordable_quality</td>
+<td style="text-align: left;">Affordable, high quality care for an aging adult, a child, someone with a disability, or myself</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3b_backup</td>
+<td style="text-align: left;">Backup care for emergencies or unexpected needs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3b_extended_childcare</td>
+<td style="text-align: left;">Extended child care options such as before 9:00AM, after 5:00PM, or during the summer</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3b_financial</td>
+<td style="text-align: left;">Financial support for care expenses</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3b_navigation_help</td>
+<td style="text-align: left;">Help with finding, understanding, and accessing available care options</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3b_schedule_control</td>
+<td style="text-align: left;">More control over my schedule at work</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3b_paid_time_off</td>
+<td style="text-align: left;">Paid time off for care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3b_respite</td>
+<td style="text-align: left;">Respite care</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3b_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3b_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q2c-challenges-past" class="level2">
+<h2 class="anchored" data-anchor-id="q2c-challenges-past">q2c — Challenges (past)</h2>
+<p><strong>Question:</strong> When you provided or received care what challenges, if any, did you experience? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 83%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q2c_unaffordable</td>
+<td style="text-align: left;">Care was unaffordable</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2c_finding</td>
+<td style="text-align: left;">It was hard to find care that was available, nearby, or right for my family and me</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2c_time_flex</td>
+<td style="text-align: left;">I didn’t have enough time or flexibility</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2c_help</td>
+<td style="text-align: left;">I didn’t have enough help or support</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2c_figure_out</td>
+<td style="text-align: left;">It was hard to figure out what help existed or how to get it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2c_navigate</td>
+<td style="text-align: left;">It was hard to navigate existing care programs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2c_no_say</td>
+<td style="text-align: left;">I didn’t have a say in how care works for me or my family</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2c_job</td>
+<td style="text-align: left;">Care affected my job or career</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2c_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2c_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q3c-supports-past" class="level2">
+<h2 class="anchored" data-anchor-id="q3c-supports-past">q3c — Supports (past)</h2>
+<p><strong>Question:</strong> What care support would have made a difference for you or people around you? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q3c_affordable_quality</td>
+<td style="text-align: left;">Affordable, high quality care for an aging adult, a child, someone with a disability, or myself</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3c_backup</td>
+<td style="text-align: left;">Backup care for emergencies or unexpected needs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3c_extended_childcare</td>
+<td style="text-align: left;">Extended child care options such as before 9:00AM, after 5:00PM, or during the summer</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3c_financial</td>
+<td style="text-align: left;">Financial support for care expenses</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3c_navigation_help</td>
+<td style="text-align: left;">Help with finding, understanding, and accessing available care options</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3c_schedule_control</td>
+<td style="text-align: left;">More control over my schedule at work</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3c_paid_time_off</td>
+<td style="text-align: left;">Paid time off for care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3c_respite</td>
+<td style="text-align: left;">Respite care</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3c_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3c_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q4c-who-helped-past" class="level2">
+<h2 class="anchored" data-anchor-id="q4c-who-helped-past">q4c — Who helped (past)</h2>
+<p><strong>Question:</strong> What or who helped you most with care? (Choose your top 3)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q4c_family_friends</td>
+<td style="text-align: left;">Family, friends, or neighbors</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4c_health_professionals</td>
+<td style="text-align: left;">Health care professionals</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4c_paid_provider</td>
+<td style="text-align: left;">Paid care provider for home care or personal care, daycare, childcare, or pre-k</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4c_community_religious</td>
+<td style="text-align: left;">Community organizations or religious groups</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4c_government</td>
+<td style="text-align: left;">Government support, like paid leave or other care services paid with federal, state, or county money</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4c_employer</td>
+<td style="text-align: left;">Employer support for things like leave, flexibility, benefits</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4c_support_groups</td>
+<td style="text-align: left;">Support groups, online, or in-person</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4c_technology</td>
+<td style="text-align: left;">Technology or online tools</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4c_no_help</td>
+<td style="text-align: left;">I did not receive help</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4c_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4c_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q2d-challenges-observer" class="level2">
+<h2 class="anchored" data-anchor-id="q2d-challenges-observer">q2d — Challenges (observer)</h2>
+<p><strong>Question:</strong> What care challenges, if any, do the people you know experience? (Choose all that apply.)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q2d_unaffordable</td>
+<td style="text-align: left;">Unaffordable care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2d_finding</td>
+<td style="text-align: left;">It was hard to find care that’s available, nearby, or right for them</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2d_time_flex</td>
+<td style="text-align: left;">They don’t have enough time or flexibility</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2d_help</td>
+<td style="text-align: left;">They are doing this without enough help or support</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2d_figure_out</td>
+<td style="text-align: left;">It is hard for them to figure out what help exists or how to get it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2d_navigate</td>
+<td style="text-align: left;">It is hard for them to navigate existing care programs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2d_no_say</td>
+<td style="text-align: left;">They don’t have a say in how care works for them</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2d_job</td>
+<td style="text-align: left;">Care has affected their jobs or careers</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q2d_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q2d_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q3d-supports-observer" class="level2">
+<h2 class="anchored" data-anchor-id="q3d-supports-observer">q3d — Supports (observer)</h2>
+<p><strong>Question:</strong> What care support would make a difference for the people you know? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q3d_affordable_quality</td>
+<td style="text-align: left;">Affordable, high quality care for an aging adult, a child, someone with a disability, or myself</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3d_backup</td>
+<td style="text-align: left;">Backup care for emergencies or unexpected needs</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3d_extended_childcare</td>
+<td style="text-align: left;">Extended child care options such as before 9:00AM, after 5:00PM, or during the summer</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3d_financial</td>
+<td style="text-align: left;">Financial support for care expenses</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3d_navigation_help</td>
+<td style="text-align: left;">Help with finding, understanding, and accessing available care options</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3d_schedule_control</td>
+<td style="text-align: left;">More control over my schedule at work</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3d_paid_time_off</td>
+<td style="text-align: left;">Paid time off for care</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3d_respite</td>
+<td style="text-align: left;">Respite care</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q3d_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q3d_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q4d-who-helps-observer" class="level2">
+<h2 class="anchored" data-anchor-id="q4d-who-helps-observer">q4d — Who helps (observer)</h2>
+<p><strong>Question:</strong> What or who helps most with their care? (Choose your top 3)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 80%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q4d_family_friends</td>
+<td style="text-align: left;">Family, friends, or neighbors</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4d_health_professionals</td>
+<td style="text-align: left;">Health care professionals</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4d_paid_provider</td>
+<td style="text-align: left;">Paid care provider for home care or personal care, daycare, childcare, or pre-k</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4d_community_religious</td>
+<td style="text-align: left;">Community organizations or religious groups</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4d_government</td>
+<td style="text-align: left;">Government support, like paid leave or other care services paid with federal, state, or county money</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4d_employer</td>
+<td style="text-align: left;">Employer support for things like leave, flexibility, benefits</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4d_support_groups</td>
+<td style="text-align: left;">Support groups, online, or in-person</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4d_technology</td>
+<td style="text-align: left;">Technology or online tools</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4d_no_help</td>
+<td style="text-align: left;">I did not receive help</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q4d_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q4d_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="q6-ideal-care" class="level2">
+<h2 class="anchored" data-anchor-id="q6-ideal-care">q6 — Ideal care</h2>
+<p><strong>Question:</strong> What would ideal care support and services look like for you? (Choose up to three)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 85%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">q6_there_when_needed</td>
+<td style="text-align: left;">There when you need it - at every stage of life, no matter your job or family situation</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_easy_to_use</td>
+<td style="text-align: left;">Easy to find and use - without complicated steps or barriers [or] Easy to find and use - without confusing steps or barriers</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_affordable</td>
+<td style="text-align: left;">Affordable - without causing personal financial strain</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_in_community</td>
+<td style="text-align: left;">Available in your community - not far away or out of reach</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_flexible</td>
+<td style="text-align: left;">Flexible - fitting real schedules, needs, and changing circumstances</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_reliable</td>
+<td style="text-align: left;">Reliable - something you can count on over time</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_clear</td>
+<td style="text-align: left;">Clear and transparent - you know what’s available and how to get it</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_good_jobs</td>
+<td style="text-align: left;">Good jobs for care providers - with fair pay and stability</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_healthy_dev</td>
+<td style="text-align: left;">Support healthy development, well-being, and independence [or] Supports healthy development, well-being, and independence</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_lived_experience</td>
+<td style="text-align: left;">Shaped by people with experience giving, receiving, or needing care [or] Shaped by people with lived care experience</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_secure</td>
+<td style="text-align: left;">Keep people who rely on care feeling secure, healthy, and thriving</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">q6_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">q6_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="gender" class="level2">
+<h2 class="anchored" data-anchor-id="gender">Gender</h2>
+<p><strong>Question:</strong> What is your gender? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 67%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">gender_woman</td>
+<td style="text-align: left;">Woman</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gender_man</td>
+<td style="text-align: left;">Man</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gender_nonbinary</td>
+<td style="text-align: left;">Non-binary</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gender_transgender</td>
+<td style="text-align: left;">Transgender</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gender_prefer_not_to_say</td>
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">gender_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">gender_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="race-and-ethnicity" class="level2">
+<h2 class="anchored" data-anchor-id="race-and-ethnicity">Race and ethnicity</h2>
+<p><strong>Question:</strong> What is your race or ethnicity? (Choose all that apply)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 31%">
+<col style="width: 68%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">race_aian</td>
+<td style="text-align: left;">American Indian or Alaska Native</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">race_asian</td>
+<td style="text-align: left;">Asian or Asian American</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">race_black</td>
+<td style="text-align: left;">Black or African American</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">race_hispanic</td>
+<td style="text-align: left;">Hispanic, Latino, or Latina</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">race_mena</td>
+<td style="text-align: left;">Middle Eastern or North African</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">race_nhpi</td>
+<td style="text-align: left;">Native Hawaiian or Pacific Islander</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">race_white</td>
+<td style="text-align: left;">White</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">race_multiracial</td>
+<td style="text-align: left;">Multiracial</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">race_prefer_not_to_say</td>
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">race_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">race_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="doorstep-challenges-canvassing" class="level2">
+<h2 class="anchored" data-anchor-id="doorstep-challenges-canvassing">Doorstep challenges (canvassing)</h2>
+<p><strong>Question:</strong> What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting ‘No Challenges,’ leave everything else unchecked.)</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 36%">
+<col style="width: 63%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">doorstep_cost</td>
+<td style="text-align: left;">Cost</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_time</td>
+<td style="text-align: left;">Time</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_location</td>
+<td style="text-align: left;">Location</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_right_fit</td>
+<td style="text-align: left;">Right fit</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_lack_support</td>
+<td style="text-align: left;">Lack of support</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_no_control</td>
+<td style="text-align: left;">No control</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_worker_availability</td>
+<td style="text-align: left;">Worker availability</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_barriers_access</td>
+<td style="text-align: left;">Barriers to access</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_no_challenges</td>
+<td style="text-align: left;">No challenges</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_availability</td>
+<td style="text-align: left;">Availability</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_figure_out</td>
+<td style="text-align: left;">Hard to figure out</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">doorstep_other</td>
+<td style="text-align: left;">Other (any response not in the structured options)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">doorstep_other_text</td>
+<td style="text-align: left;">Free text captured from other responses</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="hh" class="level2">
+<h2 class="anchored" data-anchor-id="hh">hh</h2>
+<p><strong>Question:</strong> How many people live in your household? (Include yourself and anyone you share income and living expenses with, including kids)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">1, just myself</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">2</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">6</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">7 or more</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_size</td>
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">Under $25,000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$25,000-$49,999</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$50,000-$74,999</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$75,000-$99,999</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$100,000-$149,999</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$150,000-$174,999</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$175,000-$199,999</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$200,000-$249,999</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$250,000-$299,999</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">$300,000 or more</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hh_income</td>
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="age" class="level2">
+<h2 class="anchored" data-anchor-id="age">Age</h2>
+<p><strong>Question:</strong> What is your age?</p>
+<p><strong>Column:</strong> <code>age</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">18-24</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">25-34</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">35-44</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">45-54</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">55-64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">65-74</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">75 or older</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="disability" class="level2">
+<h2 class="anchored" data-anchor-id="disability">Disability</h2>
+<p><strong>Question:</strong> I identify as a person with a disability or chronic health condition.</p>
+<p><strong>Column:</strong> <code>disability</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Not sure</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="political-views" class="level2">
+<h2 class="anchored" data-anchor-id="political-views">Political views</h2>
+<p><strong>Question:</strong> How would you describe your political views?</p>
+<p><strong>Column:</strong> <code>political</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Very liberal</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Somewhat liberal</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Moderate/Middle of the road</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Somewhat conservative</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Very conservative</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Don’t know</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Prefer not to say</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pathway-derived" class="level2">
+<h2 class="anchored" data-anchor-id="pathway-derived">Pathway (derived)</h2>
+<p><strong>Question:</strong> Derived from q1 (priority: current &gt; past &gt; future &gt; observer &gt; none)</p>
+<p><strong>Column:</strong> <code>pathway</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">current</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">past</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">future</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">observer</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">none</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="canvass" class="level2">
+<h2 class="anchored" data-anchor-id="canvass">canvass</h2>
+<p><strong>Question:</strong> For Canvasser: How are you conducting this conversation?</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">canvass_mode</td>
+<td style="text-align: left;">Door-to-door</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">canvass_mode</td>
+<td style="text-align: left;">Phone</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">canvass_mode</td>
+<td style="text-align: left;">Other In Person</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="responded-canvassing" class="level2">
+<h2 class="anchored" data-anchor-id="responded-canvassing">Responded (canvassing)</h2>
+<p><strong>Question:</strong> For Canvasser: Did the person respond and agree to answer questions? If no, share the information card or the careconversations.com website and submit.</p>
+<p><strong>Column:</strong> <code>responded</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Yes - continue with questions</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No - not available</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="care" class="level2">
+<h2 class="anchored" data-anchor-id="care">care</h2>
+<p><strong>Question:</strong> Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">care_connection</td>
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">care_connection</td>
+<td style="text-align: left;">No</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="continue" class="level2">
+<h2 class="anchored" data-anchor-id="continue">continue</h2>
+<p><strong>Question:</strong> We’re talking with people across the country about their experiences with care — what’s working and what families need. Can you take 5-minutes to share more?</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">continue_full</td>
+<td style="text-align: left;">Yes - continuing</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">continue_full</td>
+<td style="text-align: left;">No - not continuing</td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+<p>Urban Institute, in partnership with Caring Across Generations</p>
+</div>
+    <div class="nav-footer-right">
+      &nbsp;
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
