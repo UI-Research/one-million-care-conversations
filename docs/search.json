@@ -81,7 +81,7 @@
     "href": "deliveries.html#the-teams-month-by-month-view",
     "title": "Deliveries",
     "section": "The team’s month-by-month view",
-    "text": "The team’s month-by-month view\nThe log’s Overview sheet, as the team keeps it: one row per kind of file, one column per month, with “Received”, “None”, or “N/A” (not applicable yet) in each cell.\n\n\nNew names:\n• `` -&gt; `...1`"
+    "text": "The team’s month-by-month view\nThe log’s Overview sheet, as the team keeps it: one row per kind of file, one column per month, with “Received”, “None”, or “N/A” (not applicable yet) in each cell."
   },
   {
     "objectID": "deliveries.html#does-the-grid-match-the-files-we-hold",

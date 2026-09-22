@@ -55,7 +55,9 @@ in each cell.
 
 ```{r}
 #| echo: false
-overview <- read_excel(log_path, sheet = "Overview", col_types = "text") |>
+# the sheet's first column has no header
+overview <- read_excel(log_path, sheet = "Overview", col_types = "text",
+                       .name_repair = "unique_quiet") |>
   rename(kind = 1) |>
   filter(!is.na(kind))
 months <- names(overview)[-1]
@@ -71,10 +73,10 @@ overview <- overview |>
 overview |>
   filter(!banner) |>
   select(section, kind, all_of(months)) |>
-  tbl_interactive(page_size = 60, min_width = 80, groupBy = "section",
+  tbl_interactive(page_size = 60, min_width = 95, groupBy = "section",
                   defaultExpanded = TRUE,
-                  columns = list(section = reactable::colDef(name = ""),
-                                 kind = reactable::colDef(name = "", minWidth = 260)))
+                  columns = list(section = reactable::colDef(name = "", minWidth = 170),
+                                 kind = reactable::colDef(name = "", minWidth = 300)))
 ```
 
 ## Does the grid match the files we hold?

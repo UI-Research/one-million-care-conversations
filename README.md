@@ -83,7 +83,7 @@ Only step 1 needs Box access; rendering works offline from the local mirror. Ste
 Each task corresponds to an issue. Work happens on a branch named after the issue (`iss1` for issue 1), and the pull request links the issue to close on merge. Reviewers check that the documents render without new warnings, that values make sense, and that the prose is readable by someone who will not open the code.
 
 ### Dependencies
-Packages come from the system library; there is no lockfile. Required: tidyverse, readxl, here, cli, boxr, gt, urbnthemes, scales, reactable. The NLP scripts also use ellmer. If reproducibility across machines becomes a need, [`rv`](https://github.com/A2-ai/rv) (a uv-style package manager for R) is the tool to try.
+Packages come from the system library; there is no lockfile. Required: tidyverse, readxl, here, cli, boxr, urbnthemes, scales, reactable, htmltools. The NLP scripts also use ellmer. If reproducibility across machines becomes a need, [`rv`](https://github.com/A2-ai/rv) (a uv-style package manager for R) is the tool to try.
 
 ## Access and credentials
 * **Box**: run `boxr::box_auth()` once in an R console (browser login; the token caches locally), and add the delivery folder's ID — the number in its Box URL — to `~/.Renviron` as `BOX_RAW_FOLDER_ID=<id>`. You need read access to the delivery folder.
