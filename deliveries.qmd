@@ -11,7 +11,8 @@ execute:
 library(tidyverse)
 library(here)
 library(readxl)
-library(gt)
+
+source(here("scripts/00_utils.R"))
 
 deliveries <- read_csv(here("data/raw/deliveries.csv"), show_col_types = FALSE)
 log_path <- list.files(here("data/raw/Raw data backups"), pattern = "DATA LOG", full.names = TRUE)
@@ -42,10 +43,8 @@ deliveries |>
     Notes = coalesce(notes, "")
   ) |>
   arrange(desc(Delivered)) |>
-  gt() |>
-  sub_missing(missing_text = "") |>
-  tab_options(table.font.size = px(13)) |>
-  opt_interactive(use_search = TRUE, use_page_size_select = TRUE, page_size_default = 15)
+  tbl_interactive(page_size = 10, searchable = TRUE, min_width = 110,
+                  columns = list(File = reactable::colDef(minWidth = 320)))
 ```
 
 ## The team's month-by-month view
@@ -72,10 +71,10 @@ overview <- overview |>
 overview |>
   filter(!banner) |>
   select(section, kind, all_of(months)) |>
-  gt(groupname_col = "section") |>
-  cols_label(kind = "") |>
-  sub_missing(missing_text = "") |>
-  tab_options(table.font.size = px(13), row_group.font.weight = "bold")
+  tbl_interactive(page_size = 60, min_width = 80, groupBy = "section",
+                  defaultExpanded = TRUE,
+                  columns = list(section = reactable::colDef(name = ""),
+                                 kind = reactable::colDef(name = "", minWidth = 260)))
 ```
 
 ## Does the grid match the files we hold?
@@ -150,10 +149,7 @@ if (nrow(mismatch) == 0 && nrow(unaccounted) == 0) {
     unaccounted |> transmute(Row = str_c(tool, " ", coalesce(form, ""), " ", coalesce(content, ""), " ", coalesce(status, "")),
                              Month = format(month_start, "%B"), `Grid says` = "(no row or blank)", `Files held` = actual)
   ) |>
-    gt() |>
-    tab_header(title = "Cells where the grid and the files differ") |>
-    opt_align_table_header("left") |>
-    tab_options(table.font.size = px(13), table.align = "left")
+    tbl_interactive("Cells where the grid and the files differ", page_size = 60, min_width = 110)
 }
 ```
 
