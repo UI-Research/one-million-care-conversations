@@ -7,7 +7,7 @@ The clean survey and canvassing files have one row per respondent. Most
 columns are TRUE/FALSE answer columns from choose-all-that-apply questions
 (`TRUE` chosen, `FALSE` seen but not chosen, `NA` not shown or skipped);
 single-answer questions are ordered categories. This page is generated from
-`data/processed/data-dictionary.csv`, which the cleaning program writes.
+`data/processed/data-dictionary.csv`, which the cleaning code writes.
 
 ```{r}
 #| include: false

@@ -159,6 +159,8 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#responded-canvassing" id="toc-responded-canvassing" class="nav-link" data-scroll-target="#responded-canvassing">Responded (canvassing)</a></li>
   <li><a href="#care" id="toc-care" class="nav-link" data-scroll-target="#care">care</a></li>
   <li><a href="#continue" id="toc-continue" class="nav-link" data-scroll-target="#continue">continue</a></li>
+  <li><a href="#screener" id="toc-screener" class="nav-link" data-scroll-target="#screener">screener</a></li>
+  <li><a href="#hard" id="toc-hard" class="nav-link" data-scroll-target="#hard">hard</a></li>
   </ul>
 </nav>
     </div>
@@ -185,7 +187,7 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>The clean survey and canvassing files have one row per respondent. Most columns are TRUE/FALSE answer columns from choose-all-that-apply questions (<code>TRUE</code> chosen, <code>FALSE</code> seen but not chosen, <code>NA</code> not shown or skipped); single-answer questions are ordered categories. This page is generated from <code>data/processed/data-dictionary.csv</code>, which the cleaning program writes.</p>
+<p>The clean survey and canvassing files have one row per respondent. Most columns are TRUE/FALSE answer columns from choose-all-that-apply questions (<code>TRUE</code> chosen, <code>FALSE</code> seen but not chosen, <code>NA</code> not shown or skipped); single-answer questions are ordered categories. This page is generated from <code>data/processed/data-dictionary.csv</code>, which the cleaning code writes.</p>
 <section id="q1-connection-to-care" class="level2">
 <h2 class="anchored" data-anchor-id="q1-connection-to-care">q1 — Connection to care</h2>
 <p><strong>Question:</strong> We would like to know more about your connection to care, if any. Choose all that apply to you.</p>
@@ -1458,6 +1460,44 @@ ul.task-list li input[type="checkbox"] {
 <tr class="even">
 <td style="text-align: left;">continue_full</td>
 <td style="text-align: left;">No - not continuing</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="screener" class="level2">
+<h2 class="anchored" data-anchor-id="screener">screener</h2>
+<p><strong>Question:</strong> 1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?</p>
+<p><strong>Column:</strong> <code>screener</code> (ordered category)</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Level</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Yes</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">No</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="hard" class="level2">
+<h2 class="anchored" data-anchor-id="hard">hard</h2>
+<p><strong>Question:</strong> 2. What’s been hard about that?</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Answer text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hard_text</td>
+<td style="text-align: left;">Free text, kept verbatim (revised canvassing form)</td>
 </tr>
 </tbody>
 </table>

@@ -1184,7 +1184,7 @@ The column names and answer lists above already describe every column in the
 clean files. This step writes them out as one table, with a row per column
 (or per answer of a single-answer question) and the question and answer text
 behind it, so anyone using the clean files can look up what a column means
-without opening this program.
+without reading the code.
 
 ```{r}
 #| label: dictionary
