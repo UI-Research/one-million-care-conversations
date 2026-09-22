@@ -663,9 +663,8 @@ survey |>
 
 The demographic questions with one answer each become ordered categories
 (household size from smallest to largest, income from lowest to highest, and
-so on) so that tables and charts sort sensibly. Levels the export has not
-shown us yet are filled in from the questionnaire, following the format of
-the values we have seen. An answer outside the expected set stops the program.
+so on) so that tables and charts sort sensibly. The set of answers comes
+from the questionnaire; an answer outside it stops the program.
 
 ```{r}
 #| label: factors
@@ -705,8 +704,7 @@ or receiving care now (`current`), people who cared for someone in the past
 (`past`), people who expect to in the future (`future`), people who know
 someone who receives care (`observer`), and people with no connection
 (`none`). A person who ticks answers from more than one group is routed to
-the first that applies, in that order. We checked this against the data — for
-example, a person eligible for both `past` and `future` was shown only the
+the first that applies, in that order. We checked this against the data: a person eligible for both `past` and `future` was shown only the
 `past` questions.
 
 The survey's routing, as it behaves in the data:
@@ -736,8 +734,6 @@ flowchart TD
   q6["q6 · Ideal care (everyone)"] --> demo["Demographics<br/>ZIP · household · income · age · gender<br/>race · disability · political views"]
 ```
 
-The open-ended questions (q5 on three of the pathways, q7 for everyone)
-sit between q4 and q6 but arrive in a separate export, so they are not shown.
 
 ```{r}
 #| label: pathway
@@ -756,15 +752,11 @@ count(survey, pathway, name = "respondents") |>
 
 ### Check that people answered the questions for their pathway
 
-Each pathway question should be answered by exactly the people on that
-pathway. For complete responses we check both ways: nobody on the pathway
-should have skipped the question, and nobody off it should have answered.
-Partial responses may stop early, so they are only flagged if they answered a
-question outside their pathway. Mismatches produce a warning rather than
-stopping the program, because they point to a routing or export question for
-the team rather than a cleaning error. The one known exception: paid care
-providers who also cared for someone in the past were shown two sets of
-questions.
+Each pathway's questions should be answered by the people on that pathway and
+nobody else. Partial responses may stop early, so for them only answers from
+outside their pathway count against the check. The one known exception: paid
+care providers who also cared for someone in the past were shown two sets of
+questions, so they appear as off-pathway answers on the past questions.
 
 ```{r}
 #| label: skip-checks
@@ -790,29 +782,39 @@ if (any(q6_skipped)) {
   cli::cli_warn("q6: {sum(q6_skipped)} complete response{?s} with q6 entirely missing")
 }
 
-pwalk(skip_rules, \(question, indicator, expected_pathway) {
-  answered <- !is.na(survey[[indicator]])
-  eligible <- survey$pathway %in% expected_pathway
-  mismatch <- if_else(
-    survey$response_status == "complete",
-    xor(answered, eligible), # completes must answer exactly their pathway
-    answered & !eligible     # partials may stop early, but not cross paths
-  )
-  n_bad <- sum(mismatch, na.rm = TRUE)
-  if (n_bad > 0) {
-    cli::cli_warn(
-      "{question}: {n_bad} respondent{?s} answered or skipped against skip logic"
+# one row per pathway question: who answered it without being on the pathway,
+# and which completes on the pathway skipped it
+skip_checks <- skip_rules |>
+  pmap(\(question, indicator, expected_pathway) {
+    answered   <- !is.na(survey[[indicator]])
+    on_pathway <- survey$pathway %in% expected_pathway
+    complete   <- survey$response_status == "complete"
+    tibble(
+      question, pathway = expected_pathway,
+      `answered, not on pathway`  = sum(answered & !on_pathway),
+      `on pathway, skipped (completes)` = sum(complete & on_pathway & !answered)
     )
-  }
-})
+  }) |>
+  list_rbind()
+
+off_pathway <- sum(skip_checks$`answered, not on pathway`)
+skipped     <- sum(skip_checks$`on pathway, skipped (completes)`)
+if (off_pathway + skipped > 0) {
+  cli::cli_warn("Routing: {off_pathway} answer{?s} from outside the pathway and {skipped} skipped on the pathway (table below)")
+}
+```
+
+```{r}
+#| label: skip-checks-table
+#| echo: false
+tbl(skip_checks, "Answers against the survey's routing", page_size = nrow(skip_checks))
 ```
 
 ### Tidy the remaining columns
 
-Three small fixes. Respondent IDs sometimes export in scientific notation, so
-they are rewritten as plain digits (this also lets us confirm no ID appears
-twice). The submission time arrives as an Excel serial number and is converted
-to a date-time. ZIP codes pick up a stray `.0` from the export and lose their
+Two small fixes. Respondent IDs sometimes export in scientific notation, so
+they are rewritten as plain digits, which also lets us confirm that nobody
+appears twice. ZIP codes pick up a stray `.0` from the export and lose their
 leading zeros, so both are repaired; any ZIP that still is not five digits is
 flagged.
 
@@ -849,7 +851,7 @@ count(survey, response_status, zip_missing = is.na(zip), name = "respondents") |
 
 ### Check each file against the data log
 
-The DATA LOG records the dates each file covers and the first and last
+The research team's data log records the dates each file covers and the first and last
 respondent ID in it. Each file's rows are compared with that: submission
 dates should fall inside the logged window and IDs inside the logged range. A
 mismatch means the wrong file was delivered or logged, which nothing else
@@ -870,7 +872,7 @@ survey_checks |>
     `log says` = if_else(is.na(collection_start), "not recorded", str_c(collection_start, " to ", collection_end)),
     `IDs in range` = if_else(is.na(first_id) | is.na(last_id), "not recorded", if_else(ids_ok, "yes", "NO"))
   ) |>
-  tbl("Survey deliveries against the DATA LOG")
+  tbl("Survey files against the data log")
 ```
 
 ```{r}
