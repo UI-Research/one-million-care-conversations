@@ -25,7 +25,7 @@ The rendered qmds are read by the research lead (a PhD, not a data scientist): p
 
 ## Architecture
 
-Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.rds/.csv`, `canvassing_clean.rds/.csv`, `data-dictionary.csv`) → `scripts/survey/01_chartbook.qmd` (issue #1: counts by state and tool, demographics, selection rates). Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/nlp/` holds the LLM transcript-coding pipeline and its review dashboard.
+Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.csv`, `canvassing_clean.csv`, `canvassing_revised_clean.csv`, `data-dictionary.csv` — CSV only, by Manu's preference; `read_clean()` in 00_utils.R restores factor levels from the dictionary) → `scripts/survey/01_chartbook.qmd` (issue #1: counts by state and tool, demographics, selection rates). Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/nlp/` holds the LLM transcript-coding pipeline and its review dashboard.
 
 Key design decisions that span files:
 

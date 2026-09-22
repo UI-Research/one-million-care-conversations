@@ -7,25 +7,22 @@ execute:
   message: false
 ---
 
-*Program that turns the raw survey and canvassing exports from Caring Across
-Generations into clean, analysis-ready files.*
+The coalition delivers raw exports as Excel files to a Box folder. This
+program reads a local copy of that folder, cleans it, and writes four files:
 
-The raw exports arrive as Excel files in a Box folder. `scripts/00_ingest-raw.R`
-copies that folder to `data/raw/Raw data backups/` exactly as it is on Box.
-This program reads that local copy, cleans it, and writes four files to
-`data/processed/`:
-
-- `survey_clean.rds` / `.csv`: one row per survey respondent
-- `canvassing_clean.rds` / `.csv`: one row per canvassing contact (original form)
-- `canvassing_revised_clean.rds` / `.csv`: one row per contact on the revised form (August 2026 on)
+- `survey_clean.csv`: one row per survey respondent
+- `canvassing_clean.csv`: one row per canvassing contact (original form)
+- `canvassing_revised_clean.csv`: one row per contact on the revised form (August 2026 on)
 - `data-dictionary.csv`: every column in those files, with the question and
-  answer text it came from
+  answer text it came from and, for single-answer questions, the order of the
+  answers
 
 ## The steps at a glance
 
-1. **Find the files.** Pick the survey and canvassing exports out of the Box
-   mirror by their file names; set aside the test delivery, the open-text
-   exports, and the pre-launch poll. Every file must be claimed by a rule.
+1. **Find the files.** Use the team's data log to identify what each
+   delivered file is; clean the survey and canvassing exports, and set aside
+   test deliveries, open-text exports, and the pre-launch poll. Every file
+   must be accounted for.
 2. **Rename the columns** from full question text to short names (`q1`,
    `q2a`, `age`, ...), checking that nothing is missing or unexpected.
 3. **Check for personal information.** Address columns must be empty.
@@ -35,30 +32,32 @@ This program reads that local copy, cleans it, and writes four files to
 6. **Work out which set of questions each person was shown** (their
    "pathway") from their first answer, and **check** that they answered
    those questions and no others.
-7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no ID repeats.
-8. **Do the same for canvassing**, reusing the survey's answer lists — once
+7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no respondent
+   appears twice.
+8. **Do the same for canvassing**, reusing the survey's answer lists: once
    for the original form and once for the revised form introduced in August,
    which asks different questions.
 9. **Write the clean files** and a data dictionary describing every column.
 
 ::: {.callout-warning title="Warnings in this document are expected"}
-Every step checks its own work. If a delivery looks different from what we
-expect — a renamed column, an answer we have not seen before, a file no rule
-claims — the program stops and says why, rather than guessing. The fix is
-always to update the rule that failed, never to loosen the check.
+Each step compares the delivery with what we have seen before. A renamed
+column, an answer option not on our list, or a file the data log does not
+describe stops the program with a message saying what changed. When that
+happens, the fix is to update the list or the rule, not to skip the check.
 
-Some checks warn instead of stopping; those warnings appear below marked with
+Some checks warn instead of stopping. Those warnings appear below marked with
 `!`. The known ones (paid care providers shown two sets of questions, ZIP+4
 entries, one canvassing contact who answered questions without agreeing to
-continue) are expected. A *new* warning is the signal to investigate.
+continue) are expected. A new one is the signal to investigate.
 :::
 
 ::: {.callout-note title="The live form does not match the questionnaire PDF"}
 The wording in the live form differs from the official question documents in
-many places, and the export format itself has changed between deliveries.
-Answer text in this program comes from what we actually observe in the
-exports, not from the PDF, and we keep a running record of how the form
-really behaves as deliveries arrive.
+many places, and the export format itself has changed between deliveries
+(how answers are separated, punctuation, and the wording of nine questions).
+Answer and question text in this program comes from what we actually observe
+in the exports, not from the PDF, and we keep a running record of how the
+form really behaves as deliveries arrive.
 :::
 
 ```{r}
@@ -809,7 +808,6 @@ survey_checks |>
 ```{r}
 #| label: write
 #| include: false
-write_rds(survey, here("data/processed/survey_clean.rds"))
 write_csv(survey, here("data/processed/survey_clean.csv"))
 ```
 
@@ -982,7 +980,6 @@ count(canvassing, response_status, responded, care_connection, continue_full, pa
 ```{r}
 #| label: canvassing-write
 #| include: false
-write_rds(canvassing, here("data/processed/canvassing_clean.rds"))
 write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
 ```
 
@@ -1098,7 +1095,6 @@ canvassing_revised |>
 ```{r}
 #| label: canvassing-revised-write
 #| include: false
-write_rds(canvassing_revised, here("data/processed/canvassing_revised_clean.rds"))
 write_csv(canvassing_revised, here("data/processed/canvassing_revised_clean.csv"))
 ```
 

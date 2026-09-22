@@ -241,6 +241,40 @@ excel_datetime <- function(x, tz = "UTC") {
   as.POSIXct(round(as.numeric(x) * 86400), origin = "1899-12-30", tz = tz)
 }
 
+# Read a clean file from data/processed/ with its column types restored from
+# the data dictionary: ID and ZIP columns stay text (leading zeros), TRUE/FALSE
+# columns come back logical, and single-answer questions become factors in
+# the dictionary's level order. The dictionary is the one description of the
+# files, so pages never re-state category orders.
+read_clean <- function(name) {
+  dictionary <- readr::read_csv(here::here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
+  path <- here::here("data/processed", paste0(name, "_clean.csv"))
+  # columns that must stay text even when empty or all digits: IDs, ZIPs,
+  # delivery labels, and free text (an all-empty text column would otherwise
+  # be guessed as logical and mistaken for an answer column)
+  header <- names(readr::read_csv(path, n_max = 0, show_col_types = FALSE))
+  text_cols <- header[
+    header %in% c("respondent_id", "zip", "canvasser_zip", "delivery", "form_version", "response_status") |
+      stringr::str_detect(header, "_other_text$|^hard_text$")
+  ]
+  data <- readr::read_csv(
+    path,
+    col_types = do.call(readr::cols, c(list(.default = readr::col_guess()),
+                                       purrr::set_names(rep("c", length(text_cols)), text_cols))),
+    show_col_types = FALSE
+  )
+  # a factor column has dictionary rows under its own name (no option suffix)
+  factor_levels <- dictionary |>
+    dplyr::filter(column %in% names(data), !stringr::str_detect(column, "_other_text$|^hard_text$")) |>
+    dplyr::filter(!purrr::map_lgl(column, \(x) is.logical(data[[x]]))) |>
+    dplyr::summarise(levels = list(option), .by = column)
+  for (i in seq_len(nrow(factor_levels))) {
+    col <- factor_levels$column[i]
+    data[[col]] <- factor(data[[col]], levels = factor_levels$levels[[i]])
+  }
+  data
+}
+
 # Pivot the wide one-row-per-respondent indicators into a long view with one
 # row per respondent x option: `question` ("q2a"), `option` ("unaffordable"),
 # and logical `selected`. Respondent-level columns (id, demographics) carry

@@ -29,9 +29,9 @@ tbl <- function(data) {
     tab_options(table.font.size = px(14), table.align = "left")
 }
 
-survey             <- read_rds(here("data/processed/survey_clean.rds"))
-canvassing         <- read_rds(here("data/processed/canvassing_clean.rds"))
-canvassing_revised <- read_rds(here("data/processed/canvassing_revised_clean.rds"))
+survey             <- read_clean("survey")
+canvassing         <- read_clean("canvassing")
+canvassing_revised <- read_clean("canvassing_revised")
 dictionary <- read_csv(here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
 
 data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at),

@@ -8,11 +8,9 @@ toc: false
 #| include: false
 library(tidyverse)
 library(here)
-survey <- read_rds(here("data/processed/survey_clean.rds"))
-canvassing <- bind_rows(
-  read_rds(here("data/processed/canvassing_clean.rds")),
-  read_rds(here("data/processed/canvassing_revised_clean.rds"))
-)
+source(here("scripts/00_utils.R"))
+survey <- read_clean("survey")
+canvassing <- bind_rows(read_clean("canvassing"), read_clean("canvassing_revised"))
 through <- \(x) format(max(as_date(x$submitted_at)), "%B %e, %Y")
 ```
 
