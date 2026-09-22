@@ -191,12 +191,12 @@ col_map <- list(
                     "What was hard? (Choose all that apply)"),
   q3c           = c("What care support would have made a difference for you or people around you? (Choose all that apply)",
                     "What help would have made difference for you or people around you? (Choose all that apply)"),
+  q4c           = "What or who helped you most with care? (Choose your top 3)",
   q2d           = c("What care challenges, if any, do the people you know experience? (Choose all that apply.)",
                     "What’s been hard for the people you know? (Choose all that apply.)"),
   q3d           = c("What care support would make a difference for the people you know? (Choose all that apply)",
                     "What help would make a difference for the people you know? (Choose all that apply)"),
   q4d           = "What or who helps most with their care? (Choose your top 3)",
-  q4c           = "What or who helped you most with care? (Choose your top 3)",
   q6            = "What would ideal care support and services look like for you? (Choose up to three)",
   address       = "Zipcode (Address)",
   address2      = "Zipcode (Address2)",
@@ -818,7 +818,7 @@ basename(canvassing_files)
 ```{r}
 #| label: canvassing-rename
 battery <- col_map[c(
-  "q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c",
+  "q1", "q2a", "q3a", "q4a", "q2b", "q3b", "q2c", "q3c", "q4c",
   "q2d", "q3d", "q4d", "q6"
 )]
 
@@ -831,7 +831,6 @@ col_map_canv <- c(
   doorstep             = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
   continue_full       = "We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?",
   battery,
-  q4c                 = "What or who helped you most with care? (Choose your top 3)",
   respondent_id       = "Unique ID"
 )
 
@@ -992,7 +991,6 @@ col_map_canv_revised <- c(
   hard_text         = "2. What’s been hard about that?",
   continue_full     = col_map_canv[["continue_full"]],
   battery,
-  q4c               = col_map_canv[["q4c"]],
   respondent_id     = "Unique ID"
 )
 always_present <- c("submitted_at", "screener", "hard_text", "respondent_id")

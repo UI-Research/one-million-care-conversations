@@ -1,20 +1,45 @@
 # Shared helpers for 1M Care Conversations analysis scripts
 
+# Reduce a column header to the words in it: lower case, straight quotes,
+# plain hyphens, no punctuation, single spaces. Exports vary in spacing,
+# curly apostrophes, and stray punctuation, and none of that can turn one
+# question into another, so matching on this form is safe. A real rewording
+# still needs a listed alias.
+normalize_header <- function(x) {
+  x |>
+    stringr::str_to_lower() |>
+    stringr::str_replace_all(c("’" = "'", "‘" = "'", "“" = "\"", "”" = "\"",
+                               "—" = "-", "–" = "-")) |>
+    stringr::str_replace_all("[^a-z0-9 ]+", " ") |>
+    stringr::str_squish()
+}
+
 # Rename export columns (full question text) to short IDs, validating in both
 # directions so an export with added, dropped, or reworded columns fails
 # loudly. Each `col_map` entry is one or more accepted headers for that ID
 # (the form's question wording was revised in Aug 2026, so a question can
-# appear under either wording); headers are compared with whitespace
-# collapsed, since exports vary in stray double spaces. IDs in `optional` may
-# be absent (columns that vary across form versions, e.g. f1 dropped the
-# address fields and added q4c).
+# appear under either wording); headers are compared via normalize_header().
+# IDs in `optional` may be absent (columns that vary across form versions,
+# e.g. f1 dropped the address fields and added q4c). Column order is never
+# used to assign names, but a change in the export's column order is worth
+# knowing about, so it warns.
 rename_validated <- function(data, col_map, optional = character()) {
   aliases <- purrr::imap(as.list(col_map), \(headers, id) {
-    tibble::tibble(id = id, header = stringr::str_squish(headers))
+    tibble::tibble(id = id, header = normalize_header(headers))
   }) |>
     purrr::list_rbind()
-  present <- tibble::tibble(original = names(data), header = stringr::str_squish(names(data)))
-  matched <- dplyr::inner_join(present, aliases, by = "header")
+  collided <- aliases |>
+    dplyr::distinct() |>
+    dplyr::filter(duplicated(header) | duplicated(header, fromLast = TRUE))
+  if (nrow(collided) > 0) {
+    cli::cli_abort(c(
+      "col_map lists the same header under more than one ID:",
+      purrr::set_names(paste0(collided$id, ': "', collided$header, '"'), "x")
+    ))
+  }
+
+  present <- tibble::tibble(original = names(data), header = normalize_header(names(data)))
+  matched <- dplyr::inner_join(present, dplyr::distinct(aliases), by = "header")
 
   unmatched <- present$original[!present$header %in% aliases$header]
   missing   <- setdiff(setdiff(names(col_map), optional), matched$id)
@@ -26,6 +51,14 @@ rename_validated <- function(data, col_map, optional = character()) {
       purrr::set_names(paste0('Mapped, not in export: "', missing, '"'), "x"),
       purrr::set_names(paste0('Two headers in the export map to: "', twice, '"'), "x")
     ))
+  }
+
+  expected <- match(matched$id, names(col_map))
+  if (is.unsorted(expected)) {
+    moved <- matched$id[expected != sort(expected)]
+    cli::cli_warn(
+      "Export columns are in a different order than col_map (names are matched by header, so nothing is misassigned): {.val {moved}}"
+    )
   }
   dplyr::rename(data, dplyr::all_of(purrr::set_names(matched$original, matched$id)))
 }
