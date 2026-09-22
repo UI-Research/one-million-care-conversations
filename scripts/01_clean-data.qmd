@@ -581,6 +581,9 @@ multiselect_options <- list(
   )
 )
 
+# the challenges cells as delivered, kept for the worked example below
+raw_q2a <- survey$q2a
+
 survey <- reduce(
   names(multiselect_options),
   \(data, col) encode_multiselect(data, col, multiselect_options[[col]]),
@@ -598,29 +601,31 @@ answers. It can appear in three ways, depending on what the person did:
 - they ticked "Other" but typed nothing: the cell contains just the word
   `Other`
 - occasionally the export drops the label: the cell contains their words on
-  their own
+  their own, sometimes followed by a stray `true` (the checkbox's own value)
 
 The cleaning treats all three the same way. Anything in a cell that is not
 one of the standard answers is taken as an "Other" answer: the question's
 `_other` column becomes `TRUE`, and the words, if there are any, are kept
 unchanged in its `_other_text` column. Those words go to the text analysis.
 
-The table below walks through four made-up respondents. The first column is
-the export cell as delivered; the other columns are what the cleaning makes
-of it.
+The table below shows four real respondents, one for each case: standard
+answers only, "Other" with typed words, "Other" ticked with nothing typed,
+and typed words with no label. The first column is the challenges cell
+exactly as delivered; the other columns are what the cleaning makes of it.
 
 ```{r}
 #| label: other-example
 #| echo: false
-tibble(`export cell` = c(
-  "Care is unaffordable|I don't have enough time or flexibility",
-  "Care is unaffordable|Other: we need help on weekends",
-  "Other",
-  "We need help on weekends"
-)) |>
-  mutate(q2a = `export cell`) |>
-  encode_multiselect("q2a", multiselect_options$q2a) |>
-  select(`export cell`, q2a_unaffordable, q2a_time_flex, q2a_other, q2a_other_text) |>
+example_rows <- c(
+  standard   = which(str_detect(raw_q2a, fixed("|")) & !survey$q2a_other & nchar(raw_q2a) < 90)[1],
+  labelled   = which(str_detect(raw_q2a, "\\|Other: ") & nchar(raw_q2a) < 90)[1],
+  bare       = which(raw_q2a == "Other")[1],
+  unlabelled = which(survey$q2a_other & !str_detect(raw_q2a, "Other") & nchar(raw_q2a) < 60)[1]
+) |>
+  na.omit()
+
+tibble(`export cell` = raw_q2a[example_rows]) |>
+  bind_cols(survey[example_rows, c("q2a_unaffordable", "q2a_time_flex", "q2a_other", "q2a_other_text")]) |>
   tbl(min_width = 120)
 ```
 
