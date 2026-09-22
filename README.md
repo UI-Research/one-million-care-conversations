@@ -31,7 +31,7 @@ Analysis code for the Urban Institute's research partnership with [Caring Across
 ├── index.qmd                 <- Website landing page
 ├── variables.qmd             <- Column reference generated from the data dictionary
 ├── coding-dashboard/         <- Interview coding dashboard (built by scripts/nlp/coding_dashboard.R)
-├── docs/                     <- Rendered website, served by GitHub Pages
+├── docs/                     <- Rendered website; `quarto publish gh-pages` pushes it to GitHub Pages
 ├── scripts/
 │   ├── 00_ingest-raw.R       <- Sync the Box mirror and validate it against the DATA LOG
 │   ├── 00_utils.R            <- Shared helpers (renaming, multi-select encoding, pathways)
@@ -86,4 +86,6 @@ Packages come from the system library; there is no lockfile. Required: tidyverse
 * **LLM coding** (`scripts/nlp/`): credentials for the model endpoint used by `ellmer`; see the notes in `scripts/nlp/PLAN-llm-coding.md`.
 
 ## Website
-The rendered documents form a Quarto website (`_quarto.yml`): `quarto render` at the repo root builds every page into `docs/`, which GitHub Pages serves at <https://ui-research.github.io/one-million-care-conversations/>. Pages re-execute only when their source changes (`freeze: auto`). The interview coding dashboard is built separately with `Rscript scripts/nlp/coding_dashboard.R` into `coding-dashboard/`, which the site copies in as a resource.
+The rendered documents form a Quarto website (`_quarto.yml`): `quarto render` at the repo root builds every page into `docs/`. Pages re-execute only when their source changes (`freeze: auto`). The interview coding dashboard is built separately with `Rscript scripts/nlp/coding_dashboard.R` into `coding-dashboard/`, which the site copies in as a resource.
+
+To publish, run `quarto publish gh-pages --no-render` from the repo root: it pushes `docs/` to the `gh-pages` branch, which GitHub Pages serves at <https://ui-research.github.io/one-million-care-conversations/>. Publishing is a deliberate step, not tied to merging — publish from a branch to share a preview, and again after merge.
