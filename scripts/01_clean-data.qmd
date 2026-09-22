@@ -12,13 +12,13 @@ Generations into clean, analysis-ready files.*
 
 The raw exports arrive as Excel files in a Box folder. `scripts/00_ingest-raw.R`
 copies that folder to `data/raw/Raw data backups/` exactly as it is on Box.
-This program reads that local copy, cleans it, and writes three files to
+This program reads that local copy, cleans it, and writes four files to
 `data/processed/`:
 
-- `survey_clean.rds` / `.csv` — one row per survey respondent
-- `canvassing_clean.rds` / `.csv` — one row per canvassing contact (original form)
-- `canvassing_revised_clean.rds` / `.csv` — one row per contact on the revised form (August 2026 on)
-- `data-dictionary.csv` — every column in those files, with the question and
+- `survey_clean.rds` / `.csv`: one row per survey respondent
+- `canvassing_clean.rds` / `.csv`: one row per canvassing contact (original form)
+- `canvassing_revised_clean.rds` / `.csv`: one row per contact on the revised form (August 2026 on)
+- `data-dictionary.csv`: every column in those files, with the question and
   answer text it came from
 
 ## The steps at a glance
@@ -32,8 +32,9 @@ This program reads that local copy, cleans it, and writes three files to
 4. **Split the choose-all-that-apply questions** into one TRUE/FALSE column
    per answer, keeping "Other" text word for word.
 5. **Put single-answer questions in order** (income, age, and so on).
-6. **Work out each person's pathway** through the survey from their first
-   answer, and **check** that they answered the questions for that pathway.
+6. **Work out which set of questions each person was shown** (their
+   "pathway") from their first answer, and **check** that they answered
+   those questions and no others.
 7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no ID repeats.
 8. **Do the same for canvassing**, reusing the survey's answer lists — once
    for the original form and once for the revised form introduced in August,
@@ -47,17 +48,17 @@ claims — the program stops and says why, rather than guessing. The fix is
 always to update the rule that failed, never to loosen the check.
 
 Some checks warn instead of stopping; those warnings appear below marked with
-`!`. The ones documented in `SURVEY.md` (the paid-provider routing exception,
-ZIP+4 entries, one canvassing funnel violation) are expected. A *new* warning
-is the signal to investigate.
+`!`. The known ones (paid care providers shown two sets of questions, ZIP+4
+entries, one canvassing contact who answered questions without agreeing to
+continue) are expected. A *new* warning is the signal to investigate.
 :::
 
 ::: {.callout-note title="The live form does not match the questionnaire PDF"}
 The wording in the live form differs from the official question documents in
 many places, and the export format itself has changed between deliveries.
 Answer text in this program comes from what we actually observe in the
-exports, not from the PDF. `SURVEY.md` records what we have learned about how
-the instrument really behaves.
+exports, not from the PDF, and we keep a running record of how the form
+really behaves as deliveries arrive.
 :::
 
 ```{r}
@@ -236,8 +237,7 @@ if (any(survey$form_version == "f0")) {
 
 Count the rows that came from each file. The `form_version` column records
 the distribution channel (the May launch link, the July Virtual Day of Action
-link, postcards, and so on — see `SURVEY.md`); every channel uses the same
-questionnaire. `response_status` separates people who finished the survey from
+link, postcards, and so on); every channel uses the same questionnaire. `response_status` separates people who finished the survey from
 those who stopped partway through. Both are kept in the clean file so the
 analysis can decide how to treat them.
 
@@ -303,9 +303,9 @@ For the challenges question `q2a`, that means columns such as
 ::: {.callout-tip title="How to read the TRUE/FALSE columns"}
 Each answer column holds one of three values:
 
-- `TRUE` — the person chose this answer
-- `FALSE` — the person saw the question and did not choose this answer
-- `NA` — the person never saw the question (the survey routed them past it) or
+- `TRUE`: the person chose this answer
+- `FALSE`: the person saw the question and did not choose this answer
+- `NA`: the person never saw the question (the survey routed them past it) or
   left it blank
 
 The share of people choosing an answer is simply the share of `TRUE` among
@@ -669,9 +669,9 @@ should have skipped the question, and nobody off it should have answered.
 Partial responses may stop early, so they are only flagged if they answered a
 question outside their pathway. Mismatches produce a warning rather than
 stopping the program, because they point to a routing or export question for
-the team rather than a cleaning error. The known exception is documented in
-`SURVEY.md`: a few paid care providers with past experience were shown two
-sets of questions.
+the team rather than a cleaning error. The one known exception: paid care
+providers who also cared for someone in the past were shown two sets of
+questions.
 
 ```{r}
 #| label: skip-checks

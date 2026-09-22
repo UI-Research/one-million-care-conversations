@@ -114,11 +114,11 @@ live forms.
 
 Three things to keep in mind while reading:
 
-- The three tools — the digital survey, canvassing, and interviews — are shown
+- The three tools (the digital survey, canvassing, and interviews) are shown
   separately throughout and never added together. They reach different people
   in different ways.
 - These are the people who chose to respond. The numbers describe them, not
-  the country; nothing here should be read as nationally representative.
+  the country.
 - Survey counts include people who stopped partway through. Each chart says
   which respondents it is based on.
 
