@@ -6,14 +6,16 @@
 * **Project code**: 103682-0001-001-00001-1M
 
 ## Project overview
-Analysis code for the Urban Institute's research partnership with [Caring Across Generations](https://caringacross.org/) on the **1M Conversations About Care** initiative: one million families engaged through surveys, doorstep canvassing, and interviews about care challenges, ideal supports, and what's working. This repository cleans the coalition's data deliveries, produces descriptive summaries, and holds the text-analysis pipeline for interviews and open-ended answers.
+The **1M Conversations About Care** (1MCC) initiative, led by [Caring Across Generations](https://caringacross.org/) (CAG), aims to shift how the country talks about caregiving: from care as an individual challenge to care as a shared one with shared stakes, and from a broken system to one where real choices are possible. Through a digital survey, doorstep canvassing, and interviews, it is engaging one million working- and middle-class families about their caregiving challenges, their vision for a future where care is supported well, and the policies that could make that vision real. The result is both an organizing effort and a knowledge base for a future policy vision.
+
+The Urban Institute (WorkRise) is the research partner: it brings rigor to that sense-making by turning the patterns and themes in what families say into evidence that can anchor policy design, and by showing how those patterns vary across populations and places. This repository holds the analysis code for that work: cleaning the coalition's data deliveries, producing descriptive summaries, and the text-analysis pipeline for interviews and open-ended answers. The rendered documents are published as a website (see below).
 
 [SURVEY.md](SURVEY.md) documents the survey instrument as it actually behaves in the data: routing, distribution channels, export quirks, and known open questions. Read it before touching the cleaning code.
 
 > [!IMPORTANT]
-> **No personal information and no respondent data in this repository.** Coalition data shared with Urban must contain no PII (not IRB-approved; legally non-negotiable), and only the generated `data-dictionary.csv` is committed under `data/`. Rendered HTML documents are committed because they show aggregates only.
+> **No personal information and no respondent data in this repository.** Coalition data shared with Urban must contain no PII (the data collection is not IRB-approved, so this is legally non-negotiable), and only the generated `data-dictionary.csv` is committed under `data/`. Rendered HTML documents are committed because they show aggregates only.
 >
-> **Never describe coalition-collected data as "nationally representative"** in any Urban output.
+> **"Nationally representative" is off limits.** From the scope of work: limitations of the data-collection methodology mean none of the data can be referred to as "nationally representative," and no Urban-authored publication relying on coalition-collected data will refer to it that way.
 
 ## Repo structure
 ```
