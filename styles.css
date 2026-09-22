@@ -1,0 +1,4 @@
+/* Spacing around the interactive tables and their titles and notes */
+.reactable { margin: 0.75rem 0 1.75rem; }
+.table-title { margin: 1.25rem 0 0.4rem; }
+.table-note { font-size: 0.85rem; color: #555; margin: -1.25rem 0 1.75rem; }

@@ -15,9 +15,12 @@ __pycache__/
 # Project documents live on Box, not in the repo
 *.pdf
 *.docx
-# Rendered outputs can embed data rows
-scripts/*.html
-scripts/*_files/
+# The rendered site (docs/) and the freeze cache (_freeze/) are tracked —
+# aggregates only; Quarto's working folders are not
+scripts/**/*_files/
+/.quarto/
+# Browser-tool screenshots of rendered pages (embed data)
+.playwright-mcp/
 # OS
 .DS_Store
 # Box API token cache, in case one ever lands in the working tree

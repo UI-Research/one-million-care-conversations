@@ -221,3 +221,6 @@ care_connection,"Have you provided, received care yourself, expected to in the f
 care_connection,"Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",No
 continue_full,We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?,Yes - continuing
 continue_full,We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?,No - not continuing
+screener,"1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?",Yes
+screener,"1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?",No
+hard_text,2. What’s been hard about that?,"Free text, kept verbatim (revised canvassing form)"

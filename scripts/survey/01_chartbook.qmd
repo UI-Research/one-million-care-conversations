@@ -1,0 +1,929 @@
+---
+title: "1M Care Conversations: preliminary chartbook"
+author: "Manuel Alcalá Kovalski, Urban Institute"
+date: today
+toc-depth: 2
+execute:
+  warning: false
+  message: false
+fig-width: 7
+fig-height: 4.5
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+library(here)
+library(urbnthemes)
+library(scales)
+library(reactable)
+
+set_urbn_defaults(style = "print")
+source(here("scripts/00_utils.R"))
+
+# tables: the shared helper, showing every row (these are summary tables)
+tbl <- function(data, title = NULL, note = NULL, ...) {
+  tbl_interactive(data, title = title, note = note, page_size = 60, ...)
+}
+
+survey             <- read_clean("survey")
+canvassing         <- read_clean("canvassing")
+canvassing_revised <- read_clean("canvassing_revised")
+dictionary <- read_csv(here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
+
+data_through <- max(as_date(survey$submitted_at), as_date(canvassing$submitted_at),
+                    as_date(canvassing_revised$submitted_at))
+
+# answer text for every TRUE/FALSE column, in the wording the form uses
+# (the first wording where a revision added an alias)
+option_labels <- dictionary |>
+  filter(column %in% c(names(survey), names(canvassing))) |>
+  distinct(column, .keep_all = TRUE) |>
+  transmute(
+    indicator = column,
+    label = if_else(
+      str_ends(column, "_other"),
+      "Other (in their own words)",
+      str_remove(option, " \\[or\\].*$")
+    )
+  )
+
+# share of people shown a question who chose each answer
+selection_rates <- function(data, q) {
+  data |>
+    pivot_selections() |>
+    filter(question == q, !is.na(selected)) |>
+    summarise(n_selected = sum(selected), n_shown = n(), .by = c(question, option)) |>
+    mutate(indicator = str_c(question, "_", option), rate = n_selected / n_shown) |>
+    left_join(option_labels, by = "indicator") |>
+    mutate(label = coalesce(label, option)) |>
+    filter(!(option == "other" & n_selected == 0)) # nobody wrote in: nothing to show
+}
+
+plot_rates <- function(rates, title, subtitle = NULL) {
+  rates |>
+    mutate(label = fct_reorder(str_wrap(label, 45), rate)) |>
+    ggplot(aes(rate, label)) +
+    geom_col() +
+    geom_text(
+      aes(label = str_glue("{percent(rate, accuracy = 1)} ({n_selected})")),
+      hjust = -0.1, size = 3
+    ) +
+    scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .25))) +
+    labs(title = title, subtitle = subtitle, x = NULL, y = NULL)
+}
+
+# the same shares, split by a respondent characteristic, following the
+# project's standard for subgroup reporting (Population Data Memo, July 2026):
+# fewer than 50 respondents is suppressed, 50-199 is shown with a caution
+# note, 200 or more is reported plainly
+report_min <- 50
+report_plain <- 200
+
+rates_by <- function(data, q, group) {
+  data |>
+    filter(!is.na({{ group }})) |>
+    pivot_selections() |>
+    filter(question == q, option != "other", !is.na(selected)) |>
+    summarise(rate = mean(selected), n = n(), .by = c({{ group }}, option)) |>
+    filter(n >= report_min) |>
+    arrange({{ group }}) |>
+    mutate(
+      indicator = str_c(q, "_", option),
+      group_value = {{ group }},
+      group = if_else(
+        n < report_plain,
+        str_glue("{group_value} (n = {n}; interpret with caution)"),
+        str_glue("{group_value} (n = {n})")
+      ),
+      rate = percent(rate, accuracy = 1)
+    ) |>
+    left_join(option_labels, by = "indicator") |>
+    select(Answer = label, group, rate) |>
+    pivot_wider(names_from = group, values_from = rate)
+}
+
+share_table <- function(data, var) {
+  data |>
+    filter(!is.na({{ var }})) |>
+    count({{ var }}, name = "respondents") |>
+    mutate(share = percent(respondents / sum(respondents), accuracy = 1)) |>
+    tbl()
+}
+```
+
+This chartbook is a first look at who the 1M Care Conversations campaign is
+reaching and what people are saying. It covers responses received through
+**`r format(data_through, "%B %e, %Y")`**.
+
+Three things to keep in mind while reading:
+
+- The three tools (the digital survey, canvassing, and interviews) are shown
+  separately throughout and never added together. They reach different people
+  in different ways.
+- These are the people who chose to respond. The numbers shown here describe
+  respondents and are not nationally representative.
+- Survey counts include people who stopped partway through. Each chart says
+  which respondents it is based on.
+
+The [Cleaning page](/scripts/01_clean-data.qmd) explains how the raw exports
+were handled.
+
+## How many responses
+
+Responses received by tool. A "partial" response is one where the person
+stopped before the end; for the survey that usually means before the
+demographic questions.
+
+```{r}
+#| label: counts
+bind_rows(
+  "survey"                    = survey,
+  "canvassing"                = canvassing,
+  "canvassing (revised form)" = canvassing_revised,
+  .id = "tool"
+) |>
+  summarise(
+    responses = n(),
+    first = min(as_date(submitted_at)),
+    last  = max(as_date(submitted_at)),
+    .by = c(tool, response_status)
+  ) |>
+  tbl()
+```
+
+Responses by week. The survey's peaks line up with the coalition's outreach
+pushes (the May 29 launch and the July 21 Virtual Day of Action).
+
+```{r}
+#| label: weekly
+#| fig-height: 5
+bind_rows(
+  survey     = select(survey, submitted_at),
+  canvassing = select(canvassing, submitted_at),
+  .id = "tool"
+) |>
+  count(tool, week = floor_date(as_date(submitted_at), "week")) |>
+  ggplot(aes(week, n)) +
+  geom_col() +
+  facet_wrap(~tool, ncol = 1, scales = "free_y") +
+  scale_x_date(date_labels = "%b %e") +
+  labs(title = "Responses received per week", x = NULL, y = "Responses")
+```
+
+## Where responses come from
+
+The survey asks for a ZIP code at the start of the demographic section, so
+we have one for `r sum(!is.na(survey$zip))` of the `r nrow(survey)` survey
+respondents (the rest stopped before that point). Canvassing records the
+canvasser's ZIP, not the respondent's, so it tells us where conversations
+happened. Interviews are placed by the ZIP in each transcript's header; a
+group session carries one ZIP for everyone in the room, and one transcript
+has no ZIP at all.
+
+```{r}
+#| label: states
+# USDA ERS 2020 Rural-Urban Commuting Area codes by ZIP code (Sept 2025
+# release). Gives each ZIP its state and a 1-10 rurality code. Downloaded
+# once into data/raw/reference/ (not committed).
+ruca_path <- here("data/raw/reference/ruca2020_zip.csv")
+if (!file.exists(ruca_path)) {
+  dir.create(dirname(ruca_path), showWarnings = FALSE)
+  download.file(
+    "https://www.ers.usda.gov/media/5444/2020-rural-urban-commuting-area-codes-zip-codes.csv",
+    ruca_path, headers = c("User-Agent" = "Mozilla/5.0")
+  )
+}
+zip_lookup <- read_csv(ruca_path, col_types = cols(.default = "c")) |>
+  transmute(zip = ZIPCode, state = State, ruca = as.integer(PrimaryRUCA))
+zip_state <- select(zip_lookup, zip, state)
+
+# a few people typed ZIP+4 ("97530-0524"); the first five digits are the ZIP
+survey_state <- survey |>
+  filter(!is.na(zip)) |>
+  mutate(zip = str_sub(zip, 1, 5)) |>
+  left_join(zip_lookup, by = "zip")
+
+canvassing_state <- canvassing |>
+  filter(!is.na(canvasser_zip)) |>
+  left_join(zip_state, by = c("canvasser_zip" = "zip"))
+
+# ZIP from each transcript's header (verified 2026-09-17), entered by hand
+# until the coalition provides an interview metadata sheet
+interviews <- tribble(
+  ~transcript,                          ~format,                    ~zip,
+  "nopii_grp-sf_00000_othr_20260801",   "group, short form",        "60174",
+  "nopii_grp-lf_00000_othr_20260811",   "group, long form",         "49712",
+  "nopii_idv-lf_00000_othr_20260818",   "individual, long form",    "60302",
+  "nopii_ind-lf_00000_othr_20260819",   "individual, long form",    "48840",
+  "nopii_idv-sf_00000_othr_20260821",   "individual, short form",   NA
+)
+interview_state <- interviews |>
+  filter(!is.na(zip)) |>
+  left_join(zip_state, by = "zip")
+
+states <- tibble(
+  state = c(state.abb, "DC"),
+  state_name = c(state.name, "District of Columbia")
+)
+
+# adults (18+) per state from the ACS 2024 1-year, pulled once and cached
+# like the national benchmarks below
+acs_state_path <- here("data/raw/reference/acs2024_state_adults.csv")
+if (!file.exists(acs_state_path)) {
+  tidycensus::get_acs(
+    "state", variables = sprintf("B01001_%03d", c(7:25, 31:49)),
+    year = 2024, survey = "acs1"
+  ) |>
+    summarise(adults = sum(estimate), .by = NAME) |>
+    rename(state_name = NAME) |>
+    write_csv(acs_state_path)
+}
+state_adults <- read_csv(acs_state_path, show_col_types = FALSE) |>
+  filter(state_name != "Puerto Rico") |>
+  mutate(share_us_adults = adults / sum(adults))
+
+# The Century Foundation's 2024 care-policy report card grade for each state
+# (Gutierrez et al. 2024), as tabulated in the Population Data Memo; entered
+# by hand because the report card is not available as data
+care_grades <- read_csv(here("data/raw/reference/care_policy_grades_2024.csv"), show_col_types = FALSE)
+failing_grades <- c("F", "D-", "D", "D+")
+
+state_counts <- list(
+  survey = survey_state,
+  canvassing = canvassing_state,
+  interviews = interview_state
+) |>
+  imap(\(data, tool) count(filter(data, !is.na(state)), state, name = tool)) |>
+  reduce(full_join, by = "state") |>
+  full_join(states, by = "state") |>
+  mutate(
+    state_name = coalesce(state_name, state),
+    across(c(survey, canvassing, interviews), \(x) replace_na(x, 0L))
+  ) |>
+  left_join(care_grades, by = "state_name") |>
+  left_join(select(state_adults, state_name, share_us_adults), by = "state_name") |>
+  mutate(share_survey = survey / sum(survey)) |>
+  arrange(desc(survey), state_name)
+
+share_failing <- \(x) sum(x[state_counts$care_policy_grade %in% failing_grades]) / sum(x)
+```
+
+Every state is listed, including those with no responses yet, so gaps are
+visible. Two columns give the comparison that matters for outreach: each
+state's share of all survey respondents next to its share of US adults, so a
+state with a much smaller survey share than population share is one the
+campaign is under-reaching. The grade is the state's score on the Century
+Foundation's 2024 care-policy report card, which the coalition's outreach
+guidance uses to prioritize states with D and F grades. Those states hold
+`r percent(share_failing(state_counts$share_us_adults), accuracy = 1)` of US
+adults and `r percent(share_failing(state_counts$survey), accuracy = 1)` of
+survey respondents so far. Click a column heading to sort.
+
+```{r}
+#| label: states-table
+state_counts |>
+  transmute(
+    State = state_name, Grade = care_policy_grade,
+    Survey = survey, `Share of survey` = share_survey, `Share of US adults` = share_us_adults,
+    Canvassing = canvassing, Interviews = interviews
+  ) |>
+  reactable(
+    defaultSorted = list(Survey = "desc"),
+    pagination = FALSE,
+    striped = TRUE,
+    compact = TRUE,
+    searchable = TRUE,
+    defaultColDef = colDef(footer = \(values) if (is.numeric(values)) sum(values) else "Total"),
+    columns = list(
+      State = colDef(minWidth = 160),
+      Grade = colDef(maxWidth = 70, footer = ""),
+      `Share of survey` = colDef(format = colFormat(percent = TRUE, digits = 1), footer = \(v) percent(sum(v), accuracy = 1)),
+      `Share of US adults` = colDef(format = colFormat(percent = TRUE, digits = 1), footer = \(v) percent(sum(v), accuracy = 1))
+    )
+  )
+```
+
+`r sum(is.na(survey_state$state))` survey ZIP codes and
+`r sum(is.na(canvassing_state$state))` canvasser ZIP codes did not match a
+real ZIP (for example, `00000`) and are left out of the table.
+
+```{r}
+#| label: states-chart
+#| fig-height: 5
+state_counts |>
+  filter(survey > 0) |>
+  slice_max(survey, n = 15) |>
+  mutate(state_name = fct_reorder(state_name, survey)) |>
+  ggplot(aes(survey, state_name)) +
+  geom_col() +
+  geom_text(aes(label = survey), hjust = -0.3, size = 3) +
+  scale_x_continuous(expand = expansion(mult = c(0, .1))) +
+  labs(
+    title = "Survey respondents by state, top 15",
+    subtitle = str_glue("Among {nrow(survey_state)} respondents who gave a ZIP code"),
+    x = "Respondents", y = NULL
+  )
+```
+
+### Rural and urban
+
+The same ZIP lookup classifies each ZIP code by how rural it is, using the
+[Rural-Urban Commuting Area (RUCA) codes](https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes)
+from the USDA Economic Research Service. The codes run from 1 (inside a
+metropolitan area) to 10 (rural, far from any town), based on where people in
+that ZIP commute to work. We group them two ways: a four-way split used in
+much rural health research, and the urban/rural split the coalition asked for
+(Jaimie Worker, Caring Across Generations, September 2026), where "rural" is RUCA 4 to 10. That is
+also the cut the Health Resources and Services Administration's Federal
+Office of Rural Health Policy uses to
+[define rural](https://www.hrsa.gov/rural-health/about-us/what-is-rural) for
+its programs.
+
+```{r}
+#| label: ruca
+survey_state <- survey_state |>
+  mutate(
+    rurality = case_when(
+      ruca %in% 1:3  ~ "Metropolitan (1-3)",
+      ruca %in% 4:6  ~ "Micropolitan (4-6)",
+      ruca %in% 7:9  ~ "Small town (7-9)",
+      ruca == 10     ~ "Rural (10)"
+    ) |> factor(levels = c("Metropolitan (1-3)", "Micropolitan (4-6)", "Small town (7-9)", "Rural (10)")),
+    urban_rural = if_else(ruca %in% 1:3, "Urban (RUCA 1-3)", "Rural (RUCA 4-10)") |>
+      factor(levels = c("Urban (RUCA 1-3)", "Rural (RUCA 4-10)"))
+  )
+
+survey_state |>
+  filter(!is.na(rurality)) |>
+  count(urban_rural, rurality, name = "respondents") |>
+  mutate(share = percent(respondents / sum(respondents), accuracy = 1)) |>
+  rename("Urban or rural" = urban_rural, "RUCA group" = rurality) |>
+  tbl()
+```
+
+Rural respondents are a smaller group, so splits within the rural categories
+are still thin. The urban/rural split is large enough to compare answers
+under the project's subgroup standard (200 or more respondents per group).
+For example, what ideal care looks like:
+
+```{r}
+#| label: q6-by-rurality
+rates_by(survey_state, "q6", urban_rural) |>
+  tbl()
+```
+
+One check on that definition. RUCA codes 2 and 3 are places within
+commuting range of a metropolitan core but outside it (suburbs and exurbs),
+and whether they count as urban or rural is a judgment call. The
+same question split three ways shows whether that choice matters: if the
+middle column looks like the first, the definition above is safe; if it looks
+like the last, counting 2 and 3 as rural would change the picture.
+
+```{r}
+#| label: q6-by-ruca3
+survey_state |>
+  mutate(ruca_group = case_when(
+    ruca == 1        ~ "RUCA 1 (metro core)",
+    ruca %in% 2:3    ~ "RUCA 2-3 (metro commuting)",
+    ruca >= 4        ~ "RUCA 4-10 (rural)"
+  ) |> factor(levels = c("RUCA 1 (metro core)", "RUCA 2-3 (metro commuting)", "RUCA 4-10 (rural)"))) |>
+  rates_by("q6", ruca_group) |>
+  tbl()
+```
+
+## Who is responding to the survey
+
+```{r}
+#| label: demographics-data
+#| include: false
+demographics <- survey |>
+  filter(if_any(c(zip, hh_size, hh_income, age, disability, political), \(x) !is.na(x)))
+```
+
+Only the survey asks demographic questions; canvassing and interviews do not.
+The tables in this section cover the `r nrow(demographics)` survey
+respondents who reached the demographic section. Shares are among people who
+answered each question, and "Prefer not to say" is counted as an answer.
+
+### Age
+
+Respondents skew older: most are 55 or over.
+
+```{r}
+#| label: age
+demographics |>
+  filter(!is.na(age)) |>
+  count(age) |>
+  ggplot(aes(n, fct_rev(age))) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.3, size = 3) +
+  scale_x_continuous(expand = expansion(mult = c(0, .1))) +
+  labs(title = "Age", x = "Respondents", y = NULL)
+```
+
+### Race and ethnicity
+
+People could choose more than one answer, so shares add to more than 100
+percent.
+
+```{r}
+#| label: race
+demographics |>
+  selection_rates("race") |>
+  plot_rates("Race and ethnicity", "Share of respondents choosing each; more than one allowed")
+```
+
+### Gender
+
+```{r}
+#| label: gender
+demographics |>
+  selection_rates("gender") |>
+  transmute(gender = label, respondents = n_selected, share = percent(rate, accuracy = 1)) |>
+  arrange(desc(respondents)) |>
+  tbl()
+```
+
+### Household income
+
+```{r}
+#| label: income
+share_table(demographics, hh_income)
+```
+
+### Household size
+
+```{r}
+#| label: hh-size
+share_table(demographics, hh_size)
+```
+
+### Disability or chronic health condition
+
+```{r}
+#| label: disability
+share_table(demographics, disability)
+```
+
+### Political views
+
+```{r}
+#| label: political
+share_table(demographics, political)
+```
+
+### Compared with US adults
+
+To see who the campaign is reaching and missing, each characteristic is set
+next to the same figure for the country, from the Census Bureau's American
+Community Survey (2024 one-year estimates). This is context, not a claim that
+the survey resembles the population: respondents chose to take part, and the
+gaps are the point. "Prefer not to say" answers are left out of the survey
+shares here so the two columns add up the same way.
+
+Some survey categories do not line up with the Census exactly; each table
+says how they were matched. Disability and political views are not compared:
+the Census defines disability differently, and there is no Census measure of
+political views.
+
+```{r}
+#| label: acs-pull
+#| include: false
+# ACS 2024 1-year, national. Pulled once with tidycensus (needs CENSUS_API_KEY)
+# and kept in data/raw/reference/ so rendering works offline afterwards.
+acs_path <- here("data/raw/reference/acs2024_benchmarks.csv")
+if (!file.exists(acs_path)) {
+  acs_vars <- c(
+    sprintf("B01001_%03d", c(7:25, 31:49)),   # sex by age, adults
+    sprintf("B03002_%03d", c(1, 3:9, 12)),    # Hispanic origin by race
+    sprintf("B19001_%03d", 1:17),             # household income
+    sprintf("B11016_%03d", c(3:8, 10:16))     # household size
+  )
+  tidycensus::get_acs("us", variables = acs_vars, year = 2024, survey = "acs1") |>
+    select(variable, estimate) |>
+    write_csv(acs_path)
+}
+acs <- read_csv(acs_path, show_col_types = FALSE) |> deframe()
+acs_sum <- \(table, idx) sum(acs[sprintf("%s_%03d", table, idx)])
+
+# one comparison table: category, survey share, US share
+compare_table <- function(survey_shares, us_counts, title, note, us_total = sum(us_counts$us, na.rm = TRUE)) {
+  survey_shares |>
+    full_join(us_counts |> mutate(us = us / us_total), by = join_by(category)) |>
+    mutate(category = factor(category, levels = us_counts$category)) |> # keep the questionnaire's order
+    arrange(category) |>
+    transmute(
+      ` ` = as.character(category),
+      Survey = percent(survey, accuracy = 1),
+      `US adults (ACS 2024)` = percent(us, accuracy = 1)
+    ) |>
+    tbl(title, note)
+}
+
+# share of respondents in each level of a single-answer question, dropping
+# "Prefer not to say"
+survey_shares <- function(data, var, recode = identity) {
+  data |>
+    filter(!is.na({{ var }}), {{ var }} != "Prefer not to say") |>
+    mutate(category = recode(as.character({{ var }}))) |>
+    count(category) |>
+    mutate(survey = n / sum(n)) |>
+    select(category, survey)
+}
+```
+
+```{r}
+#| label: acs-age
+compare_table(
+  survey_shares(demographics, age),
+  tribble(
+    ~category,     ~us,
+    "18-24",       acs_sum("B01001", c(7:10, 31:34)),
+    "25-34",       acs_sum("B01001", c(11:12, 35:36)),
+    "35-44",       acs_sum("B01001", c(13:14, 37:38)),
+    "45-54",       acs_sum("B01001", c(15:16, 39:40)),
+    "55-64",       acs_sum("B01001", c(17:19, 41:43)),
+    "65-74",       acs_sum("B01001", c(20:22, 44:46)),
+    "75 or older", acs_sum("B01001", c(23:25, 47:49))
+  ),
+  "Age",
+  "US figure: population 18 and older."
+)
+```
+
+```{r}
+#| label: acs-gender
+gender_shares <- demographics |>
+  filter(!is.na(gender_woman), !gender_prefer_not_to_say) |>
+  summarise(Woman = mean(gender_woman), Man = mean(gender_man)) |>
+  pivot_longer(everything(), names_to = "category", values_to = "survey")
+
+compare_table(
+  gender_shares,
+  tribble(
+    ~category, ~us,
+    "Woman",   acs_sum("B01001", 31:49),
+    "Man",     acs_sum("B01001", 7:25)
+  ),
+  "Gender",
+  "Survey: share of respondents choosing each (more than one allowed; non-binary and transgender have no Census counterpart). US figure: female and male population 18 and older."
+)
+```
+
+```{r}
+#| label: acs-race
+race_shares <- demographics |>
+  filter(!is.na(race_white), !race_prefer_not_to_say) |>
+  summarise(
+    "Hispanic, Latino, or Latina"       = mean(race_hispanic),
+    "White"                             = mean(race_white),
+    "Black or African American"         = mean(race_black),
+    "Asian or Asian American"           = mean(race_asian),
+    "American Indian or Alaska Native"  = mean(race_aian),
+    "Native Hawaiian or Pacific Islander" = mean(race_nhpi),
+    "Multiracial"                       = mean(race_multiracial),
+    "Middle Eastern or North African"   = mean(race_mena)
+  ) |>
+  pivot_longer(everything(), names_to = "category", values_to = "survey")
+
+compare_table(
+  race_shares,
+  tribble(
+    ~category,                            ~us,
+    "Hispanic, Latino, or Latina",        acs["B03002_012"],
+    "White",                              acs["B03002_003"],
+    "Black or African American",          acs["B03002_004"],
+    "Asian or Asian American",            acs["B03002_006"],
+    "American Indian or Alaska Native",   acs["B03002_005"],
+    "Native Hawaiian or Pacific Islander", acs["B03002_007"],
+    "Multiracial",                        acs["B03002_009"],
+    "Middle Eastern or North African",    NA
+  ),
+  "Race and ethnicity",
+  "Survey: share choosing each (more than one allowed, so shares exceed 100%). US figure: Hispanic of any race, then non-Hispanic single races and two-or-more races, as a share of the total population; the Census does not yet report Middle Eastern or North African separately. Non-Hispanic 'some other race' (about 1%) is not shown.",
+  us_total = acs["B03002_001"]
+)
+```
+
+```{r}
+#| label: acs-income
+income_to_acs <- \(x) case_match(
+  x,
+  "Under $25,000" ~ "Under $25,000",
+  "$25,000-$49,999" ~ "$25,000-$49,999",
+  "$50,000-$74,999" ~ "$50,000-$74,999",
+  "$75,000-$99,999" ~ "$75,000-$99,999",
+  "$100,000-$149,999" ~ "$100,000-$149,999",
+  c("$150,000-$174,999", "$175,000-$199,999") ~ "$150,000-$199,999",
+  c("$200,000-$249,999", "$250,000-$299,999", "$300,000 or more") ~ "$200,000 or more"
+)
+
+compare_table(
+  survey_shares(demographics, hh_income, income_to_acs),
+  tribble(
+    ~category,           ~us,
+    "Under $25,000",     acs_sum("B19001", 2:5),
+    "$25,000-$49,999",   acs_sum("B19001", 6:10),
+    "$50,000-$74,999",   acs_sum("B19001", 11:12),
+    "$75,000-$99,999",   acs_sum("B19001", 13),
+    "$100,000-$149,999", acs_sum("B19001", 14:15),
+    "$150,000-$199,999", acs_sum("B19001", 16),
+    "$200,000 or more",  acs_sum("B19001", 17)
+  ),
+  "Household income",
+  "Survey brackets above $150,000 are combined to match the Census. Survey: respondents; US figure: households."
+)
+```
+
+```{r}
+#| label: acs-hh-size
+compare_table(
+  survey_shares(demographics, hh_size, \(x) if_else(x == "1, just myself", "1", x)),
+  tribble(
+    ~category,   ~us,
+    "1",         acs_sum("B11016", 10),
+    "2",         acs_sum("B11016", c(3, 11)),
+    "3",         acs_sum("B11016", c(4, 12)),
+    "4",         acs_sum("B11016", c(5, 13)),
+    "5",         acs_sum("B11016", c(6, 14)),
+    "6",         acs_sum("B11016", c(7, 15)),
+    "7 or more", acs_sum("B11016", c(8, 16))
+  ),
+  "Household size",
+  "Survey: respondents; US figure: households. A person-based US figure would tilt toward larger households."
+)
+```
+
+## Connection to care
+
+The first question asks about a person's connection to care and routes them
+to one of five pathways. This decides which questions each person sees, so it
+shapes everything below. Current caregivers and care recipients are by far
+the largest group.
+
+```{r}
+#| label: pathways
+bind_rows(survey = survey, canvassing = canvassing, .id = "tool") |>
+  filter(!is.na(pathway)) |>
+  count(tool, pathway) |>
+  mutate(share = percent(n / sum(n), accuracy = 1), .by = tool) |>
+  pivot_wider(names_from = tool, values_from = c(n, share)) |>
+  select(pathway, survey_n = n_survey, survey_share = share_survey,
+         canvassing_n = n_canvassing, canvassing_share = share_canvassing) |>
+  tbl()
+```
+
+The answers behind the pathways. People could choose more than one.
+
+```{r}
+#| label: q1
+#| fig-height: 5
+survey |>
+  selection_rates("q1") |>
+  plot_rates(
+    "Connection to care (survey)",
+    str_glue("Share of {nrow(filter(survey, !is.na(q1_child_now)))} respondents who answered; more than one allowed")
+  )
+```
+
+## What people are saying
+
+For each question, the chart shows the share of people *who were shown the
+question* choosing each answer, with the number of people in parentheses.
+Because the pathways see different questions, the group behind each chart is
+different; the subtitle says who.
+
+### Challenges for current caregivers and care recipients
+
+```{r}
+#| label: q2a
+#| fig-height: 5
+q2a <- selection_rates(survey, "q2a")
+plot_rates(
+  q2a,
+  "What challenges have you experienced with care?",
+  str_glue("Survey, current pathway, {unique(q2a$n_shown)} respondents")
+)
+```
+
+### Supports that would make a difference for current caregivers and recipients
+
+```{r}
+#| label: q3a
+#| fig-height: 5
+q3a <- selection_rates(survey, "q3a")
+plot_rates(
+  q3a,
+  "What care support would make a difference for you?",
+  str_glue("Survey, current pathway, {unique(q3a$n_shown)} respondents")
+)
+```
+
+### Who helps most with care
+
+```{r}
+#| label: q4a
+#| fig-height: 5
+q4a <- selection_rates(survey, "q4a")
+plot_rates(
+  q4a,
+  "What or who helps you most with care? (top 3)",
+  str_glue("Survey, current pathway, {unique(q4a$n_shown)} respondents")
+)
+```
+
+### What ideal care would look like
+
+Everyone sees this question regardless of pathway, so it has the widest base.
+It asks people to choose up to three answers, but the form does not enforce
+that: roughly four in ten respondents chose more, and some chose all eleven.
+The table shows shares two ways, among everyone and among only the people
+who kept to three or fewer. The order of the answers is nearly the same either way;
+what changes is how big the percentages are, and it is worth deciding which
+version to report.
+
+```{r}
+#| label: q6
+#| fig-height: 5.5
+q6_all <- selection_rates(survey, "q6")
+
+q6_n_chosen <- survey |>
+  filter(!is.na(q6_affordable)) |>
+  mutate(n_chosen = rowSums(across(starts_with("q6_") & where(is.logical) & !q6_other))) |>
+  select(respondent_id, n_chosen)
+
+q6_within <- survey |>
+  semi_join(filter(q6_n_chosen, n_chosen <= 3), by = "respondent_id") |>
+  selection_rates("q6")
+
+plot_rates(
+  q6_all,
+  "What would ideal care support and services look like for you?",
+  str_glue("Survey, all pathways, {unique(q6_all$n_shown)} respondents")
+)
+```
+
+```{r}
+#| label: q6-table
+q6_all |>
+  select(label, everyone = rate) |>
+  left_join(select(q6_within, label, three_or_fewer = rate), by = "label") |>
+  arrange(desc(everyone)) |>
+  mutate(across(c(everyone, three_or_fewer), \(x) percent(x, accuracy = 1))) |>
+  rename(
+    Answer = label,
+    "Everyone ({unique(q6_all$n_shown)})" := everyone,
+    "Chose 3 or fewer ({unique(q6_within$n_shown)})" := three_or_fewer
+  ) |>
+  tbl()
+```
+
+### Ideal care by respondent group
+
+The same question, split by age and by disability status. Each column is one
+group; the number in the heading is how many people in that group answered.
+These splits follow the project's standard for reporting on subgroups: a
+group with fewer than 50 respondents is not shown, a group with 50 to 199 is
+marked "interpret with caution," and a group with 200 or more is reported
+plainly. With more responses these splits can extend to every question and
+every demographic.
+
+```{r}
+#| label: q6-by-age
+rates_by(survey, "q6", age) |>
+  tbl()
+```
+
+```{r}
+#| label: q6-by-disability
+rates_by(survey, "q6", disability) |>
+  tbl()
+```
+
+### In their own words
+
+Every choose-all-that-apply question has an "Other" box. Text written there
+is kept word for word and will be coded alongside the open-ended questions.
+Number of respondents who wrote something, by question:
+
+```{r}
+#| label: other-text
+survey |>
+  select(ends_with("_other_text")) |>
+  summarise(across(everything(), \(x) sum(!is.na(x)))) |>
+  pivot_longer(everything(), names_to = "question", values_to = "respondents") |>
+  mutate(question = str_remove(question, "_other_text")) |>
+  filter(respondents > 0) |>
+  arrange(desc(respondents)) |>
+  tbl()
+```
+
+## Canvassing
+
+Canvassing is a doorstep conversation, so it is a funnel: not everyone
+approached answers, not everyone who answers has a connection to care, and
+not everyone with a connection agrees to the full questions. Each stage is a
+different base for any analysis.
+
+```{r}
+#| label: funnel
+funnel <- tibble(
+  stage = c(
+    "Approached",
+    "Answered and engaged",
+    "Reports a connection to care",
+    "Agreed to full questions"
+  ),
+  n = c(
+    nrow(canvassing),
+    sum(canvassing$responded == "Yes - continue with questions", na.rm = TRUE),
+    sum(canvassing$care_connection == "Yes", na.rm = TRUE),
+    sum(!is.na(canvassing$pathway))
+  )
+) |>
+  mutate(stage = fct_rev(fct_inorder(stage)))
+
+ggplot(funnel, aes(n, stage)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.5, size = 3) +
+  scale_x_continuous(expand = expansion(mult = c(0, .1))) +
+  labs(title = "Canvassing doorstep funnel", x = "Contacts", y = NULL)
+```
+
+At the door, the canvasser records challenges from a short list before the
+full questions begin. This covers everyone who engaged, not just those who
+went on to the full questions.
+
+```{r}
+#| label: doorstep
+doorstep <- selection_rates(canvassing, "doorstep")
+plot_rates(
+  doorstep,
+  "Challenges mentioned at the door",
+  str_glue("Canvassing, {unique(doorstep$n_shown)} engaged contacts")
+)
+```
+
+The full question set was answered by too few canvassing contacts to chart
+yet (`r sum(!is.na(canvassing$q1_child_now))` so far). Those answers are in
+the clean file and will be added here as canvassing grows.
+
+### The revised form (August on)
+
+In August the coalition changed the canvassing form: the yes/no
+connection-to-care question and the challenge checklist were replaced by
+"Do you need care or is there someone in your life you help take care of?"
+and a free-text "What's been hard about that?" There are three versions of
+the revised form, with different questions; almost all responses so far come
+from the Daisy Chain event (`c2`), which asked only the two new questions.
+Because the questions differ, these contacts are kept apart from the funnel
+and challenge charts above.
+
+```{r}
+#| label: canvassing-revised
+canvassing_revised |>
+  count(form_version, response_status, name = "contacts") |>
+  rename("Form version" = form_version, "Status" = response_status) |>
+  tbl()
+```
+
+```{r}
+#| label: canvassing-revised-screener
+canvassing_revised |>
+  mutate(screener = fct_na_value_to_level(screener, "Not answered")) |>
+  count(screener, wrote_text = !is.na(hard_text), name = "contacts") |>
+  rename("Needs care or helps care for someone" = screener,
+         "Wrote something for \"What's been hard\"" = wrote_text) |>
+  tbl()
+```
+
+The `r sum(!is.na(canvassing_revised$hard_text))` free-text answers are
+respondents' own words and go to the text analysis with the open-ended
+survey questions.
+
+## Interviews
+
+Five interview transcripts have been delivered: two group sessions and three
+individual interviews, in Illinois and Michigan (one transcript carries no
+ZIP code). Interview content is being coded against the project codebook and
+reported in the coding dashboard.
+
+```{r}
+#| label: interviews
+interviews |>
+  left_join(zip_state, by = "zip") |>
+  left_join(states, by = "state") |>
+  select(transcript, format, zip, state = state_name) |>
+  tbl()
+```
+
+## Not in this chartbook yet
+
+- **Rural detail**: rural respondents can be split further (small towns,
+  remote areas, commuting patterns) once there are enough of them.
+- **Open-ended answers**: the survey's and canvassing's open-text questions
+  are coded separately once the codebook is updated.
+- **The Spanish survey link**: no responses have been delivered from it yet;
+  they will flow into the same charts when they arrive.
