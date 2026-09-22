@@ -80,7 +80,7 @@ column with the question and answer text behind it.
 
 ## The steps at a glance
 
-1. **Find the files.** Use the team's data log to identify what each
+1. **Find the files.** Use the research team's data log to identify what each
    delivered file is; clean the survey and canvassing exports, and set aside
    test deliveries, open-text exports, and the pre-launch poll. Every file
    must be accounted for.
@@ -93,8 +93,8 @@ column with the question and answer text behind it.
 6. **Work out which set of questions each person was shown** (their
    "pathway") from their first answer, and **check** that they answered
    those questions and no others.
-7. **Tidy the rest**: IDs, timestamps, ZIP codes. Confirm no respondent
-   appears twice.
+7. **Tidy the rest**: IDs and ZIP codes. Confirm no respondent appears
+   twice.
 8. **Do the same for canvassing**, reusing the survey's answer lists: once
    for the original form and once for the revised form introduced in August,
    which asks different questions.
@@ -261,6 +261,9 @@ deliveries |>
 :::
 
 ## Survey
+
+The survey is cleaned first. Canvassing follows the same steps further down,
+with its own column names where the forms differ.
 
 ### Give the columns short names
 
@@ -691,12 +694,11 @@ wording are listed for that answer, so responses from before and after the
 change land in the same column.
 
 
-::: {.callout-note title="q6 asks for up to three answers, but the form does not enforce it"}
-The ideal-care question `q6` asks people to choose up to three answers. The
-live form does not enforce that limit, and many people choose more. We keep
-every selection as given; the chartbook reports `q6` both ways. The count
-below shows how many answers people actually chose.
-:::
+One thing to know about the ideal-care question, `q6`: it asks people to
+choose up to three answers, but the live form does not enforce that limit,
+and many people choose more. We keep every selection as given; the chartbook
+reports `q6` both ways. The count below shows how many answers people
+actually chose.
 
 ```{r}
 #| label: q6-limit
@@ -783,13 +785,9 @@ Each pathway's questions should be answered by the people on that pathway and
 nobody else. Partial responses may stop early, so for them only answers from
 outside their pathway count against the check.
 
-::: {.callout-note title="The known exception shows up here"}
-Paid care providers who also cared for someone in the past were shown two
-sets of questions (see "The survey in brief"). They are assigned to
-`current`, so their answers to the `past` questions appear in the table below
-as answers from outside the pathway. That is expected until Caring Across
-Generations confirms the routing.
-:::
+The paid-provider exception described in "The survey in brief" appears in
+the table below as answers from outside the pathway on the `past` questions.
+That is expected until Caring Across Generations confirms the routing.
 
 ```{r}
 #| label: skip-checks
@@ -954,15 +952,6 @@ the survey, word for word, so the survey's column names and answer lists are
 reused. There are no demographic questions and no respondent ZIP; the only
 geography is the canvasser's ZIP.
 
-As with the survey, the `f0` test delivery is left out, and complete and
-partial responses are combined and labelled.
-
-```{r}
-#| label: canvassing-read
-#| echo: false
-basename(canvassing_files)
-```
-
 ```{r}
 #| label: canvassing-rename
 battery <- col_map[c(
@@ -1092,7 +1081,7 @@ write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
 
 In August 2026 the coalition changed the canvassing form. The yes/no
 "connection to care" question and the doorstep challenge checklist are gone;
-in their place are two questions — "Do you need care or is there someone in
+in their place are two questions: "Do you need care or is there someone in
 your life you help take care of?" and, as free text, "What's been hard about
 that?" The revised form comes in three versions (`c1`, `c2`, `c3`) with
 different sets of questions: `c1` keeps the canvasser fields and the full
@@ -1101,15 +1090,8 @@ questions, and `c3` has the canvasser fields and the two questions but not the
 survey questions. Because the questions differ from the earlier form's, these
 responses are cleaned into their own file and reported separately.
 
-```{r}
-#| label: canvassing-revised-read
-#| echo: false
-basename(canvassing_revised_files)
-```
-
-Every column any version can carry is mapped; the ones a given version lacks
-are simply absent for its rows. The canvasser's street-address columns, which
-`c3` carries, must be empty, as for the survey.
+Columns a version does not carry are simply absent for its rows. The
+canvasser's street-address columns in `c3` must be empty, as for the survey.
 
 ```{r}
 #| label: canvassing-revised-rename
@@ -1195,9 +1177,9 @@ write_csv(canvassing_revised, here("data/processed/canvassing_revised_clean.csv"
 ## Data dictionary
 
 The column names and answer lists above already describe every column in the
-clean files. This writes them out as a single table — one row per column (or
-per level of a single-answer question), with the question and answer text it
-came from — so anyone reading the clean files can look up what a column means
+clean files. This step writes them out as one table, with a row per column
+(or per answer of a single-answer question) and the question and answer text
+behind it, so anyone using the clean files can look up what a column means
 without opening this program.
 
 ```{r}
@@ -1252,8 +1234,9 @@ dictionary <- bind_rows(
 write_csv(dictionary, here("data/processed/data-dictionary.csv"))
 ```
 
-Search or page through the dictionary here; the same table is written to
-`data/processed/data-dictionary.csv`.
+Search or page through the dictionary here. The
+[Variables page](/variables.qmd) presents the same information question by
+question.
 
 ```{r}
 #| label: dictionary-show
