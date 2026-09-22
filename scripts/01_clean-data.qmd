@@ -893,9 +893,9 @@ before reaching it.
 
 The research team's data log records the dates each file covers and the first and last
 respondent ID in it. Each file's rows are compared with that: submission
-dates should fall inside the logged window and IDs inside the logged range. A
-mismatch means the wrong file was delivered or logged, which nothing else
-would catch.
+dates should fall inside the logged window and IDs inside the logged range.
+This would catch a mismatch between what was delivered and what was logged,
+such as a wrong file or a mislabelled one.
 
 ```{r}
 #| label: log-check
