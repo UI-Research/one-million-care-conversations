@@ -118,7 +118,10 @@ Routing facts established empirically (not stated in any document):
   | f1 | 1 Million Care Conversations - Canvass Launch |
   | f2 | 1 Million Care Conversations - Canvass at Daisy Chain - 92618-Other In Person-No Survey Add-On |
 
-  Delivered so far: survey f1/f2/f3 (closed + open-text), canvass f1.
+  Delivered so far: survey f1/f2/f3/f4/f6 (closed + open-text; f4 and f6
+  first delivered 2026-09-22 covering August), canvass f1 and c1–c3. Not
+  yet: survey f5 (Spanish). Per Teresa (2026-09-22) CAG will send survey and
+  canvass data **no more than once a month**; transcripts may come sooner.
 - **Canvass forms are numbered `c1`, `c2`, `c3` from the Sept 2026
   deliveries** (earlier files of the same launch form said `f1`; cleaning
   maps canvass `f1` → `c1`). These are a **revised instrument**: the
@@ -139,11 +142,24 @@ Routing facts established empirically (not stated in any document):
   f0 (both tools) was the pre-launch test — a *revision* lineage, unlike
   f1–f6 which share one instrument.
 - **Aug 19 2026 wording revision** ("NEW 1MCC Digital Survey Questions -
-  August 19 2026" PDF): question text unchanged, four options reworded (q2a
-  `finding`; q6 `easy_to_use`, `lived_experience`, `healthy_dev`). Per Teresa
-  (email 2026-08-26) old and new wording are **combined** — the dictionaries
-  in `01_clean-data.qmd` list both variants as aliases mapping to the same
-  indicator. Since f-numbers are channels, the revision presumably edits the
+  August 19 2026" PDF): four options reworded (q2a `finding`; q6
+  `easy_to_use`, `lived_experience`, `healthy_dev`). Per Teresa (email
+  2026-08-26) old and new wording are **combined** — the dictionaries in
+  `01_clean-data.qmd` list both variants as aliases mapping to the same
+  indicator. **The question text changed too**, contrary to the earlier
+  reading of the PDF: exports covering Aug 2026 on (f2 Aug, f4, f6) carry
+  rewritten headers for nine questions — q1 "Care and caregiving look
+  different for everyone. Choose all that apply to you."; q2a "What's been
+  hard?"; q3a "What help would make a difference for you or the people you
+  care for?"; q2b "What do you think will be hard in the future?"; q3b "What
+  help would make a difference?"; q2c "What was hard?"; q3c "What help would
+  have made difference for you or people around you?" (sic); q2d "What's been
+  hard for the people you know?"; q3d "What help would make a difference for
+  the people you know?" — all "(Choose all that apply)". q4a/q4c/q4d, q6, and
+  demographics unchanged. `col_map` lists both headers per question;
+  `rename_validated()` accepts either (whitespace-collapsed, since one file
+  had a double space). Answer options under the new headers are unchanged
+  (no drift alarms). A file can mix bar- and comma-separated cells. Since f-numbers are channels, the revision presumably edits the
   live forms in place — so **wording eras are split by `submitted_at`
   (before/after 2026-08-19), not by `form_version`**. New variants are seeded
   from the PDF (hyphen formatting per observed exports) and not yet confirmed
