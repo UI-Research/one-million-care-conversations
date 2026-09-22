@@ -105,10 +105,15 @@ survey_files <- mirror_files |>
   str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
 canvassing_files <- mirror_files |>
   str_subset("^(nopii_)?canv_export_.*_closed.*\\.xlsx$") |>
-  str_subset(regex("_f0_", ignore_case = TRUE), negate = TRUE)
+  str_subset(regex("_[fc]0_", ignore_case = TRUE), negate = TRUE) |>
+  # the c1-c3 forms (Aug 2026 on) are a revised canvassing instrument with
+  # different questions per form; not cleaned until the team decides how they
+  # combine with the earlier form — see issue #12
+  str_subset(regex("_c\\d+_", ignore_case = TRUE), negate = TRUE)
 
 set_aside <- c(
-  "_[fF]0_",     # pre-launch test deliveries (both tools)
+  "_[fFcC]0_",   # pre-launch test deliveries (both tools)
+  "_[cC]\\d+_",  # revised canvassing forms c1-c3 — issue #12
   "opentext",    # open-text exports — text-analysis pipeline, not read here
   "_open\\.",    # ... newer deliveries shorten the suffix to "_open"
   "everyaction", # pre-launch One Question Poll — text-analysis pipeline
@@ -822,11 +827,14 @@ canvassing <- canvassing_files |>
   }) |>
   bind_rows() |>
   mutate(
-    form_version    = str_extract(delivery, "f\\d+"),
+    # canvassing forms are numbered c1, c2, ... from Sept 2026; earlier
+    # deliveries of the same forms used f1, so both spell the same channel
+    form_version    = str_to_lower(str_extract(delivery, regex("[fc]\\d+", ignore_case = TRUE))) |>
+      str_replace("^f", "c"),
     response_status = str_extract(delivery, "complete|partial")
   )
 
-if (any(canvassing$form_version == "f0")) {
+if (any(canvassing$form_version == "c0")) {
   cli::cli_abort("f0 test rows slipped past the filename exclusion")
 }
 ```

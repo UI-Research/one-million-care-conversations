@@ -119,6 +119,16 @@ Routing facts established empirically (not stated in any document):
   | f2 | 1 Million Care Conversations - Canvass at Daisy Chain - 92618-Other In Person-No Survey Add-On |
 
   Delivered so far: survey f1/f2/f3 (closed + open-text), canvass f1.
+- **Canvass forms are numbered `c1`, `c2`, `c3` from the Sept 2026
+  deliveries** (earlier files of the same launch form said `f1`; cleaning
+  maps canvass `f1` → `c1`). These are a **revised instrument**: the
+  care-connection screener and doorstep checklist are replaced by
+  "1. Do you need care or is there someone in your life you help take care
+  of…" and an open-text "2. What's been hard about that?" (delivered inside
+  the *closed* export). Column sets differ by form (c2 = only those two
+  questions; c3 = canvasser fields + the two questions, no battery; `c3`
+  not in CAG's form table). Set aside in cleaning pending a decision on how
+  the two instruments combine — issue #12.
 - **Delivery file-name drift seen so far** (all handled by the file-selection
   patterns in `01_clean-data.qmd` and the name normalization in
   `00_ingest-raw.R`): trailing underscore padding (`_____`), a space before
