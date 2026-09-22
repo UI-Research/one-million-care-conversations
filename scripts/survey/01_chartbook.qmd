@@ -204,10 +204,12 @@ canvassing_state <- canvassing |>
 # ZIP from each transcript's header (verified 2026-09-17), entered by hand
 # until the coalition provides an interview metadata sheet
 interviews <- tribble(
-  ~transcript,                          ~format,                  ~zip,
-  "nopii_grp-sf_00000_othr_20260801",   "group session",          "60174",
-  "nopii_idv-lf_00000_othr_20260818",   "individual, long form",  "60302",
-  "nopii_idv-sf_00000_othr_20260821",   "individual, short form", NA
+  ~transcript,                          ~format,                    ~zip,
+  "nopii_grp-sf_00000_othr_20260801",   "group, short form",        "60174",
+  "nopii_grp-lf_00000_othr_20260811",   "group, long form",         "49712",
+  "nopii_idv-lf_00000_othr_20260818",   "individual, long form",    "60302",
+  "nopii_ind-lf_00000_othr_20260819",   "individual, long form",    "48840",
+  "nopii_idv-sf_00000_othr_20260821",   "individual, short form",   NA
 )
 interview_state <- interviews |>
   filter(!is.na(zip)) |>
@@ -608,10 +610,10 @@ the clean file and will be added here as canvassing grows.
 
 ## Interviews
 
-Three interview transcripts have been delivered: one group session and two
-individual interviews. All with a ZIP code are in Illinois. Interview
-content is being coded against the project codebook and reported separately
-in the coding dashboard.
+Five interview transcripts have been delivered: two group sessions and three
+individual interviews, in Illinois and Michigan (one transcript carries no
+ZIP code). Interview content is being coded against the project codebook and
+reported in the coding dashboard.
 
 ```{r}
 #| label: interviews
