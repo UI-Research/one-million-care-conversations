@@ -699,13 +699,17 @@ survey <- survey |>
 ### Work out each person's pathway
 
 The first question asks about a person's connection to care, and the answer
-decides which questions they see next. There are five pathways: people giving
-or receiving care now (`current`), people who cared for someone in the past
-(`past`), people who expect to in the future (`future`), people who know
-someone who receives care (`observer`), and people with no connection
-(`none`). A person who ticks answers from more than one group is routed to
-the first that applies, in that order. We checked this against the data: a person eligible for both `past` and `future` was shown only the
-`past` questions.
+decides which questions they see next. There are five pathways:
+
+- `current`: giving or receiving care now
+- `past`: cared for someone in the past
+- `future`: expects to give or need care in the next five years
+- `observer`: knows someone who receives or needs care
+- `none`: none of these
+
+A person who ticks answers from more than one group is routed to the first
+that applies, in that order. We checked this against the data: a person
+eligible for both `past` and `future` was shown only the `past` questions.
 
 The survey's routing, as it behaves in the data:
 
