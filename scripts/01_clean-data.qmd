@@ -69,21 +69,39 @@ library(here)
 library(reactable)
 
 source(here("scripts/00_utils.R"))
+```
 
+```{=html}
+<style>
+.reactable { margin: 0.75rem 0 1.75rem; }
+.table-title { margin: 1.25rem 0 0.4rem; }
+</style>
+```
+
+```{r}
+#| label: table-helper
+#| include: false
 # one look for every table in this document: sortable, paged past `page_size`
 # rows, and scrolling sideways rather than wrapping when there are many columns
-tbl <- function(data, title = NULL, page_size = 10, searchable = FALSE, min_width = 90) {
+tbl <- function(data, title = NULL, page_size = 5, searchable = FALSE, min_width = 90,
+                wrap = TRUE, ...) {
   table <- reactable(
     data,
     pagination = nrow(data) > page_size, defaultPageSize = page_size,
     showPageSizeOptions = FALSE, searchable = searchable,
-    striped = TRUE, compact = TRUE, resizable = TRUE,
+    striped = TRUE, resizable = TRUE, wrap = wrap,
     defaultColDef = colDef(minWidth = min_width),
+    ...,
+    theme = reactableTheme(
+      cellPadding = "8px 12px",
+      headerStyle = list(background = "#f3f4f6", fontWeight = 600),
+      borderColor = "#e5e7eb"
+    ),
     style = list(fontSize = "14px")
   )
   if (is.null(title)) return(table)
   htmltools::tagList(
-    htmltools::tags$p(htmltools::tags$strong(title), style = "margin-bottom: 0.3rem"),
+    htmltools::tags$p(htmltools::tags$strong(title), class = "table-title"),
     table
   )
 }
@@ -160,8 +178,10 @@ canvassing_files <- file.path(raw_dir, canvassing_files)
 canvassing_revised_files <- file.path(raw_dir, canvassing_revised_files)
 ```
 
-The files cleaned in this run, as the data log describes them:
+The files cleaned in this run, as the data log describes them, are listed
+under the fold.
 
+::: {.callout-note collapse="true" title="Files cleaned in this run"}
 ```{r}
 #| label: files-cleaned
 #| echo: false
@@ -175,16 +195,24 @@ deliveries |>
   arrange(desc(delivered), file) |>
   tbl(min_width = 110)
 ```
+:::
 
 ## Survey
 
 ### Give the columns short names
 
 In the export, each column is named with the full question text. We map those
-to short names that follow the questionnaire's numbering: `q1` is the
-connection-to-care question, `q2a`/`q3a`/`q4a` are the current-caregiver
-questions, and so on through `q6`. Demographic columns get plain names such as
-`age` and `hh_income`.
+to short names. Survey questions follow the questionnaire's numbering, where
+the number is the topic and the letter is who was asked. The topics are 1,
+connection to care; 2, challenges; 3, supports that would help; 4, who helps;
+and 6, ideal care. The survey shows different versions of questions 2 to 4
+depending on a person's connection to care, so the letter says which: a, giving
+or receiving care now; b, expecting to; c, cared for someone in the past; d,
+knows someone who receives care. So `q2a` is the challenges question asked of
+current caregivers, and `q3d` is the supports question asked of people who
+know someone receiving care. Demographic columns get plain names such as
+`age` and `hh_income`. The [Variables page](/variables.qmd) lists every
+column.
 
 The mapping is checked in both directions: a column we have no name for, or
 a column we expect but cannot find, stops the program. Since August the
@@ -279,17 +307,18 @@ col_map |>
   tbl(min_width = 220)
 ```
 
-Count the rows that came from each file. The `form_version` column records
-the distribution channel (the May launch link, the July Virtual Day of Action
-link, postcards, and so on); every channel uses the same questionnaire. `response_status` separates people who finished the survey from
-those who stopped partway through. Both are kept in the clean file so the
-analysis can decide how to treat them.
+The table below counts the responses in each file. `form_version` is the
+link or form the response came through (the May launch link, the July Virtual
+Day of Action link, postcards, and so on; all use the same questionnaire), and
+`response_status` separates people who finished the survey from those who
+stopped partway through. Both stay in the clean file so the analysis can
+decide how to treat them.
 
 ```{r}
 #| label: read-count
 #| echo: false
-count(survey, delivery, form_version, response_status, name = "rows") |>
-  tbl("Rows read from each delivery")
+count(survey, delivery, form_version, response_status, name = "responses") |>
+  tbl("Responses in each file", columns = list(delivery = colDef(minWidth = 380)))
 ```
 
 This is what the raw export looks like at this point: one row per person,
@@ -310,7 +339,7 @@ sample_rows <- c(
 
 survey |>
   slice(c(sample_rows, setdiff(seq_len(rows_to_show), sample_rows))) |>
-  tbl(page_size = 5, min_width = 170)
+  tbl(min_width = 200, wrap = FALSE)
 ```
 
 ### Check for personal information
@@ -349,13 +378,14 @@ Most survey questions let people choose more than one answer. The export
 stores all of a person's choices in a single cell, separated by vertical
 bars, for example `"Care is unaffordable|Other: my own words"`. This step
 splits each question into one TRUE/FALSE column per answer option. For the
-challenges question `q2a`, that means columns such as `q2a_unaffordable` and
-`q2a_time_flex`.
+challenges question `q2a` (care is unaffordable, hard to find care, not enough
+time or flexibility, and so on), that means columns such as
+`q2a_unaffordable` and `q2a_time_flex`.
 
 One delivery (the July–August complete responses) separates the answers with
 commas instead. That is trickier, because the answers themselves contain
 commas, so for those cells the known answers are matched one at a time from
-the start of the cell. The result is the same either way.
+the start of the cell.
 
 ::: {.callout-tip title="How to read the TRUE/FALSE columns"}
 Each answer column holds one of three values:
@@ -369,40 +399,8 @@ The share of people choosing an answer is the share of `TRUE` among the
 non-missing values.
 :::
 
-"Other" works a little differently. It is a free-text box, and the export
-records it three ways: `"Other: some text"`, a bare `"Other"` when the box
-was ticked but left empty, or occasionally the text alone. Anything that is
-not one of the known answers sets `{question}_other` to `TRUE` and is kept
-word for word in `{question}_other_text`. Those words are respondents'
-own voices and feed the text analysis.
-
-Two safeguards sit inside this step. If the same "other" text appears from
-three or more people, the program warns: repeated text usually means a new
-answer option was added to the form and needs to be added to our list. And
-when the form's wording for an answer changes, both the old and the new
-wording are listed for that answer, so responses from before and after the
-change land in the same column.
-
-A small demonstration on a made-up question with answers `a` through `f`
-shows how the pieces fit: `"c | e"` and the comma form `"c, e"` both get
-`TRUE` for c and e and `FALSE` for the rest; an "Other" with text sets the
-other flag and keeps the text; a blank row is `NA` throughout; and answer `a`
-accepts two wordings.
-
-```{r}
-#| label: encode-demo
-tibble(q_demo = c("c | e", "c, e", "a-reworded|Other: my own answer", "a", NA)) |>
-  encode_multiselect(
-    "q_demo",
-    list(a = c("a", "a-reworded"), b = "b", c = "c", d = "d", e = "e", f = "f")
-  ) |>
-  tbl()
-```
-
-The answer options for every question are listed below, in the wording the
-export uses. The short name on the left becomes the column suffix. Where the
-live form does not yet match the official documents, the observed wording
-wins.
+The answer options for every question are listed in the code below. The
+short name on the left becomes the column suffix.
 
 ```{r}
 #| label: dictionaries
@@ -590,20 +588,41 @@ survey <- reduce(
 )
 ```
 
-The first two rows of the raw table above, after this step, for the
-challenges question `q2a`. The packed cell has become ten TRUE/FALSE columns
-plus the "Other" text.
+Every choose-all-that-apply question also has an "Other" box where people
+can type their own answer. In the export, that text sits inside the same
+packed cell, in one of three forms:
+
+- `Other: my mother needs someone overnight`, the usual form
+- `Other` on its own, when the box was ticked but nothing was typed
+- the typed text alone, with no "Other:" label
+
+Whatever in a cell is not one of the listed answers is treated as an "Other"
+answer: the question's `_other` column becomes `TRUE`, and the text is kept
+unchanged in its `_other_text` column. Those words are respondents' own and
+go to the text analysis. Four made-up cells show how this looks for `q2a`:
 
 ```{r}
-#| label: encoded-sample
+#| label: other-example
 #| echo: false
-survey[sample_rows, ] |>
-  select(starts_with("q2a_")) |>
-  pivot_longer(everything(), names_to = "column", values_to = "value", values_transform = as.character) |>
-  mutate(row = rep(c("row 1", "row 2"), each = n() / 2), .before = 1) |>
-  pivot_wider(names_from = row, values_from = value) |>
-  tbl("The q2a columns for the two sample rows")
+tibble(cell = c(
+  "Care is unaffordable|I don't have enough time or flexibility",
+  "Care is unaffordable|Other: my mother needs someone overnight",
+  "Other",
+  "Finding a nurse who speaks Spanish"
+)) |>
+  mutate(q2a = cell) |>
+  encode_multiselect("q2a", multiselect_options$q2a) |>
+  select(cell, q2a_unaffordable, q2a_time_flex, q2a_other, q2a_other_text) |>
+  tbl(min_width = 120)
 ```
+
+Two safeguards sit inside this step. If the same "other" text appears from
+three or more people, the program warns: repeated text usually means a new
+answer option was added to the form and needs to be added to our list. And
+when the form's wording for an answer changes, both the old and the new
+wording are listed for that answer, so responses from before and after the
+change land in the same column.
+
 
 ::: {.callout-note title="q6 asks for up to three answers, but the form does not enforce it"}
 The ideal-care question `q6` asks people to choose up to three answers. The
@@ -911,8 +930,8 @@ canvassing <- canvassing_files |>
 ```{r}
 #| label: canvassing-count
 #| echo: false
-count(canvassing, delivery, form_version, response_status, name = "rows") |>
-  tbl("Rows read from each canvassing delivery")
+count(canvassing, delivery, form_version, response_status, name = "responses") |>
+  tbl("Responses in each canvassing file", columns = list(delivery = colDef(minWidth = 380)))
 ```
 
 The doorstep challenge list uses short labels of its own. Everything else
@@ -1062,8 +1081,8 @@ canvassing_revised <- canvassing_revised_files |>
 ```{r}
 #| label: canvassing-revised-count
 #| echo: false
-count(canvassing_revised, delivery, form_version, response_status, name = "rows") |>
-  tbl("Rows read from each revised-form delivery")
+count(canvassing_revised, delivery, form_version, response_status, name = "responses") |>
+  tbl("Responses in each revised-form file", columns = list(delivery = colDef(minWidth = 380)))
 ```
 
 The survey questions, where a version carries them, are split into TRUE/FALSE
