@@ -944,13 +944,17 @@ tibble(column = names(survey), type = map_chr(survey, \(x) class(x)[1])) |>
 
 ## Canvassing
 
-The canvassing form is used at people's doors. It starts with a few questions
-for the canvasser (where they are, how the conversation is happening, whether
-the person answered), a short screener, and a quick-pick list of care
-challenges. People who agree to continue then get the same question set as
-the survey, word for word, so the survey's column names and answer lists are
-reused. There are no demographic questions and no respondent ZIP; the only
-geography is the canvasser's ZIP.
+The canvassing form is used at people's doors. It runs in stages:
+
+1. Questions for the canvasser: the ZIP code where they are, how the
+   conversation is happening, and whether the person answered the door.
+2. A short screener: does the person have a connection to care?
+3. A quick-pick list of care challenges.
+4. For people who agree to continue, the same questions as the survey, word
+   for word, so the survey's column names and answer lists are reused.
+
+There are no demographic questions and no respondent ZIP; the only geography
+is the canvasser's.
 
 ```{r}
 #| label: canvassing-rename
