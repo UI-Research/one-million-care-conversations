@@ -588,31 +588,39 @@ survey <- reduce(
 )
 ```
 
-Every choose-all-that-apply question also has an "Other" box where people
-can type their own answer. In the export, that text sits inside the same
-packed cell, in one of three forms:
+Every choose-all-that-apply question ends with an "Other" checkbox and a
+text box next to it, where people can type an answer of their own. In the
+export, whatever they typed lands in the same packed cell as their ticked
+answers. It can appear in three ways, depending on what the person did:
 
-- `Other: my mother needs someone overnight`, the usual form
-- `Other` on its own, when the box was ticked but nothing was typed
-- the typed text alone, with no "Other:" label
+- they ticked "Other" and typed something: the cell contains `Other:`
+  followed by their words
+- they ticked "Other" but typed nothing: the cell contains just the word
+  `Other`
+- occasionally the export drops the label: the cell contains their words on
+  their own
 
-Whatever in a cell is not one of the listed answers is treated as an "Other"
-answer: the question's `_other` column becomes `TRUE`, and the text is kept
-unchanged in its `_other_text` column. Those words are respondents' own and
-go to the text analysis. Four made-up cells show how this looks for `q2a`:
+The cleaning treats all three the same way. Anything in a cell that is not
+one of the standard answers is taken as an "Other" answer: the question's
+`_other` column becomes `TRUE`, and the words, if there are any, are kept
+unchanged in its `_other_text` column. Those words go to the text analysis.
+
+The table below walks through four made-up respondents. The first column is
+the export cell as delivered; the other columns are what the cleaning makes
+of it.
 
 ```{r}
 #| label: other-example
 #| echo: false
-tibble(cell = c(
+tibble(`export cell` = c(
   "Care is unaffordable|I don't have enough time or flexibility",
-  "Care is unaffordable|Other: my mother needs someone overnight",
+  "Care is unaffordable|Other: we need help on weekends",
   "Other",
-  "Finding a nurse who speaks Spanish"
+  "We need help on weekends"
 )) |>
-  mutate(q2a = cell) |>
+  mutate(q2a = `export cell`) |>
   encode_multiselect("q2a", multiselect_options$q2a) |>
-  select(cell, q2a_unaffordable, q2a_time_flex, q2a_other, q2a_other_text) |>
+  select(`export cell`, q2a_unaffordable, q2a_time_flex, q2a_other, q2a_other_text) |>
   tbl(min_width = 120)
 ```
 
