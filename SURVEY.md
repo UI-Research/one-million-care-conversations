@@ -53,9 +53,11 @@ Routing facts established empirically (not stated in any document):
   versions — the cleaning script validates exact matches and fails loudly.
 - **Multi-selects are pipe-delimited** in one cell, in survey option order —
   except the `nopii_surv_export_20260710-20260812_f1_complete_closed` delivery
-  (received Sept 2026; CAG agreed on 2026-09-25 to resend it bar-delimited
-  and keep bars in all files — accept the replacement with
-  `BOX_ACCEPT_MODIFIED`), which came through a different export path:
+  (received Sept 2026; CAG offered to resend it bar-delimited, but the parse
+  was verified on 2026-09-28 — "Other" rates and answer rates match the
+  bar-delimited files, and the only oddities, two truncated free-text
+  answers, are truncated in the delivered cells — so no resend; CAG asked to
+  keep bars going forward), which came through a different export path:
   timestamp column named `Date submitted` (same Excel serials), multi-selects
   **comma-separated** (ambiguous, since option text contains commas — the
   cleaning parses known options from the front), and en-/em-dashes and curly
