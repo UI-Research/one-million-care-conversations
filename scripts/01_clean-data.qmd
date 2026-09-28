@@ -59,13 +59,15 @@ flowchart TD
   q6["q6 · Ideal care (everyone)"] --> demo["Demographics<br/>ZIP · household · income · age · gender<br/>race · disability · political views"]
 ```
 
-::: {.callout-warning title="One routing exception, not yet confirmed"}
+::: {.callout-warning title="One routing exception in the data so far"}
 The data mostly bear the routing rule out: a person eligible for both `past` and
 `future` was shown only the `past` questions. The exception is paid care
 providers who also cared for someone in the past, who were shown both the
-`current` and the `past` questions. We have not yet confirmed with Caring
-Across Generations whether that is intended. The cleaning assigns those
-respondents to `current`.
+`current` and the `past` questions. Caring Across Generations confirmed on
+September 25, 2026 that current experience should take priority and that
+this was a form error, which they are correcting. The cleaning assigns those
+respondents to `current`; responses collected before the fix still carry
+their answers to the `past` questions.
 :::
 
 Column names in the clean files follow this structure. For the survey
@@ -771,7 +773,7 @@ outside their pathway count against the check.
 
 The paid-provider exception described in "The survey in brief" appears in
 the table below as answers from outside the pathway on the `past` questions.
-That is expected until Caring Across Generations confirms the routing.
+That is expected for responses collected before the form was corrected.
 
 The rules: which question belongs to which pathway. (`q6` is asked of
 everyone, so it has no row here; a complete response that skipped it entirely

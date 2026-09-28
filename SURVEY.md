@@ -35,8 +35,10 @@ Routing facts established empirically (not stated in any document):
   Respondents selecting `paid_provider` + `cared_past` (16 completes and 1
   partial as of the Aug 12 deliveries) answered the current *and* past
   questions — the only cross-pathway pattern. `derive_pathway()` still
-  labels them `current`; the skip-logic check warns on them. Routing rule
-  unconfirmed with CAG. Separately, one or two *partials* whose q1 is `none`
+  labels them `current`; the skip-logic check warns on them. **Confirmed by
+  CAG (Jaimie, 2026-09-25): current experience should always take priority;
+  the double set of questions was a form error and they are fixing it.**
+  Responses collected before the fix keep their `past` answers. Separately, one or two *partials* whose q1 is `none`
   answered other pathways' questions — looks like a form glitch or a test;
   worth asking CAG.
 - **Care recipients route to current**: the q1 options "I need care but am not
@@ -51,7 +53,9 @@ Routing facts established empirically (not stated in any document):
   versions — the cleaning script validates exact matches and fails loudly.
 - **Multi-selects are pipe-delimited** in one cell, in survey option order —
   except the `nopii_surv_export_20260710-20260812_f1_complete_closed` delivery
-  (received Sept 2026), which came through a different export path:
+  (received Sept 2026; CAG agreed on 2026-09-25 to resend it bar-delimited
+  and keep bars in all files — accept the replacement with
+  `BOX_ACCEPT_MODIFIED`), which came through a different export path:
   timestamp column named `Date submitted` (same Excel serials), multi-selects
   **comma-separated** (ambiguous, since option text contains commas — the
   cleaning parses known options from the front), and en-/em-dashes and curly
@@ -65,7 +69,8 @@ Routing facts established empirically (not stated in any document):
 - **q6 "choose up to three" is not enforced by the live form.** Roughly 40%
   of respondents who answered q6 chose more than three; a noticeable share
   chose all eleven (bursts in the weeks of June 14 and July 19, across
-  channels).
+  channels). CAG (2026-09-25): Formstack cannot enforce the limit without a
+  grid layout, which they avoid for accessibility, so it stays unenforced.
   Cleaning keeps every selection; the chartbook reports q6 shares both
   overall and among those who kept to three. Which to headline is a research
   decision to settle with CAG.

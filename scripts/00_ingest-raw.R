@@ -87,12 +87,22 @@ modified <- listing |>
   filter(!str_detect(name, "DATA LOG")) |> # the log is a living manifest — expected to change
   inner_join(manifest, by = "id", suffix = c("", "_fetched")) |>
   filter(sha1 != sha1_fetched)
-if (nrow(modified) > 0) {
+# a replaced file is normally a reason to stop; when a replacement is expected
+# (e.g. CAG resending a file in the agreed format), run with
+# BOX_ACCEPT_MODIFIED=<comma-separated file names> to re-fetch just those
+accepted <- str_split_1(Sys.getenv("BOX_ACCEPT_MODIFIED"), ",") |> str_trim()
+unexpected <- modified |> filter(!name %in% accepted)
+if (nrow(unexpected) > 0) {
   cli::cli_abort(c(
-    "{nrow(modified)} previously-fetched deliver{?y/ies} modified on Box — investigate
+    "{nrow(unexpected)} previously-fetched deliver{?y/ies} modified on Box — investigate
      with the team (Box web UI keeps the version history) before re-syncing:",
-    set_names(modified$name, rep("x", nrow(modified)))
+    set_names(unexpected$name, rep("x", nrow(unexpected))),
+    "i" = "If the replacement is expected, re-run with BOX_ACCEPT_MODIFIED='<file name>'."
   ))
+}
+if (nrow(modified) > 0) {
+  cli::cli_inform("Accepting {nrow(modified)} replaced file{?s}: {.file {modified$name}}")
+  manifest <- manifest |> filter(!id %in% modified$id) # so the fetch below re-downloads them
 }
 
 deleted <- anti_join(manifest, listing, by = "id")

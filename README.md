@@ -74,7 +74,7 @@ Only step 1 needs Box access; rendering works offline from the local mirror. Ste
 * Answer dictionaries use the wording observed in exports, and may list several accepted wordings for one answer when the form is revised.
 
 ### Adding a new delivery or answer option
-1. Run the ingest script. If it stops, reconcile with the team (usually the DATA LOG).
+1. Run the ingest script. If it stops, reconcile with the team (usually the DATA LOG). If it stops because a file was replaced on Box and the replacement is expected (a resend in the agreed format), re-run with `BOX_ACCEPT_MODIFIED="<file name>"` to fetch just that file.
 2. Render `01_clean-data.qmd`. If it stops on a column or answer it doesn't know, add the wording to `col_map` or the option dictionary — as an alias if it's a rewording of an existing answer.
 3. Read the warnings in the rendered document; a new one means a new fact about the instrument. Record it in `SURVEY.md`.
 4. Render the chartbook and commit both HTML files.
