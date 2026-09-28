@@ -143,6 +143,18 @@ Routing facts established empirically (not stated in any document):
   not in CAG's form table). Cleaned into its own file
   (`canvassing_revised_clean`) and reported separately in the chartbook;
   how (or whether) the two forms combine is still open — issue #12.
+- **Canvass 2.0 (launched 2026-08-25; PDF "NEW Canvass 2.0 Formstack -
+  September 25 2026", replaces an 8/20 version)**: canvasser ZIP + mode
+  (no "did the person respond" question); Q1 screener as in c1–c3; **Q2 is a
+  checklist again** ("What's been hard or worries you about that?") with the
+  original doorstep labels plus Other; **Q3 optional open text** ("What's one
+  thing you would change about care…"); then the 5-minute continue question,
+  after which the canvasser opens the *digital survey by link* — the battery
+  is no longer embedded, so canvass-driven full responses will arrive as
+  survey rows. Which survey link that button opens (f3 postcards? a new
+  number?) determines whether they can be told apart — ask CAG. No delivery
+  on this form yet as of 2026-09-28 (c1–c3 all have Q2 as free text).
+  `col_map_canv_revised` already carries the two new headers (from the PDF).
 - **Delivery file-name drift seen so far** (all handled by the file-selection
   patterns in `01_clean-data.qmd` and the name normalization in
   `00_ingest-raw.R`): trailing underscore padding (`_____`), a space before

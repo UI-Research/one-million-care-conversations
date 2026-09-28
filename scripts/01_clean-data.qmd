@@ -1102,11 +1102,17 @@ col_map_canv_revised <- c(
   responded         = col_map_canv[["responded"]],
   screener          = "1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?",
   hard_text         = "2. What’s been hard about that?",
+  # Canvass 2.0 (launched 2026-08-25, not yet delivered): question 2 became a
+  # checklist with the original form's doorstep labels, and an optional open
+  # question 3 was added. Header wording is from the form PDF; the first
+  # delivery will confirm it.
+  doorstep          = "2. What's been hard or worries you about that?",
+  change_text       = "3. What's one thing you would change about care–whether it's for your kids, aging family members, people with disabilities, yourself, or the people around you? (Optional)",
   continue_full     = col_map_canv[["continue_full"]],
   battery,
   respondent_id     = "Unique ID"
 )
-always_present <- c("submitted_at", "screener", "hard_text", "respondent_id")
+always_present <- c("submitted_at", "screener", "respondent_id")
 
 canvassing_revised <- canvassing_revised_files |>
   map(\(path) read_export(path, col_map_canv_revised,
@@ -1130,7 +1136,7 @@ word for word for the text analysis and are not summarized here.
 
 ```{r}
 #| label: canvassing-revised-clean
-present <- intersect(names(canv_multiselect), names(canvassing_revised))
+present <- intersect(names(canv_multiselect), names(canvassing_revised)) # includes doorstep once the 2.0 form arrives
 canvassing_revised <- reduce(
   present,
   \(data, col) encode_multiselect(data, col, canv_multiselect[[col]]),
