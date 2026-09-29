@@ -938,10 +938,10 @@ tibble(column = names(survey), type = map_chr(survey, \(x) class(x)[1])) |>
 
 ## Canvassing
 
-The canvassing form is used at people's doors. It runs in stages:
+Canvassers use the canvassing form in conversations door to door, on the street, and at events. It runs in stages:
 
 1. Questions for the canvasser: the ZIP code where they are, how the
-   conversation is happening, and whether the person answered the door.
+   conversation is happening, and whether the person responded.
 2. A short screener: does the person have a connection to care?
 3. A quick-pick list of care challenges.
 4. For people who agree to continue, the same questions as the survey, word
@@ -963,7 +963,7 @@ col_map_canv <- c(
   canvass_mode        = "For Canvasser: How are you conducting this conversation?",
   responded           = "For Canvasser: Did the person respond and agree to answer questions?  If no, share the information card or the careconversations.com website and submit.",
   care_connection     = "Have you provided, received care yourself, expected to in the future or do you know someone who is? This could be giving or receiving care for an aging family member, a friend, a child, or someone with a disability no matter their age. It also includes you.",
-  doorstep             = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
+  canvass_challenges   = "What challenges, if any, have you or others faced — or do you expect to face — when it comes to giving, finding, or getting care? (For canvasser: Check all that apply. If selecting 'No Challenges,' leave everything else unchecked.)",
   continue_full       = "We're talking with people across the country about their experiences with care — what's working and what families need.  Can you take 5-minutes to share more?",
   battery,
   respondent_id       = "Unique ID"
@@ -982,12 +982,12 @@ count(canvassing, delivery, form_version, response_status, name = "responses") |
   tbl("Responses in each canvassing file", columns = list(delivery = colDef(minWidth = 380)))
 ```
 
-The doorstep challenge list uses short labels of its own. Everything else
+The canvassing challenge checklist uses short labels of its own. Everything else
 reuses the survey answer lists.
 
 ```{r}
 #| label: canvassing-encode
-doorstep_options <- c(
+canvass_challenge_options <- c(
   cost                = "Cost",
   time                = "Time",
   location            = "Location",
@@ -1003,7 +1003,7 @@ doorstep_options <- c(
 )
 
 canv_multiselect <- c(
-  list(doorstep = doorstep_options),
+  list(canvass_challenges = canvass_challenge_options),
   multiselect_options[c(
     "q1", "q2a", "q3a", "q4a", "q2b", "q3b",
     "q2c", "q3c", "q4c", "q2d", "q3d", "q4d", "q6"
@@ -1052,13 +1052,13 @@ funnel_mismatch <- if_else(
   battery_answered & !agreed
 )
 if (any(funnel_mismatch)) {
-  cli::cli_warn("Battery answered/skipped against the doorstep funnel for
+  cli::cli_warn("Battery answered/skipped against the canvassing funnel for
                  {sum(funnel_mismatch)} respondent{?s}")
 }
 ```
 
-How contacts move through the doorstep funnel. Each row is one combination of
-answered the door, reported a connection to care, agreed to continue, and
+How contacts move through the canvassing funnel. Each row is one combination of
+responded, reported a connection to care, agreed to continue, and
 pathway.
 
 ```{r}
@@ -1078,7 +1078,7 @@ write_csv(canvassing, here("data/processed/canvassing_clean.csv"))
 ## Canvassing, revised form
 
 In August 2026 the coalition changed the canvassing form. The yes/no
-"connection to care" question and the doorstep challenge checklist are gone;
+"connection to care" question and the challenge checklist are gone;
 in their place are two questions: "Do you need care or is there someone in
 your life you help take care of?" and, as free text, "What's been hard about
 that?" The revised form comes in three versions (`c1`, `c2`, `c3`) with
@@ -1105,10 +1105,10 @@ col_map_canv_revised <- c(
   screener          = "1. Do you need care or is there someone in your life you help take care of – a kid, a parent, a grandparent, or anyone else?",
   hard_text         = "2. What’s been hard about that?",
   # Canvass 2.0 (launched 2026-08-25, not yet delivered): question 2 became a
-  # checklist with the original form's doorstep labels, and an optional open
+  # checklist with the original form's challenge labels, and an optional open
   # question 3 was added. Header wording is from the form PDF; the first
   # delivery will confirm it.
-  doorstep          = "2. What's been hard or worries you about that?",
+  canvass_challenges = "2. What's been hard or worries you about that?",
   change_text       = "3. What's one thing you would change about care–whether it's for your kids, aging family members, people with disabilities, yourself, or the people around you? (Optional)",
   continue_full     = col_map_canv[["continue_full"]],
   battery,
@@ -1138,7 +1138,7 @@ word for word for the text analysis and are not summarized here.
 
 ```{r}
 #| label: canvassing-revised-clean
-present <- intersect(names(canv_multiselect), names(canvassing_revised)) # includes doorstep once the 2.0 form arrives
+present <- intersect(names(canv_multiselect), names(canvassing_revised)) # includes the challenge checklist once the 2.0 form arrives
 canvassing_revised <- reduce(
   present,
   \(data, col) encode_multiselect(data, col, canv_multiselect[[col]]),
@@ -1195,7 +1195,7 @@ question_text <- c(
   col_map_canv_revised[c("screener", "hard_text")]
 ) |>
   map_chr(\(x) x[1])
-all_multiselect <- c(multiselect_options, list(doorstep = doorstep_options))
+all_multiselect <- c(multiselect_options, list(canvass_challenges = canvass_challenge_options))
 
 dict_options <- all_multiselect |>
   imap(\(opts, q) tibble(

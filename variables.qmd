@@ -29,7 +29,7 @@ section_title <- c(
   q4c = "q4c — Who helped (past)", q2d = "q2d — Challenges (observer)",
   q3d = "q3d — Supports (observer)", q4d = "q4d — Who helps (observer)",
   q6 = "q6 — Ideal care", gender = "Gender", race = "Race and ethnicity",
-  doorstep = "Doorstep challenges (canvassing)", hh_size = "Household size",
+  canvass_challenges = "Canvassing challenge checklist", hh_size = "Household size",
   hh_income = "Household income", age = "Age", disability = "Disability",
   political = "Political views", pathway = "Pathway (derived)",
   canvass_mode = "Canvassing mode", responded = "Responded (canvassing)",

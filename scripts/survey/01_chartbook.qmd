@@ -91,17 +91,38 @@ rates_by <- function(data, q, group) {
     arrange({{ group }}) |>
     mutate(
       indicator = str_c(q, "_", option),
-      group_value = {{ group }},
+      group_value = as.character({{ group }}),
       group = if_else(
         n < report_plain,
         str_glue("{group_value} (n = {n}; interpret with caution)"),
         str_glue("{group_value} (n = {n})")
-      ),
-      rate = percent(rate, accuracy = 1)
+      ) |> as.character() |> fct_inorder()
     ) |>
-    left_join(option_labels, by = "indicator") |>
-    select(Answer = label, group, rate) |>
-    pivot_wider(names_from = group, values_from = rate)
+    left_join(option_labels, by = join_by(indicator)) |>
+    # the ideal-care answers read "Affordable - without causing ..."; the part
+    # before the dash is enough as a row label in a many-column split
+    mutate(label = if_else(str_detect(label, " - "), str_trim(str_extract(label, "^[^-]+")), label)) |>
+    transmute(Answer = label, group, rate)
+}
+
+rates_by_chart <- function(rates, title) {
+  rates |>
+    mutate(Answer = fct_reorder(str_wrap(Answer, 40), rate, .fun = max)) |>
+    ggplot(aes(rate, Answer, fill = group)) +
+    geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+    scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .05))) +
+    labs(title = title, x = NULL, y = NULL, fill = NULL) +
+    theme(legend.position = "top", legend.direction = "vertical")
+}
+
+# the split as a titled table; chart = TRUE also draws it as grouped bars
+show_rates_by <- function(data, q, group, title, chart = FALSE) {
+  rates <- rates_by(data, q, {{ group }})
+  if (chart) print(rates_by_chart(rates, title))
+  rates |>
+    mutate(rate = percent(rate, accuracy = 1)) |>
+    pivot_wider(names_from = group, values_from = rate) |>
+    tbl(title)
 }
 
 share_table <- function(data, var) {
@@ -327,6 +348,50 @@ state_counts |>
   )
 ```
 
+The same state table summarized two ways: by the care-policy grade band, and
+by Census region.
+
+```{r}
+#| label: states-by-grade
+grade_band <- \(grade) case_when(
+  grade %in% c("F", "D-", "D", "D+") ~ "D or F",
+  grade %in% c("C-", "C", "C+")      ~ "C",
+  grade %in% c("B-", "B", "B+")      ~ "B",
+  TRUE                               ~ "not graded"
+)
+summarise_states <- function(data, by) {
+  data |>
+    summarise(
+      States = n(), Survey = sum(survey),
+      `Share of survey` = sum(share_survey), `Share of US adults` = sum(share_us_adults),
+      Canvassing = sum(canvassing), Interviews = sum(interviews),
+      .by = {{ by }}
+    ) |>
+    mutate(across(starts_with("Share"), \(x) percent(x, accuracy = 1)))
+}
+
+state_counts |>
+  mutate(`Care-policy grade` = factor(grade_band(care_policy_grade), levels = c("D or F", "C", "B", "not graded"))) |>
+  summarise_states(`Care-policy grade`) |>
+  arrange(`Care-policy grade`) |>
+  tbl("Responses by care-policy grade")
+```
+
+```{r}
+#| label: states-by-region
+census_regions <- tibble(
+  state_name = c(state.name, "District of Columbia"),
+  Region = c(as.character(state.region), "South")
+) |>
+  mutate(Region = recode(Region, "North Central" = "Midwest"))
+
+state_counts |>
+  left_join(census_regions, by = join_by(state_name)) |>
+  summarise_states(Region) |>
+  arrange(Region) |>
+  tbl("Responses by Census region")
+```
+
 ### Rural and urban
 
 The same ZIP lookup classifies each ZIP code by how rural it is, using the
@@ -370,8 +435,8 @@ For example, what ideal care looks like:
 
 ```{r}
 #| label: q6-by-rurality
-rates_by(survey_state, "q6", urban_rural) |>
-  tbl()
+#| fig-height: 6
+show_rates_by(survey_state, "q6", urban_rural, "Ideal care, urban and rural respondents", chart = TRUE)
 ```
 
 One check on that definition. RUCA codes 2 and 3 are places within
@@ -383,14 +448,14 @@ like the last, counting 2 and 3 as rural would change the picture.
 
 ```{r}
 #| label: q6-by-ruca3
+#| fig-height: 6.5
 survey_state |>
   mutate(ruca_group = case_when(
     ruca == 1        ~ "RUCA 1 (metro core)",
     ruca %in% 2:3    ~ "RUCA 2-3 (metro commuting)",
     ruca >= 4        ~ "RUCA 4-10 (rural)"
   ) |> factor(levels = c("RUCA 1 (metro core)", "RUCA 2-3 (metro commuting)", "RUCA 4-10 (rural)"))) |>
-  rates_by("q6", ruca_group) |>
-  tbl()
+  show_rates_by("q6", ruca_group, "Ideal care by RUCA group", chart = TRUE)
 ```
 
 ## Who is responding to the survey
@@ -510,10 +575,24 @@ acs_sum <- \(table, idx) sum(acs[sprintf("%s_%03d", table, idx)])
 
 # one comparison table: category, survey share, US share
 compare_table <- function(survey_shares, us_counts, title, note, us_total = sum(us_counts$us, na.rm = TRUE)) {
-  survey_shares |>
+  compared <- survey_shares |>
     full_join(us_counts |> mutate(us = us / us_total), by = join_by(category)) |>
     mutate(category = factor(category, levels = us_counts$category)) |> # keep the questionnaire's order
-    arrange(category) |>
+    arrange(category)
+  chart <- compared |>
+    pivot_longer(c(survey, us), names_to = "source", values_to = "share") |>
+    filter(!is.na(share)) |>
+    mutate(
+      source = recode(source, survey = "Survey", us = "US adults (ACS 2024)"),
+      category = fct_rev(fct_inorder(str_wrap(as.character(category), 30)))
+    ) |>
+    ggplot(aes(share, category, fill = source)) +
+    geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+    scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .05))) +
+    labs(title = title, x = NULL, y = NULL, fill = NULL) +
+    theme(legend.position = "top")
+  print(chart)
+  compared |>
     transmute(
       ` ` = as.character(category),
       Survey = percent(survey, accuracy = 1),
@@ -782,8 +861,10 @@ q6_all |>
 
 ### Ideal care by respondent group
 
-The same question, split by age and by disability status. Each column is one
-group; the number in the heading is how many people in that group answered.
+The same question, split by age, disability, household income, and
+household size. Each column is one group; the number in the heading is how
+many people in that group answered. The splits with few groups are also drawn
+as charts; the many-column splits are tables only.
 These splits follow the project's standard for reporting on subgroups: a
 group with fewer than 50 respondents is not shown, a group with 50 to 199 is
 marked "interpret with caution," and a group with 200 or more is reported
@@ -792,14 +873,23 @@ every demographic.
 
 ```{r}
 #| label: q6-by-age
-rates_by(survey, "q6", age) |>
-  tbl()
+show_rates_by(survey, "q6", age, "Ideal care by age")
 ```
 
 ```{r}
 #| label: q6-by-disability
-rates_by(survey, "q6", disability) |>
-  tbl()
+#| fig-height: 6
+show_rates_by(survey, "q6", disability, "Ideal care by disability or chronic health condition", chart = TRUE)
+```
+
+```{r}
+#| label: q6-by-income
+show_rates_by(survey, "q6", hh_income, "Ideal care by household income")
+```
+
+```{r}
+#| label: q6-by-hh-size
+show_rates_by(survey, "q6", hh_size, "Ideal care by household size")
 ```
 
 ### In their own words
@@ -822,10 +912,9 @@ survey |>
 
 ## Canvassing
 
-Canvassing is a doorstep conversation, so it is a funnel: not everyone
-approached answers, not everyone who answers has a connection to care, and
-not everyone with a connection agrees to the full questions. Each stage is a
-different base for any analysis.
+Canvassing is a conversation, so it is a funnel: not everyone approached
+answers, and not everyone who answers has a connection to care. Each stage
+is a different base for any analysis.
 
 ```{r}
 #| label: funnel
@@ -833,14 +922,12 @@ funnel <- tibble(
   stage = c(
     "Approached",
     "Answered and engaged",
-    "Reports a connection to care",
-    "Agreed to full questions"
+    "Reports a connection to care"
   ),
   n = c(
     nrow(canvassing),
     sum(canvassing$responded == "Yes - continue with questions", na.rm = TRUE),
-    sum(canvassing$care_connection == "Yes", na.rm = TRUE),
-    sum(!is.na(canvassing$pathway))
+    sum(canvassing$care_connection == "Yes", na.rm = TRUE)
   )
 ) |>
   mutate(stage = fct_rev(fct_inorder(stage)))
@@ -849,26 +936,22 @@ ggplot(funnel, aes(n, stage)) +
   geom_col() +
   geom_text(aes(label = n), hjust = -0.5, size = 3) +
   scale_x_continuous(expand = expansion(mult = c(0, .1))) +
-  labs(title = "Canvassing doorstep funnel", x = "Contacts", y = NULL)
+  labs(title = "Canvassing funnel", x = "Contacts", y = NULL)
 ```
 
-At the door, the canvasser records challenges from a short list before the
+During the conversation, the canvasser records challenges from a short list before the
 full questions begin. This covers everyone who engaged, not just those who
 went on to the full questions.
 
 ```{r}
-#| label: doorstep
-doorstep <- selection_rates(canvassing, "doorstep")
+#| label: canvass-challenges
+canvass_challenges <- selection_rates(canvassing, "canvass_challenges")
 plot_rates(
-  doorstep,
-  "Challenges mentioned at the door",
-  str_glue("Canvassing, {unique(doorstep$n_shown)} engaged contacts")
+  canvass_challenges,
+  "Challenges mentioned during canvassing",
+  str_glue("Canvassing, {unique(canvass_challenges$n_shown)} engaged contacts")
 )
 ```
-
-The full question set was answered by too few canvassing contacts to chart
-yet (`r sum(!is.na(canvassing$q1_child_now))` so far). Those answers are in
-the clean file and will be added here as canvassing grows.
 
 ### The revised form (August on)
 
