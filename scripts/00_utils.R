@@ -1,23 +1,98 @@
 # Shared helpers for 1M Care Conversations analysis scripts
 
+# Reduce a column header to the words in it: lower case, straight quotes,
+# plain hyphens, no punctuation, single spaces. Exports vary in spacing,
+# curly apostrophes, and stray punctuation, and none of that can turn one
+# question into another, so matching on this form is safe. A real rewording
+# still needs a listed alias.
+normalize_header <- function(x) {
+  x |>
+    stringr::str_to_lower() |>
+    stringr::str_replace_all(c("’" = "'", "‘" = "'", "“" = "\"", "”" = "\"",
+                               "—" = "-", "–" = "-")) |>
+    stringr::str_replace_all("[^a-z0-9 ]+", " ") |>
+    stringr::str_squish()
+}
+
 # Rename export columns (full question text) to short IDs, validating in both
 # directions so an export with added, dropped, or reworded columns fails
-# loudly. IDs in `optional` may be absent (columns that vary across form
-# versions, e.g. f1 dropped the address fields and added q4c).
+# loudly. Each `col_map` entry is one or more accepted headers for that ID
+# (the form's question wording was revised in Aug 2026, so a question can
+# appear under either wording); headers are compared via normalize_header().
+# IDs in `optional` may be absent (columns that vary across form versions,
+# e.g. f1 dropped the address fields and added q4c). Column order is never
+# used to assign names, but a change in the export's column order is worth
+# knowing about, so it warns.
 rename_validated <- function(data, col_map, optional = character()) {
-  unmatched <- setdiff(names(data), col_map)
-  missing   <- setdiff(col_map[!names(col_map) %in% optional], names(data))
-  if (length(unmatched) > 0 || length(missing) > 0) {
+  aliases <- purrr::imap(as.list(col_map), \(headers, id) {
+    tibble::tibble(id = id, header = normalize_header(headers))
+  }) |>
+    purrr::list_rbind()
+  collided <- aliases |>
+    dplyr::distinct() |>
+    dplyr::filter(duplicated(header) | duplicated(header, fromLast = TRUE))
+  if (nrow(collided) > 0) {
+    cli::cli_abort(c(
+      "col_map lists the same header under more than one ID:",
+      purrr::set_names(paste0(collided$id, ': "', collided$header, '"'), "x")
+    ))
+  }
+
+  present <- tibble::tibble(original = names(data), header = normalize_header(names(data)))
+  matched <- dplyr::inner_join(present, dplyr::distinct(aliases), by = "header")
+
+  unmatched <- present$original[!present$header %in% aliases$header]
+  missing   <- setdiff(setdiff(names(col_map), optional), matched$id)
+  twice     <- unique(matched$id[duplicated(matched$id)])
+  if (length(unmatched) > 0 || length(missing) > 0 || length(twice) > 0) {
     cli::cli_abort(c(
       "Column mismatch between export and col_map.",
       purrr::set_names(paste0('In export, not mapped: "', unmatched, '"'), "x"),
-      purrr::set_names(paste0('Mapped, not in export: "', missing, '"'), "x")
+      purrr::set_names(paste0('Mapped, not in export: "', missing, '"'), "x"),
+      purrr::set_names(paste0('Two headers in the export map to: "', twice, '"'), "x")
     ))
   }
-  dplyr::rename(data, dplyr::all_of(col_map[col_map %in% names(data)]))
+
+  expected <- match(matched$id, names(col_map))
+  if (is.unsorted(expected)) {
+    moved <- matched$id[expected != sort(expected)]
+    cli::cli_warn(
+      "Export columns are in a different order than col_map (names are matched by header, so nothing is misassigned): {.val {moved}}"
+    )
+  }
+  dplyr::rename(data, dplyr::all_of(purrr::set_names(matched$original, matched$id)))
 }
 
-# One-hot encode a pipe-delimited multi-select column into one logical column
+# Split one multi-select cell into its selections. Two export formats exist:
+# pipe-delimited ("a|b", most files) and comma-delimited ("a, b", the
+# Aug 2026 f1 complete export). Commas also appear inside option text, so a
+# comma-delimited cell is parsed by matching known options from the front,
+# longest first; whatever remains unmatched is free text ("Other").
+# Tokens are trimmed so "c | e" and "c|e" encode identically, and empty
+# tokens (a stray trailing pipe) are dropped rather than counted as "other".
+split_selections <- function(x, options) {
+  if (is.na(x)) return(NA_character_)
+  if (stringr::str_detect(x, stringr::fixed("|"))) {
+    tokens <- stringr::str_trim(stringr::str_split_1(x, stringr::fixed("|")))
+    return(tokens[tokens != ""])
+  }
+  known <- unlist(options)
+  known <- known[order(-nchar(known))]
+  out <- character()
+  rest <- stringr::str_trim(x)
+  while (nchar(rest) > 0) {
+    hit <- known[startsWith(rest, known)]
+    if (length(hit) == 0) {
+      out <- c(out, rest)
+      break
+    }
+    out <- c(out, hit[1])
+    rest <- stringr::str_remove(stringr::str_sub(rest, nchar(hit[1]) + 1), "^\\s*,\\s*")
+  }
+  out
+}
+
+# One-hot encode a multi-select column (see split_selections) into one logical column
 # per option (TRUE = selected, FALSE = saw the question but didn't select,
 # NA = never saw it), plus `{col}_other`/`{col}_other_text` capturing anything
 # not in the dictionary. `options` entries may be a single string or a vector
@@ -31,10 +106,7 @@ encode_multiselect <- function(data, col, options) {
     cli::cli_abort("Duplicate wording{?s} across {.field {col}} options: {.val {dup}}")
   }
 
-  # tokens are trimmed so "c | e" and "c|e" encode identically; empty tokens
-  # (a stray trailing pipe) are dropped rather than counted as "other"
-  selections <- stringr::str_split(data[[col]], stringr::fixed("|")) |>
-    purrr::map(stringr::str_trim)
+  selections <- purrr::map(data[[col]], split_selections, options = options)
   extras <- purrr::map(selections, \(s) s[!is.na(s) & s != "" & !s %in% unlist(options)])
 
   repeated <- table(unlist(extras)) |>
@@ -70,25 +142,18 @@ encode_multiselect <- function(data, col, options) {
     dplyr::bind_cols(indicators)
 }
 
-# Assign each respondent their single survey pathway from the encoded q1
-# indicators. Priority current > past > future > observer verified
-# empirically against which questions respondents were actually shown:
-# receiving/needing care routes to current (path A, care recipient);
-# observer-only completes all answered q2d; a past+future respondent was
-# shown only the past questions.
-derive_pathway <- function(data) {
-  dplyr::mutate(
-    data,
-    pathway = dplyr::case_when(
-      q1_child_now | q1_aging_now | q1_disability_now | q1_paid_provider |
-        q1_need_care_now | q1_receives_care ~ "current",
-      q1_cared_past ~ "past",
-      q1_expect_future ~ "future",
-      q1_observer ~ "observer",
-      q1_none ~ "none"
-    ) |>
-      factor(levels = c("current", "past", "future", "observer", "none"))
-  )
+# Convert a single-select column to a factor with the questionnaire's level
+# order, erroring on any value outside that set so reworded options in a new
+# export surface immediately instead of becoming NA.
+to_factor <- function(x, levels) {
+  unknown <- setdiff(unique(x[!is.na(x)]), levels)
+  if (length(unknown) > 0) {
+    cli::cli_abort(c(
+      "{length(unknown)} value{?s} outside the expected levels — add or fix:",
+      purrr::set_names(unknown, rep("x", length(unknown)))
+    ))
+  }
+  factor(x, levels = levels)
 }
 
 # Unique IDs export in scientific notation ("1.470978936E9"); normalize to
@@ -111,9 +176,109 @@ normalize_id <- function(x) {
   out
 }
 
+# Compare each delivery's rows with what the team's DATA LOG says the file
+# covers: submission dates inside the logged collection window (one day of
+# slack for timezone) and respondent IDs inside the logged first-last range.
+# Returns one row per delivery with the check results; warns on any failure.
+# `data` needs `delivery`, `submitted_at` (POSIXct), and `respondent_id`
+# (digit strings); `deliveries` is data/raw/deliveries.csv.
+check_against_log <- function(data, deliveries, label) {
+  checks <- data |>
+    dplyr::mutate(day = as.Date(submitted_at), id = suppressWarnings(as.numeric(respondent_id))) |>
+    dplyr::summarise(
+      rows = dplyr::n(),
+      first_day = min(day, na.rm = TRUE), last_day = max(day, na.rm = TRUE),
+      min_id = min(id, na.rm = TRUE), max_id = max(id, na.rm = TRUE),
+      .by = delivery
+    ) |>
+    dplyr::inner_join(
+      dplyr::select(deliveries, delivery = file, collection_start, collection_end, first_id, last_id),
+      by = "delivery"
+    ) |>
+    dplyr::mutate(
+      dates_ok = is.na(collection_start) |
+        (first_day >= collection_start - 1 & last_day <= collection_end + 1),
+      ids_ok = is.na(first_id) | is.na(last_id) | (min_id >= first_id & max_id <= last_id)
+    )
+  bad <- dplyr::filter(checks, !dates_ok | !ids_ok)
+  if (nrow(bad) > 0) {
+    cli::cli_warn(c(
+      "{label}: {nrow(bad)} deliver{?y/ies} outside what the DATA LOG says {?it covers/they cover}:",
+      purrr::set_names(paste0(
+        bad$delivery, " — rows ", bad$first_day, " to ", bad$last_day,
+        " (log: ", bad$collection_start, " to ", bad$collection_end, "); IDs ",
+        format(bad$min_id, scientific = FALSE), "-", format(bad$max_id, scientific = FALSE),
+        " (log: ", format(bad$first_id, scientific = FALSE), "-", format(bad$last_id, scientific = FALSE), ")"
+      ), "!")
+    ))
+  }
+  checks
+}
+
 # Sheets read as all-text leave Excel datetimes as day-fraction serial numbers
-excel_datetime <- function(x, tz = "UTC") {
-  as.POSIXct(round(as.numeric(x) * 86400), origin = "1899-12-30", tz = tz)
+# (days since 1899-12-30); turn them into date-times
+excel_datetime <- function(serial, tz = "UTC") {
+  lubridate::as_datetime(round(as.numeric(serial) * 86400), origin = lubridate::ymd("1899-12-30"), tz = tz)
+}
+
+# Read a clean file from data/processed/ with its column types restored from
+# the data dictionary: ID and ZIP columns stay text (leading zeros), TRUE/FALSE
+# columns come back logical, and single-answer questions become factors in
+# the dictionary's level order. The dictionary is the one description of the
+# files, so pages never re-state category orders.
+read_clean <- function(name) {
+  dictionary <- readr::read_csv(here::here("data/processed/data-dictionary.csv"), show_col_types = FALSE)
+  path <- here::here("data/processed", paste0(name, "_clean.csv"))
+  # columns that must stay text even when empty or all digits: IDs, ZIPs,
+  # delivery labels, and free text (an all-empty text column would otherwise
+  # be guessed as logical and mistaken for an answer column)
+  header <- names(readr::read_csv(path, n_max = 0, show_col_types = FALSE))
+  text_cols <- header[
+    header %in% c("respondent_id", "zip", "canvasser_zip", "delivery", "form_version", "response_status") |
+      stringr::str_detect(header, "_other_text$|^hard_text$")
+  ]
+  data <- readr::read_csv(
+    path,
+    col_types = do.call(readr::cols, c(list(.default = readr::col_guess()),
+                                       purrr::set_names(rep("c", length(text_cols)), text_cols))),
+    show_col_types = FALSE
+  )
+  # a factor column has dictionary rows under its own name (no option suffix)
+  factor_levels <- dictionary |>
+    dplyr::filter(column %in% names(data), !stringr::str_detect(column, "_other_text$|^hard_text$")) |>
+    dplyr::filter(!purrr::map_lgl(column, \(x) is.logical(data[[x]]))) |>
+    dplyr::summarise(levels = list(option), .by = column)
+  for (i in seq_len(nrow(factor_levels))) {
+    col <- factor_levels$column[i]
+    data[[col]] <- factor(data[[col]], levels = factor_levels$levels[[i]])
+  }
+  data
+}
+
+# One look for every table on the site: sortable, striped, paged past
+# `page_size` rows, optional title above and note below. Long cells wrap by
+# default; pass wrap = FALSE for wide raw tables so they scroll sideways.
+tbl_interactive <- function(data, title = NULL, note = NULL, page_size = 5,
+                            searchable = FALSE, min_width = 90, wrap = TRUE, ...) {
+  table <- reactable::reactable(
+    data,
+    pagination = nrow(data) > page_size, defaultPageSize = page_size,
+    showPageSizeOptions = FALSE, searchable = searchable,
+    striped = TRUE, resizable = TRUE, wrap = wrap,
+    defaultColDef = reactable::colDef(minWidth = min_width),
+    theme = reactable::reactableTheme(
+      cellPadding = "8px 12px",
+      headerStyle = list(background = "#f3f4f6", fontWeight = 600),
+      borderColor = "#e5e7eb"
+    ),
+    style = list(fontSize = "14px"),
+    ...
+  )
+  htmltools::tagList(
+    if (!is.null(title)) htmltools::tags$p(htmltools::tags$strong(title), class = "table-title"),
+    table,
+    if (!is.null(note)) htmltools::tags$p(note, class = "table-note")
+  )
 }
 
 # Pivot the wide one-row-per-respondent indicators into a long view with one

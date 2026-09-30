@@ -5,8 +5,9 @@
 # Inputs:  data/raw/interview-transcripts/*.docx (never committed)
 #          data/processed/interview-coding/coded_segments.csv
 #          IMCC Codebook v3.docx (repo root, untracked; rendered as the Codebook tab)
-# Output:  data/processed/interview-coding/dashboard.html (gitignored — embeds
-#          transcript text; do not commit or share outside the team)
+# Output:  coding-dashboard/index.html — a resource folder of the Quarto
+#          website (_quarto.yml), so `quarto render` publishes it with the
+#          other pages. Embeds transcript text (PII-stripped upstream).
 #
 # Excerpts in the CSV were lightly edited (ellipses, [bracketed] notes), so
 # passages are located by exact match first, then anchor-word fuzzy match.
@@ -20,8 +21,9 @@ csv_path <- commandArgs(trailingOnly = TRUE)[1]
 if (is.na(csv_path)) csv_path <- here("data", "processed", "interview-coding", "coded_segments.csv")
 raw_dir  <- here("data", "raw", "interview-transcripts")
 out_path <- if (basename(csv_path) == "coded_segments.csv")
-  here("data", "processed", "interview-coding", "dashboard.html") else
+  here("coding-dashboard", "index.html") else
   sub("\\.csv$", "_dashboard.html", csv_path)
+dir.create(dirname(out_path), showWarnings = FALSE)
 codebook_path <- here("IMCC Codebook v3.docx")
 
 seg <- read.csv(csv_path, encoding = "UTF-8")

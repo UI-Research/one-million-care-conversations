@@ -1,0 +1,159 @@
+---
+title: "Deliveries"
+subtitle: "What the coalition has sent, month by month, checked against the team's data log"
+execute:
+  warning: true
+  message: false
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+library(here)
+library(readxl)
+
+source(here("scripts/00_utils.R"))
+
+deliveries <- read_csv(here("data/raw/deliveries.csv"), show_col_types = FALSE)
+log_path <- list.files(here("data/raw/Raw data backups"), pattern = "DATA LOG", full.names = TRUE)
+```
+
+Caring Across Generations sends data as a batch of files, roughly once a
+month, and records every file in a log on Box: what it is, when it was
+delivered, what dates it covers, and whether it has been checked for personal
+information. The sync step reads that log, and everything on this page comes
+from it. The register lists every file received; the grid below it is the
+team's own month-by-month view of what has arrived, with an automatic check
+that it matches the files we actually hold.
+
+## Files received
+
+`r nrow(deliveries)` files so far, the most recent delivered
+`r format(max(deliveries$delivered, na.rm = TRUE), "%B %e, %Y")`. Search by
+any word (a form number, "open", "partial", a month).
+
+```{r}
+#| echo: false
+deliveries |>
+  transmute(
+    Delivered = delivered, File = file, Tool = tool, Form = form,
+    Content = content, Status = status, Test = if_else(test, "test", ""),
+    Covers = if_else(is.na(collection_start), "",
+                     str_c(format(collection_start, "%b %e"), " to ", format(collection_end, "%b %e"))),
+    Notes = coalesce(notes, "")
+  ) |>
+  arrange(desc(Delivered)) |>
+  tbl_interactive(page_size = 10, searchable = TRUE, min_width = 110,
+                  columns = list(File = reactable::colDef(minWidth = 320)))
+```
+
+## The team's month-by-month view
+
+The log's Overview sheet, as the team keeps it: one row per kind of file,
+one column per month, with "Received", "None", or "N/A" (not applicable yet)
+in each cell.
+
+```{r}
+#| echo: false
+# the sheet's first column has no header
+overview <- read_excel(log_path, sheet = "Overview", col_types = "text",
+                       .name_repair = "unique_quiet") |>
+  rename(kind = 1) |>
+  filter(!is.na(kind))
+months <- names(overview)[-1]
+
+# section banners are the rows with no month entries
+overview <- overview |>
+  mutate(
+    banner = if_all(all_of(months), is.na),
+    section = if_else(banner, kind, NA_character_)
+  ) |>
+  fill(section)
+
+overview |>
+  filter(!banner) |>
+  select(section, kind, all_of(months)) |>
+  tbl_interactive(page_size = 60, min_width = 95, groupBy = "section",
+                  defaultExpanded = TRUE,
+                  columns = list(section = reactable::colDef(name = "", minWidth = 170),
+                                 kind = reactable::colDef(name = "", minWidth = 300)))
+```
+
+## Does the grid match the files we hold?
+
+Each "Received" cell should correspond to a file in the register whose data
+cover that month, and every file in the register should have its cell marked.
+Rows the check can read are the survey and canvassing rows (a form number,
+closed or open text, complete or partial); interviews and the pre-launch poll
+are counted by tool. Cells listed below are worth a look rather than errors:
+so far they come from a collection window logged as a single day, one logged
+as "Unknown", and a file whose logged dates run into the following month.
+
+```{r}
+#| echo: false
+year <- year(max(deliveries$delivered, na.rm = TRUE))
+
+expected <- overview |>
+  filter(!banner) |>
+  pivot_longer(all_of(months), names_to = "month", values_to = "cell") |>
+  mutate(
+    k = str_to_lower(kind),
+    tool = case_when(
+      str_detect(k, "^[fc]\\d .*survey|^f\\d") ~ "survey",
+      str_detect(k, "^c\\d")                    ~ "canvass",
+      str_detect(k, "interview")                ~ "interview",
+      str_detect(k, "pre-launch")               ~ "poll"
+    ),
+    form    = str_extract(k, "^[fc]\\d"),
+    content = case_when(str_detect(k, "open") ~ "open", str_detect(k, "closed") ~ "closed"),
+    status  = case_when(str_detect(k, "complete") ~ "complete", str_detect(k, "partial") ~ "partial"),
+    month_start = as.Date(str_c(year, "-", match(month, month.name), "-01")),
+    expected = case_when(
+      is.na(cell)                                   ~ 0L,
+      str_detect(str_to_lower(cell), "^n/?a$|^none$") ~ 0L,
+      str_detect(cell, "\\d+")                      ~ as.integer(str_extract(cell, "\\d+")),
+      str_detect(str_to_lower(cell), "received")    ~ 1L,
+      TRUE                                          ~ NA_integer_
+    )
+  ) |>
+  filter(!is.na(tool), !is.na(month_start))
+
+# the grid's months are the months the data cover (the last collection date),
+# not delivery dates; where the log has no collection dates, the delivery
+# month is used. The grid's "C1" canvass row covers the earlier f1-named
+# files of the same form.
+actual <- deliveries |>
+  filter(!test) |>
+  mutate(
+    form = if_else(tool == "canvass", str_replace(form, "^f", "c"), form),
+    month_start = floor_date(coalesce(collection_end, delivered), "month")
+  ) |>
+  count(tool, form, content, status, month_start, name = "actual")
+
+comparison <- expected |>
+  left_join(actual, by = c("tool", "form", "content", "status", "month_start")) |>
+  mutate(actual = replace_na(actual, 0L))
+
+# files in the register that no readable grid row accounts for
+unaccounted <- actual |>
+  anti_join(expected, by = c("tool", "form", "content", "status", "month_start"))
+
+mismatch <- comparison |> filter(expected != actual)
+```
+
+```{r}
+#| echo: false
+if (nrow(mismatch) == 0 && nrow(unaccounted) == 0) {
+  cat("The grid and the files agree for every month checked.")
+} else {
+  bind_rows(
+    mismatch |> transmute(Row = kind, Month = month, `Grid says` = cell, `Files held` = actual),
+    unaccounted |> transmute(Row = str_c(tool, " ", coalesce(form, ""), " ", coalesce(content, ""), " ", coalesce(status, "")),
+                             Month = format(month_start, "%B"), `Grid says` = "(no row or blank)", `Files held` = actual)
+  ) |>
+    tbl_interactive("Cells where the grid and the files differ", page_size = 60, min_width = 110)
+}
+```
+
+Months the grid does not cover yet, and cells the check could not read, are
+left out rather than reported as disagreements.
