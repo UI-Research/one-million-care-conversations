@@ -721,6 +721,60 @@ survey <- survey |>
   )
 ```
 
+### Combine race and ethnicity into one category per person
+
+People could tick more than one race or ethnicity box. For reporting, the
+research team asked for one mutually exclusive category per person, following
+the Census Bureau's convention: anyone who chose Hispanic, Latino, or Latina
+is "Hispanic, Latino, or Latina (any race)" whatever else they ticked; the
+rest are non-Hispanic and get their single race, or "Two or more races" if
+they ticked more than one or chose "Multiracial". The original tick boxes
+stay in the file; this adds a `race_ethnicity` column.
+
+```{r}
+#| label: race-ethnicity
+#| code-fold: false
+race_ethnicity_levels <- c(
+  "Hispanic, Latino, or Latina (any race)", "White", "Black or African American",
+  "Asian or Asian American", "American Indian or Alaska Native",
+  "Native Hawaiian or Pacific Islander", "Middle Eastern or North African",
+  "Two or more races", "Other", "Prefer not to say"
+)
+
+derive_race_ethnicity <- function(data) {
+  single_race <- c(
+    race_white = "White", race_black = "Black or African American",
+    race_asian = "Asian or Asian American", race_aian = "American Indian or Alaska Native",
+    race_nhpi = "Native Hawaiian or Pacific Islander", race_mena = "Middle Eastern or North African"
+  )
+  data |>
+    mutate(
+      races_ticked = rowSums(pick(all_of(names(single_race)))),
+      race_ethnicity = case_when(
+        is.na(race_white)                      ~ NA_character_,
+        race_hispanic                          ~ "Hispanic, Latino, or Latina (any race)",
+        races_ticked > 1 | race_multiracial    ~ "Two or more races",
+        races_ticked == 1                      ~ single_race[max.col(pick(all_of(names(single_race))), ties.method = "first")],
+        race_other                             ~ "Other",
+        race_prefer_not_to_say                 ~ "Prefer not to say"
+      ) |> factor(levels = race_ethnicity_levels)
+    ) |>
+    select(-races_ticked)
+}
+
+survey <- derive_race_ethnicity(survey)
+```
+
+```{r}
+#| label: race-ethnicity-count
+#| echo: false
+survey |>
+  filter(!is.na(race_ethnicity)) |>
+  count(race_ethnicity, name = "respondents") |>
+  mutate(share = scales::percent(respondents / sum(respondents), accuracy = 1)) |>
+  tbl("Race and ethnicity, one category per person", page_size = 12)
+```
+
 ### Work out each person's pathway
 
 The first question decides which set of questions a person sees (the five
@@ -1229,10 +1283,10 @@ dictionary <- bind_rows(
   tibble(column = "hard_text", question = unname(question_text["hard_text"]),
          option = "Free text, kept verbatim (revised canvassing form)")
 ) |>
-  mutate(question = if_else(
-    column == "pathway",
-    "Derived from q1 (priority: current > past > future > observer > none)",
-    question
+  mutate(question = case_when(
+    column == "pathway" ~ "Derived from q1 (priority: current > past > future > observer > none)",
+    column == "race_ethnicity" ~ "Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",
+    TRUE ~ question
   ))
 
 write_csv(dictionary, here("data/processed/data-dictionary.csv"))

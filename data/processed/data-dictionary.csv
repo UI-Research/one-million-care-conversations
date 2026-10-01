@@ -207,6 +207,16 @@ political,How would you describe your political views?,Somewhat conservative
 political,How would you describe your political views?,Very conservative
 political,How would you describe your political views?,Don't know
 political,How would you describe your political views?,Prefer not to say
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races","Hispanic, Latino, or Latina (any race)"
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",White
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Black or African American
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Asian or Asian American
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",American Indian or Alaska Native
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Native Hawaiian or Pacific Islander
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Middle Eastern or North African
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Two or more races
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Other
+race_ethnicity,"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races",Prefer not to say
 pathway,Derived from q1 (priority: current > past > future > observer > none),current
 pathway,Derived from q1 (priority: current > past > future > observer > none),past
 pathway,Derived from q1 (priority: current > past > future > observer > none),future

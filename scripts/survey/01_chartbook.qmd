@@ -23,8 +23,8 @@ set_urbn_defaults(style = "print")
 source(here("scripts/00_utils.R"))
 
 # tables: the shared helper, showing every row (these are summary tables)
-tbl <- function(data, title = NULL, note = NULL, ...) {
-  tbl_interactive(data, title = title, note = note, page_size = 60, ...)
+tbl <- function(data, title = NULL, note = NULL, page_size = 60, ...) {
+  tbl_interactive(data, title = title, note = note, page_size = page_size, ...)
 }
 
 survey             <- read_clean("survey")
@@ -490,11 +490,19 @@ demographics |>
 
 ### Race and ethnicity
 
-People could choose more than one answer, so shares add to more than 100
-percent.
+One category per person: anyone who chose Hispanic, Latino, or Latina is
+counted there whatever else they ticked; everyone else is non-Hispanic and
+gets their single race, or "Two or more races" if they ticked more than one.
+Categories are mutually exclusive.
 
 ```{r}
 #| label: race
+share_table(demographics, race_ethnicity)
+```
+
+```{r}
+#| label: race-boxes
+#| include: false
 demographics |>
   selection_rates("race") |>
   plot_rates("Race and ethnicity", "Share of respondents choosing each; more than one allowed")
@@ -502,13 +510,34 @@ demographics |>
 
 ### Gender
 
+People could choose more than one answer. The first table counts each answer;
+the second shows every combination people actually chose, since the research
+team is deciding how to group them.
+
 ```{r}
 #| label: gender
 demographics |>
   selection_rates("gender") |>
   transmute(gender = label, respondents = n_selected, share = percent(rate, accuracy = 1)) |>
   arrange(desc(respondents)) |>
-  tbl()
+  tbl("Gender, each answer counted")
+```
+
+```{r}
+#| label: gender-combos
+gender_boxes <- demographics |>
+  filter(!is.na(gender_woman)) |>
+  select(starts_with("gender_") & where(is.logical))
+
+gender_boxes |>
+  mutate(combination = pmap_chr(pick(everything()), \(...) {
+    ticked <- c(...)
+    str_flatten(str_remove(names(ticked)[ticked], "gender_"), " + ")
+  })) |>
+  count(combination, name = "respondents", sort = TRUE) |>
+  mutate(share = percent(respondents / sum(respondents), accuracy = 0.1)) |>
+  tbl("Gender, combinations chosen", page_size = 15,
+      note = str_glue("{sum(rowSums(gender_boxes) > 1)} of {nrow(gender_boxes)} respondents chose more than one answer."))
 ```
 
 ### Household income
@@ -653,35 +682,22 @@ compare_table(
 
 ```{r}
 #| label: acs-race
-race_shares <- demographics |>
-  filter(!is.na(race_white), !race_prefer_not_to_say) |>
-  summarise(
-    "Hispanic, Latino, or Latina"       = mean(race_hispanic),
-    "White"                             = mean(race_white),
-    "Black or African American"         = mean(race_black),
-    "Asian or Asian American"           = mean(race_asian),
-    "American Indian or Alaska Native"  = mean(race_aian),
-    "Native Hawaiian or Pacific Islander" = mean(race_nhpi),
-    "Multiracial"                       = mean(race_multiracial),
-    "Middle Eastern or North African"   = mean(race_mena)
-  ) |>
-  pivot_longer(everything(), names_to = "category", values_to = "survey")
-
 compare_table(
-  race_shares,
+  survey_shares(demographics, race_ethnicity, \(x) if_else(x == "Other", NA_character_, x)) |>
+    filter(!is.na(category)),
   tribble(
-    ~category,                            ~us,
-    "Hispanic, Latino, or Latina",        acs["B03002_012"],
-    "White",                              acs["B03002_003"],
-    "Black or African American",          acs["B03002_004"],
-    "Asian or Asian American",            acs["B03002_006"],
-    "American Indian or Alaska Native",   acs["B03002_005"],
-    "Native Hawaiian or Pacific Islander", acs["B03002_007"],
-    "Multiracial",                        acs["B03002_009"],
-    "Middle Eastern or North African",    NA
+    ~category,                                ~us,
+    "Hispanic, Latino, or Latina (any race)", acs["B03002_012"],
+    "White",                                  acs["B03002_003"],
+    "Black or African American",              acs["B03002_004"],
+    "Asian or Asian American",                acs["B03002_006"],
+    "American Indian or Alaska Native",       acs["B03002_005"],
+    "Native Hawaiian or Pacific Islander",    acs["B03002_007"],
+    "Middle Eastern or North African",        NA,
+    "Two or more races",                      acs["B03002_009"]
   ),
   "Race and ethnicity",
-  "Survey: share choosing each (more than one allowed, so shares exceed 100%). US figure: Hispanic of any race, then non-Hispanic single races and two-or-more races, as a share of the total population; the Census does not yet report Middle Eastern or North African separately. Non-Hispanic 'some other race' (about 1%) is not shown.",
+  "One mutually exclusive category per person in both columns; races other than Hispanic are non-Hispanic. The Census does not yet report Middle Eastern or North African separately, and its non-Hispanic 'some other race' (about 1%) is not shown. Survey 'Other' write-ins are left out.",
   us_total = acs["B03002_001"]
 )
 ```
@@ -861,8 +877,8 @@ q6_all |>
 
 ### Ideal care by respondent group
 
-The same question, split by age, disability, household income, and
-household size. Each column is one group; the number in the heading is how
+The same question, split by age, disability, household income, household
+size, and race and ethnicity. Each column is one group; the number in the heading is how
 many people in that group answered. The splits with few groups are also drawn
 as charts; the many-column splits are tables only.
 These splits follow the project's standard for reporting on subgroups: a
@@ -890,6 +906,11 @@ show_rates_by(survey, "q6", hh_income, "Ideal care by household income")
 ```{r}
 #| label: q6-by-hh-size
 show_rates_by(survey, "q6", hh_size, "Ideal care by household size")
+```
+
+```{r}
+#| label: q6-by-race
+show_rates_by(survey, "q6", race_ethnicity, "Ideal care by race and ethnicity")
 ```
 
 ### In their own words
