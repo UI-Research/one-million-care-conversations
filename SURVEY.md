@@ -162,6 +162,26 @@ Routing facts established empirically (not stated in any document):
   number?) determines whether they can be told apart — ask CAG. No delivery
   on this form yet as of 2026-09-28 (c1–c3 all have Q2 as free text).
   `col_map_canv_revised` already carries the two new headers (from the PDF).
+- **October 2026 deliveries (received 2026-10-05)**: f1 Aug 7–31 partial,
+  f1 Aug 13–31 complete, f4 Aug partial (+ open-text twins), and a
+  re-export of f4 Aug complete (same 62 people and answers; only number
+  formatting changed — plain-digit IDs, "33549" not "33549.0"; accepted with
+  `BOX_ACCEPT_MODIFIED`). New facts:
+  - **The f1 Aug 13–31 complete file contains the f4 and f6 respondents too**
+    (61 of 62 f4 completes and the f6 one, same IDs). It came through the
+    second export route (Date submitted, commas). The cleaning keeps each
+    person once, from the form-specific file. Ask CAG whether "f1" exports
+    now cover all forms.
+  - **New column `Campaign Source`** in the f1 Aug partial export (e.g.
+    "TheArc"): the partner or channel that led the person to the survey.
+    Mapped as `campaign_source`, optional.
+  - **The f1 Aug partial export has no `Zipcode (Zip)` column**; it carries an
+    empty `Zipcode (Address)` instead. ZIP is now optional in the column map;
+    those partials have no ZIP. Ask CAG.
+  - **q3c header, third wording**: "What help would have made a difference…"
+    (grammar fix). Aliased.
+  - DATA LOG quirk: a file name typed with a leading "- " bullet; the ingest
+    strips it.
 - **Delivery file-name drift seen so far** (all handled by the file-selection
   patterns in `01_clean-data.qmd` and the name normalization in
   `00_ingest-raw.R`): trailing underscore padding (`_____`), a space before

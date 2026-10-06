@@ -25,3 +25,6 @@ scripts/**/*_files/
 .DS_Store
 # Box API token cache, in case one ever lands in the working tree
 .boxr-oauth*
+
+# One-off PDF exports of site pages (for sharing single pages)
+exports/

@@ -136,7 +136,9 @@ log_col <- function(pattern) {
 # case ("F1"); some delivered filenames carry trailing underscore padding or a
 # space before the extension that the log omits. One log cell may list several
 # files on separate lines (the interview transcripts), so split those first.
-normalize <- \(x) str_to_lower(str_remove(str_trim(x), "_+$"))
+# (also strips a leading "- " bullet that appears when a file is typed into
+# a cell as a list item)
+normalize <- \(x) x |> str_trim() |> str_remove("^[-•*]\\s*") |> str_remove("_+$") |> str_to_lower()
 
 # free-text collection windows: "6/4-7/10", "6/8 to 6/9", "8/1-8/1", a bare
 # Excel serial for a single day, or text like "Unknown" (-> NA). The year is

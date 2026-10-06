@@ -234,7 +234,7 @@ read_clean <- function(name) {
   # be guessed as logical and mistaken for an answer column)
   header <- names(readr::read_csv(path, n_max = 0, show_col_types = FALSE))
   text_cols <- header[
-    header %in% c("respondent_id", "zip", "canvasser_zip", "delivery", "form_version", "response_status") |
+    header %in% c("respondent_id", "zip", "canvasser_zip", "delivery", "form_version", "response_status", "campaign_source") |
       stringr::str_detect(header, "_other_text$|^hard_text$")
   ]
   data <- readr::read_csv(

@@ -266,7 +266,8 @@ col_map <- list(
   q2c           = c("When you provided or received care what challenges, if any, did you experience? (Choose all that apply)",
                     "What was hard? (Choose all that apply)"),
   q3c           = c("What care support would have made a difference for you or people around you? (Choose all that apply)",
-                    "What help would have made difference for you or people around you? (Choose all that apply)"),
+                    "What help would have made difference for you or people around you? (Choose all that apply)",
+                    "What help would have made a difference for you or people around you? (Choose all that apply)"),
   q4c           = "What or who helped you most with care? (Choose your top 3)",
   q2d           = c("What care challenges, if any, do the people you know experience? (Choose all that apply.)",
                     "What’s been hard for the people you know? (Choose all that apply.)"),
@@ -286,10 +287,17 @@ col_map <- list(
   race          = "What is your race or ethnicity? (Choose all that apply)",
   disability    = "I identify as a person with a disability or chronic health condition.",
   political     = "How would you describe your political views?",
+  # from the Aug 7-31 f1 partial export on: the partner or channel that led
+  # the person to the survey (e.g. "TheArc")
+  campaign_source = "Campaign Source",
   respondent_id = "Unique ID"
 )
 
-form_varying <- c("address", "address2", "city", "state", "q4c")
+# columns that come and go across deliveries: the address fields (test
+# delivery and one Aug 2026 partial export, always empty), q4c (absent from
+# the test delivery), ZIP (missing from the Aug 7-31 f1 partial export, which
+# carries an empty Address column instead), and Campaign Source (new)
+form_varying <- c("address", "address2", "city", "state", "q4c", "zip", "campaign_source")
 
 # exports from Aug 2026 on label the timestamp column "Date submitted"
 # instead of "Time"; same Excel serial values underneath
@@ -899,6 +907,10 @@ Two small fixes:
 - **ZIP codes** pick up a stray `.0` from the export and lose their leading
   zeros, so both are repaired. Any ZIP that still is not five digits is
   flagged.
+- **People delivered twice.** The complete-response export for August 13–31
+  labelled `f1` also contains the respondents delivered in the `f4` and `f6`
+  files for the same period. Each of those people is kept once, from the
+  file that names their actual form.
 
 ```{r}
 #| label: other-cols
@@ -909,10 +921,20 @@ survey <- survey |>
   ) |>
   relocate(respondent_id, submitted_at, form_version, response_status, delivery)
 
-# after normalization so ID collisions across export formats would surface
-dupes <- survey$respondent_id[duplicated(survey$respondent_id)]
-if (length(dupes) > 0) {
-  cli::cli_abort("Duplicated respondent ID{?s}: {.val {unique(dupes)}}")
+# The Aug 13-31 "f1 complete" export also contains the f4 and f6 respondents
+# for the same window, so one person can arrive in two files. Keep the copy
+# from the form-specific file (it carries the right form_version) and drop the
+# f1 copy; anything still duplicated after that is a real problem.
+duplicated_ids <- survey$respondent_id[duplicated(survey$respondent_id)]
+survey <- survey |>
+  arrange(respondent_id, form_version == "f1") |> # non-f1 copy first
+  distinct(respondent_id, .keep_all = TRUE)
+if (length(duplicated_ids) > 0) {
+  cli::cli_warn("{length(unique(duplicated_ids))} respondent{?s} appeared in two deliveries; kept the form-specific copy")
+}
+still_duplicated <- survey$respondent_id[duplicated(survey$respondent_id)]
+if (length(still_duplicated) > 0) {
+  cli::cli_abort("Duplicated respondent ID{?s} within a single delivery: {.val {unique(still_duplicated)}}")
 }
 
 bad_zip <- survey |> filter(!is.na(zip), !str_detect(zip, "^\\d{5}$"))
