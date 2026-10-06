@@ -56,6 +56,19 @@ survey_open <- map(survey_files, \(f) {
   left_join(survey, by = join_by(respondent_id)) |>
   mutate(tool = "survey")
 
+# The f1 Aug 13-31 export also holds f4/f6 respondents (the same overlap the cleaning
+# step dedupes), so an answer can arrive twice. Keep the copy from the delivery that
+# matches the respondent's form; the other export sometimes carries a differently
+# edited text.
+n_before <- nrow(survey_open)
+survey_open <- survey_open |>
+  mutate(delivery_matches_form = str_detect(delivery, fixed(str_c("_", form_version, "_")))) |>
+  arrange(respondent_id, question, desc(delivery_matches_form)) |>
+  distinct(respondent_id, question, .keep_all = TRUE) |>
+  select(-delivery_matches_form)
+if (nrow(survey_open) < n_before)
+  cli::cli_warn("{n_before - nrow(survey_open)} survey answer{?s} appeared in two deliveries; kept the form-specific copy")
+
 # a q5 answer should sit in the column for the respondent's pathway
 expected_q5 <- c(current = "q5a", past = "q5c", observer = "q5d")
 q5_mismatch <- survey_open |>
@@ -94,7 +107,8 @@ poll <- deliveries |> filter(tool == "poll") |> pull(file) |>
     x <- read_text_export(f)
     col <- which(str_detect(names(x), "If money was not an issue"))
     stopifnot(length(col) == 1)
-    tibble(delivery = f, respondent_id = NA_character_, question = "poll_change_one_thing", text = x[[col]],
+    # the poll export has no respondent ID; the row within the export is the stable key
+    tibble(delivery = f, respondent_id = str_c("row", seq_len(nrow(x))), question = "poll_change_one_thing", text = x[[col]],
            tool = "pre-launch poll", form_version = NA_character_, response_status = NA_character_)
   }) |>
   list_rbind() |>
@@ -116,7 +130,7 @@ open_ended <- bind_rows(survey_open, canvass_open, canvass_hard, poll) |>
   mutate(
     question_text = question_text[question],
     pathway = as.character(pathway),
-    answer_id = str_c(tool, "_", question, "_", coalesce(respondent_id, str_c("row", row_number())))
+    answer_id = str_c(tool, "_", question, "_", respondent_id)
   ) |>
   select(answer_id, tool, question, question_text, text, respondent_id, pathway, form_version, response_status, delivery) |>
   arrange(tool, question, respondent_id)
