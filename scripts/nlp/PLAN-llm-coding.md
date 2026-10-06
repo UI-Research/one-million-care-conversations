@@ -291,20 +291,35 @@ dedupe now in `01_open-ended.R`). Cost figures are in `COST-REPORT.md`.
 
 | | Sonnet 5 | Opus 5.5 |
 |---|---:|---:|
-| Transcript assignments (segments with a code) | 351 (200 of 263) | pending |
-| Answer assignments (answers with a code) | 5,191 (1,918 of 1,998) | pending |
-| Codes per coded answer | 2.7 | pending |
-| Excerpt verbatim in passage (transcripts / answers) | 98% / 91% | pending |
-| Codes outside the codebook | 3 rows (`SUPPORT_FORMAL_SUPPORT`) | pending |
-| `_POTENTIAL_QUOTE` (transcripts / answers) | 24 / 155 | pending |
-| `_OTHER` with a proposed code (transcripts / answers) | 3 / 61 | pending |
-| Cost at list prices | $12.04 | ~$11 for 263 segments + 780 answers so far |
+| Transcript assignments (segments with a code) | 351 (200 of 263) | 473 (192 of 263) |
+| Answer assignments (answers with a code) | 5,174 (1,918 of 1,998) | 7,394 (1,916 of 1,998) |
+| Codes per coded answer | 2.7 | 3.9 |
+| Excerpt verbatim in passage (transcripts / answers) | 98% / 91% | 99% / 99% |
+| Codes outside the codebook | 3 rows (`SUPPORT_FORMAL_SUPPORT`) | 0 |
+| `_POTENTIAL_QUOTE` (transcripts / answers) | 24 / 155 | 30 / 377 |
+| `_OTHER` with a proposed code (transcripts / answers) | 3 / 61 | 7 / 100 |
+| `CARE_RELATIONSHIP` (transcripts / answers) | 20 / 312 | 27 / 571 |
+| Cost at list prices / wall-clock, 4 workers | $12.04 / 35 min | $24.55 / 113 min |
 
-Opus 5.5 was still running when this was written (about one 20-answer call every two
-minutes on the `global.` profile, with retries; the transcript phase took 12 minutes).
-Finish it with `python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5 --resume`
-if it was interrupted, then rerun `03_cost-report.py`, `04_compare-runs.py` and the
-dashboard.
+**Agreement between the two models** (`04_compare-runs.py`): transcripts, mean per-segment
+Jaccard 0.46, identical code sets on 26% of segments, Opus recovers 68% of Sonnet's
+assignments and 51% of Opus's assignments are also Sonnet's; answers, Jaccard 0.56,
+identical sets on 25%, recall 77%, precision 54%. The gap is mostly Opus adding codes
+rather than disagreeing: `SUPPORT_IMPACTS` (409 vs 100 on answers), `CARE_RELATIONSHIP`
+(571 vs 312), `CAREGIVER_FAMILY` (330 vs 155), and quotes (Opus uses the domain-specific
+quote codes, Sonnet mostly `CARE_POTENTIAL_QUOTE`). Where they pick different codes for
+the same passage, Opus's choice is often the finer one (`CHALLENGE_MISMATCH` where Sonnet
+used `CHALLENGE_QUALITY_CONCERNS`; `CARE_MULTIPLE_SETTINGS` for home-then-nursing-home).
+Spot check of Opus on the first 26 segments of the notes-style group transcript, against
+the full Sonnet review: excerpts exact, same strengths on loss-of-control and former
+caregiving, but the once-per-participant rule is followed less (role and condition codes
+repeat across turns) and `SUPPORT_IMPACTS` is attached to almost any statement that
+something helped. Neither run has been scored against human coding; that comparison,
+not this one, decides which model to use.
+
+Opus 5.5 ran at about one 20-answer call every two minutes on the `global.` profile
+(six server 500 errors after retries, one reply without a tool call; the 140 answers in
+those batches were recovered by the retry pass). Its transcript phase took 12 minutes.
 
 **Hand review of the Sonnet 5 run** (all 351 transcript assignments read; a structured
 sample of 144 answers covering every 25th answer plus all-sampled `_OTHER`, low

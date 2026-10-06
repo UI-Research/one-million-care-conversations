@@ -193,6 +193,7 @@ def main():
               "until the account's Bedrock data-retention setting is changed, and the Mantle endpoint returns 404 for it. "
               "Opus 5.5 is reachable only through the legacy InvokeModel path with the `global.` inference profile; the Mantle "
               "endpoint returns 403 (`aws-marketplace:Subscribe` not authorized for this IAM user).",
+              "- The Opus 5.5 run folder also holds `raw_resume_aborted/`: 17 responses from a `--resume` started after the input file had changed, which re-coded moved batches before it was stopped (about $3, not in the figures above). The coder now refuses to resume when the inputs differ.",
               "- Rows per run and the hand review of coding quality are in `scripts/nlp/PLAN-llm-coding.md` under Findings.",
               ""]
     OUT.write_text("\n".join(lines))

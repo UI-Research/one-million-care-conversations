@@ -7,7 +7,7 @@ Usage
   python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5                # full run
   python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5         # legacy endpoint
   python scripts/nlp/02_code-text.py --model anthropic.claude-fable-5-1 --tasks open_ended
-  python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume            # finish an interrupted run
+  python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume            # finish an interrupted run (same inputs only)
 
 Model IDs without a region prefix (`anthropic.claude-sonnet-5`) go to the Claude in
 Amazon Bedrock endpoint (`AnthropicBedrockMantle`). IDs with a `global.` or `us.`
@@ -243,9 +243,16 @@ class Coder:
             sys.exit(f"{self.out} already has responses; pass --resume to reuse them or delete the folder")
         (self.out / "raw").mkdir(parents=True, exist_ok=True)
         self.prev_latency = {}
+        self.input_sha1 = {"open_ended.csv": sha1(OPEN_ENDED.read_text()) if OPEN_ENDED.exists() else None,
+                           "transcripts": sha1("".join(sorted(f.name for f in TRANSCRIPTS.glob("*.docx"))))}
         if args.resume and (self.out / "usage.csv").exists():      # keep the latencies the original calls recorded
             prev = pd.read_csv(self.out / "usage.csv")
             self.prev_latency = dict(zip(prev.call_id, prev.latency_s))
+        if args.resume and (self.out / "manifest.json").exists():
+            prev_m = json.loads((self.out / "manifest.json").read_text())
+            if prev_m.get("input_sha1") and prev_m["input_sha1"] != self.input_sha1:
+                sys.exit("the input files changed since this run was made; a resume would re-code the units whose "
+                         "batches moved (new API calls). Start a new run instead, or restore the original inputs.")
 
     def system(self, task: str) -> list[dict]:
         task_md = (PROMPTS / f"task_{task}.md").read_text()
@@ -468,6 +475,7 @@ class Coder:
             "prompt_sha1": {"coding_prompt.md": sha1(self.rules),
                             **{p.name: sha1(p.read_text()) for p in sorted(PROMPTS.glob("*.md")) if p.name != "README.md"},
                             "codebook_table": sha1(self.codebook_md)},
+            "input_sha1": self.input_sha1,
             "codebook_version": self.cb["version"].iloc[0] if "version" in self.cb else None,
             "codebook_rows": int(len(self.cb)),
             "n_coded_rows": {task: int(len(df)) for task, df in coded.items()},

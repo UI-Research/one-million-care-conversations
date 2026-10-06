@@ -61,7 +61,7 @@ export AWS_REGION=us-east-1                                  # credentials via t
 python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --limit 5          # smoke test, cents
 python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5                    # full run
 python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5             # Opus 5.5 (legacy endpoint)
-python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume           # finish an interrupted run
+python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume           # finish an interrupted run; refuses if the inputs changed
 python scripts/nlp/03_cost-report.py                          # rebuild COST-REPORT.md
 python scripts/nlp/04_compare-runs.py <run_a> <run_b>          # agreement tables + review files (gitignored)
 Rscript scripts/nlp/coding_dashboard.R                        # dashboard

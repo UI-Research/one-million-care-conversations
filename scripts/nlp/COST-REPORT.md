@@ -12,22 +12,22 @@ Generated 2026-10-06 by `scripts/nlp/03_cost-report.py` from the usage logs of `
 
 | Run | Model | Endpoint | Effort | Calls | Uncached input | Cache writes | Cache reads | Output (of which thinking) | Cost | Wall-clock (4 workers) |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| `20261006_claude-opus-5-5_medium` (in progress) | claude-opus-5-5 | see manifest when finished | medium | 303 | 107.7K | 77.9K | 8.05M | 456.6K (159.2K) | $11.56 | 45 min |
+| `20261006_claude-opus-5-5_medium` | global.anthropic.claude-opus-5-5 | bedrock-invokemodel | medium | 391 | 253.0K | 77.9K | 9.74M | 1.06M (374.5K) | $24.55 | 113 min |
 | `20261006_claude-sonnet-5_medium` | anthropic.claude-sonnet-5 | bedrock-mantle | medium | 372 | 247.4K | 47.0K | 9.43M | 954.2K (428.9K) | $12.04 | 35 min |
 
 ## Per-unit cost by task
 
 | Run | Task | Units | Calls | Cost | Cost per unit | Output tokens per unit (thinking) | Cached tokens read per call | Wall-clock (4 workers) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| `20261006_claude-opus-5-5_medium (in progress)` | transcript | 263 | 263 | $4.39 | $0.0167 per segment | 477 (188) | 27.7K | 12 min |
-| `20261006_claude-opus-5-5_medium (in progress)` | open_ended | 800 | 40 | $7.17 | $0.0090 per answer | 414 (137) | 18.7K | 32 min |
+| `20261006_claude-opus-5-5_medium` | transcript | 263 | 263 | $4.39 | $0.0167 per segment | 477 (188) | 27.7K | 12 min |
+| `20261006_claude-opus-5-5_medium` | open_ended | 1998 | 128 | $20.16 | $0.0101 per answer | 468 (163) | 19.1K | 100 min |
 | `20261006_claude-sonnet-5_medium` | transcript | 263 | 263 | $2.73 | $0.0104 per segment | 427 (222) | 27.9K | 6 min |
 | `20261006_claude-sonnet-5_medium` | open_ended | 1998 | 109 | $9.31 | $0.0047 per answer | 421 (185) | 19.1K | 29 min |
 
 ## Where the money goes
 
-- `20261006_claude-opus-5-5_medium (in progress)`, transcript: uncached input 3%, cache writes 7%, cache reads 33%, output incl. thinking 57%.
-- `20261006_claude-opus-5-5_medium (in progress)`, open_ended: uncached input 4%, cache writes 1%, cache reads 2%, output incl. thinking 92%.
+- `20261006_claude-opus-5-5_medium`, transcript: uncached input 3%, cache writes 7%, cache reads 33%, output incl. thinking 57%.
+- `20261006_claude-opus-5-5_medium`, open_ended: uncached input 4%, cache writes 0%, cache reads 2%, output incl. thinking 93%.
 - `20261006_claude-sonnet-5_medium`, transcript: uncached input 2%, cache writes 3%, cache reads 54%, output incl. thinking 41%.
 - `20261006_claude-sonnet-5_medium`, open_ended: uncached input 5%, cache writes 1%, cache reads 4%, output incl. thinking 90%.
 
@@ -37,10 +37,10 @@ Open-ended answers are the unit that scales. The per-answer figures below reuse 
 
 | Model (effort) | Measured cost per answer | Per 1,000 answers | Per 100,000 | Per 1,000,000 |
 |---|---:|---:|---:|---:|
-| claude-opus-5-5 (medium) | $0.0090 | $9 | $896 | $8,957 |
+| global.anthropic.claude-opus-5-5 (medium) | $0.0101 | $10 | $1,009 | $10,089 |
 | anthropic.claude-sonnet-5 (medium) | $0.0047 | $5 | $466 | $4,661 |
-| claude-opus-5 (not run; token shape of claude-opus-5-5 at claude-opus-5 prices) | $0.0114 | $11 | $1,143 | $11,431 |
-| claude-fable-5-1 (not run; token shape of claude-opus-5-5 at claude-fable-5-1 prices) | $0.0222 | $22 | $2,216 | $22,159 |
+| claude-opus-5 (not run; token shape of global.anthropic.claude-opus-5-5 at claude-opus-5 prices) | $0.0129 | $13 | $1,292 | $12,916 |
+| claude-fable-5-1 (not run; token shape of global.anthropic.claude-opus-5-5 at claude-fable-5-1 prices) | $0.0249 | $25 | $2,492 | $24,916 |
 
 ## Notes
 
@@ -50,4 +50,5 @@ Open-ended answers are the unit that scales. The per-answer figures below reuse 
 - Cache reads cost 0.1x input on Sonnet 5, 0.05x on Opus 5.5, 0.025x on Fable 5.1; cache writes cost 1.25x. The codebook (about 19K tokens) is written once per task per run and read on every call.
 - Wall-clock is the span between the first and last saved response with 4 concurrent requests; the transcript and answer tasks ran one after the other.
 - Fable 5.1 could not be run: Bedrock returns `data retention mode 'default' is not available for this model` until the account's Bedrock data-retention setting is changed, and the Mantle endpoint returns 404 for it. Opus 5.5 is reachable only through the legacy InvokeModel path with the `global.` inference profile; the Mantle endpoint returns 403 (`aws-marketplace:Subscribe` not authorized for this IAM user).
+- The Opus 5.5 run folder also holds `raw_resume_aborted/`: 17 responses from a `--resume` started after the input file had changed, which re-coded moved batches before it was stopped (about $3, not in the figures above). The coder now refuses to resume when the inputs differ.
 - Rows per run and the hand review of coding quality are in `scripts/nlp/PLAN-llm-coding.md` under Findings.
