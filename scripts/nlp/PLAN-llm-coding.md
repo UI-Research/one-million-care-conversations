@@ -24,7 +24,8 @@ Sonnet 5 / Opus 5.5 benchmark runs on 2026-10-06). See "What exists now" and Fin
   files (all gitignored, they quote passages).
 - `scripts/nlp/coding_dashboard.R`: now reads a run folder; adds the open-ended answers tab
   (code counts by tool, answers with highlighted excerpts); writes into the run folder and
-  only copies to the published `coding-dashboard/` on request.
+  only copies to the published `coding-dashboard/` on request (the answers come from
+  PII-skimmed deliveries like the transcripts; publishing a run is a deliberate step).
 - Prompts: rules in `scripts/nlp/coding_prompt.md` (shared), task framing and user
   templates in `scripts/nlp/prompts/` (see its README).
 - `scripts/nlp/ellmer_coding_example.R` is superseded: ellmer 0.4.0 cannot read the

@@ -10,10 +10,10 @@
 #          data/processed/codebook.csv              the codebook the run used (00_ingest-codebook.R)
 #          data/raw/interview-transcripts/*.docx    transcript text (pandoc)
 # Output:  data/processed/llm-coding/<run_id>/dashboard.html (gitignored). The page
-#          embeds transcript text and respondents' written answers, so it is NOT
-#          copied into coding-dashboard/ (the committed, published site resource)
-#          unless the second argument is `site`; the free text in the answers has
-#          not been reviewed for publication.
+#          embeds transcript text and respondents' written answers (both from
+#          PII-skimmed deliveries); it is copied into coding-dashboard/ (the
+#          committed, published site resource) only when the second argument is
+#          `site`, so publishing a run stays a deliberate step.
 #
 # Usage:   Rscript scripts/nlp/coding_dashboard.R                  # newest full run
 #          Rscript scripts/nlp/coding_dashboard.R 20261006_claude-sonnet-5_medium
