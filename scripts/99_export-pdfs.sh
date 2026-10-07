@@ -5,7 +5,7 @@
 # Usage: scripts/99_export-pdfs.sh                      # after `quarto render` at the root
 #        scripts/99_export-pdfs.sh path/to/dashboard.html  # print the tabs of that coding
 #                                                        # dashboard instead (e.g. a run's)
-#        DASHBOARD_TRANSCRIPT=idv-lf scripts/99_export-pdfs.sh   # choose the example transcript
+#        DASHBOARD_TRANSCRIPT=idv-lf DASHBOARD_QUESTION=q7 scripts/99_export-pdfs.sh  # choose the examples
 # Output: exports/pdf/<page>.pdf (gitignored)
 #
 # Uses headless Chrome against a local web server so the interactive tables
@@ -15,9 +15,11 @@
 #
 # The coding dashboard is one page with tabs, so besides the page as it opens
 # (the overview, 1mcc-coding-dashboard.pdf) the tabs worth sharing go into one
-# more PDF, 1mcc-coding-tabs.pdf: the Codebook tab followed by one transcript
-# as an example of the coded view (the first transcript in the dropdown, or
-# the one named by DASHBOARD_TRANSCRIPT=<part of its file name>). A print
+# more PDF, 1mcc-coding-tabs.pdf: the Codebook tab, one transcript as an
+# example of the coded view (the first in the dropdown, or the one named by
+# DASHBOARD_TRANSCRIPT=<part of its file name>), and, when the dashboard has
+# it, the open-ended answers tab with its code counts and one example
+# question's answers (DASHBOARD_QUESTION, default canvass_q3). A print
 # stylesheet is added to a temporary copy of the page so the chosen tab is the
 # only one shown, the two scrolling columns of a transcript tab expand to full
 # length, and the transcript comes first with its code table after it.
@@ -53,7 +55,8 @@ src, dst = sys.argv[1], sys.argv[2]
 html = open(src, encoding="utf-8").read()
 extra = """
 <style>@media print {
-  .tabs, #txsel, #cbsearch, #qsel, .legend { display:none !important; }
+  .tabs, #txsel, #cbsearch, .legend { display:none !important; }
+  #qsel { border:none; background:none; font-weight:700; color:var(--navy); }
   .panel:not(.print), #sec-unused:not(.print), .plist { display:none !important; }
   .panel.print { display:block !important; }
   .grid { display:block !important; }
@@ -63,30 +66,34 @@ extra = """
   body { background:#fff; }
 }</style>
 <script>(function () {
-  var id = location.hash.slice(1); if (!id) return;
+  var parts = location.hash.slice(1).split("|"), id = parts[0], q = parts[1]; if (!id) return;
   document.querySelectorAll(".panel").forEach(function (p) {
     p.classList.toggle("print", p.id === id); p.classList.toggle("active", p.id === id);
   });
   var u = document.getElementById("sec-unused"); if (u) u.classList.toggle("print", id === "sec-codebook");
+  var qsel = document.getElementById("qsel");
+  if (id === "sec-open" && qsel && q) { qsel.value = q; qsel.dispatchEvent(new Event("change")); }
 })();</script>
 </body>"""
 open(dst, "w", encoding="utf-8").write(html.replace("</body>", extra, 1))
 PY
   # the Codebook tab plus one example transcript, merged into one PDF
-  ids=$(python3 - "$1" "${DASHBOARD_TRANSCRIPT:-}" <<'PY'
+  ids=$(python3 - "$1" "${DASHBOARD_TRANSCRIPT:-}" "${DASHBOARD_QUESTION:-canvass_q3}" <<'PY'
 import sys, re
-html, want = open(sys.argv[1], encoding="utf-8").read(), sys.argv[2]
-stems = [i for i in re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
-         if i not in ("sec-overview", "sec-open", "sec-codebook")]
+html, want, q = open(sys.argv[1], encoding="utf-8").read(), sys.argv[2], sys.argv[3]
+secs = re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
+stems = [i for i in secs if i not in ("sec-overview", "sec-open", "sec-codebook")]
 pick = next((i for i in stems if want and want in i), stems[0] if stems else None)
-print("sec-codebook" + (" " + pick if pick else ""))
+ids = ["sec-codebook"] + ([pick] if pick else []) + (["sec-open|" + q] if "sec-open" in secs else [])
+print(" ".join(ids))
 PY
   )
   parts=()
   for id in $ids; do
+    tmp="exports/pdf/_${id%%|*}.pdf"
     "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 \
-      --print-to-pdf="exports/pdf/_$id.pdf" "http://127.0.0.1:$PORT/_print/dashboard.html#$id" 2>/dev/null
-    parts+=("exports/pdf/_$id.pdf")
+      --print-to-pdf="$tmp" "http://127.0.0.1:$PORT/_print/dashboard.html#$id" 2>/dev/null
+    parts+=("$tmp")
   done
   python3 - "exports/pdf/$2-tabs.pdf" "${parts[@]}" <<'PY'
 import sys
