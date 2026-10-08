@@ -80,9 +80,17 @@ extra = """
   var sel = document.getElementById("txsel"), isTab = false;
   document.querySelectorAll(".tab").forEach(function (b) { if (b.dataset.target === id) isTab = true; b.classList.toggle("active", b.dataset.target === id); });
   if (sel && !isTab) { sel.value = id; sel.classList.add("active"); }
-  // a transcript pane opens on its first highlighted passage, not the header lines
-  var sec = document.getElementById(id), pane = sec && sec.querySelector(".transcript"), mark = pane && pane.querySelector("mark");
-  if (mark) pane.scrollTop = mark.getBoundingClientRect().top - pane.getBoundingClientRect().top - 24;
+  // a transcript view shows a selected passage and its code rows, like a click on the
+  // page does: the first highlight carrying several codes (else the first highlight)
+  // is selected, and both panes scroll so the passage and its rows sit near the top
+  var sec = document.getElementById(id), pane = sec && sec.querySelector(".transcript");
+  var mark = pane && (pane.querySelector("mark.multi") || pane.querySelector("mark"));
+  if (mark) {
+    mark.click();
+    pane.scrollTop = mark.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 110;
+    var codes = sec.querySelector(".codes"), row = sec.querySelector(".crow.sel");
+    if (row) codes.scrollTop = row.getBoundingClientRect().top - codes.getBoundingClientRect().top + codes.scrollTop - 60;
+  }
 })();</script>
 </body>"""
 for src, name in [(sys.argv[1], "dashboard.html"), (sys.argv[2], "open-ended.html")]:
