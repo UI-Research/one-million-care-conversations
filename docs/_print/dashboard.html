@@ -81,6 +81,11 @@
           cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
   .cb-goto { color:var(--navy); cursor:pointer; text-decoration:underline dotted; }
   .brow-oe { grid-template-columns: 290px 1fr 44px 52px 52px 52px; }
+  table.qlist { border-collapse:collapse; max-width:1100px; font-size:13px; margin-bottom:8px; }
+  table.qlist th { text-align:left; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:#888; border-bottom:2px solid var(--navy); padding:4px 10px 4px 0; }
+  table.qlist td { vertical-align:top; padding:7px 10px 7px 0; border-bottom:1px solid #ececec; }
+  .goto-sec { font:inherit; color:var(--navy); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; text-align:left; }
+  .qtext { font-family:Georgia,serif; font-size:15px; margin:4px 0 6px; max-width:900px; }
   .acard { background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
   .ameta { font-size:11px; color:#888; margin-bottom:4px; }
   .atext { font-family:Georgia,serif; font-size:14px; line-height:1.55; }
@@ -6599,6 +6604,10 @@ document.querySelectorAll(".cb-goto").forEach(a => a.addEventListener("click", (
   tabBtns[0].click();
   if (!row.classList.contains("open")) row.click();
   row.scrollIntoView({behavior:"smooth", block:"start"});
+}));
+document.querySelectorAll(".goto-sec").forEach(b => b.addEventListener("click", () => {
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active")); window.scrollTo({top: 0});
 }));
 document.querySelectorAll(".goto-ans").forEach(b => b.addEventListener("click", e => {
   e.stopPropagation();

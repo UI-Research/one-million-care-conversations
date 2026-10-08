@@ -360,21 +360,31 @@ answer_cards <- vapply(answers$aid, function(a) {
     mark_answer(ans$text, rows), chips)
 }, character(1))
 
-questions <- unique(answers[, c("tool", "question", "question_text")])
-questions <- questions[order(questions$tool, questions$question), ]
+questions <- unique(answers[, c("tool", "question", "question_order", "question_text", "question_lead")])
+questions <- questions[order(questions$question_order), ]
 q_counts  <- table(answers$question)
 q_coded   <- table(answers$question[answers$aid %in% oe_assign$aid])
-q_label   <- sprintf("%s: %s", tool_label[questions$tool], questions$question)
-q_options <- sprintf('<option value="sec-q-%s">%s (%d answers)</option>', esc(questions$question),
-                     esc(q_label), as.integer(q_counts[questions$question]))
+q_n       <- as.integer(q_counts[questions$question])
+q_nc      <- as.integer(q_coded[questions$question]); q_nc[is.na(q_nc)] <- 0L
+q_short   <- c(canvass_q2_hard = "Q2", canvass_q3 = "Q3", poll_change_one_thing = "")
+q_label   <- trimws(sprintf("%s %s", tool_label[questions$tool],
+                            ifelse(questions$question %in% names(q_short), q_short[questions$question], questions$question)))
+short     <- function(x, n = 60) ifelse(nchar(x) > n, paste0(substr(x, 1, n - 1), "\u2026"), x)
+q_options <- sprintf('<option value="sec-q-%s">%s: %s (%d)</option>', esc(questions$question),
+                     esc(q_label), esc(short(questions$question_text)), q_n)
+# the questions in the order asked, with what came before each, linking to its panel
+q_table <- sprintf('<table class="qlist"><thead><tr><th>Asked</th><th>Question</th><th>Comes after</th><th class="cb-n">Answers</th><th class="cb-n">With a code</th></tr></thead><tbody>%s</tbody></table>',
+  paste(sprintf('<tr><td class="cb-code">%s</td><td><button class="goto-sec" data-sec="sec-q-%s">%s</button></td><td class="cb-kw">%s</td><td class="cb-n">%d</td><td class="cb-n">%d</td></tr>',
+                esc(q_label), esc(questions$question), esc(questions$question_text), esc(questions$question_lead), q_n, q_nc), collapse = "\n"))
+
 question_sections <- vapply(seq_len(nrow(questions)), function(i) {
   q <- questions$question[i]
   sprintf('<section class="tx-section panel" id="sec-q-%s">
     <h2 class="fname">%s</h2>
+    <div class="qtext">%s</div>
     <div class="meta">%s &middot; %d answers, %d with at least one code &middot; each answer with its excerpts highlighted; hover a highlight for its codes</div>
     <div class="alist">%s</div></section>',
-    esc(q), esc(q_label[i]), esc(questions$question_text[i]), as.integer(q_counts[q]),
-    as.integer(ifelse(is.na(q_coded[q]), 0, q_coded[q])),
+    esc(q), esc(q_label[i]), esc(questions$question_text[i]), esc(questions$question_lead[i]), q_n[i], q_nc[i],
     paste(answer_cards[answers$question == q], collapse = "\n"))
 }, character(1))
 
@@ -412,15 +422,18 @@ n_coded_answers <- length(unique(oe_assign$aid))
 tool_summary <- paste(sprintf("%s %d", tool_label[names(table(answers$tool))], as.integer(table(answers$tool))), collapse = " &middot; ")
 
 open_tab <- sprintf('<section class="tx-section panel" id="sec-open">
-  <h2>Open-ended answers: code frequency</h2>
-  <div class="meta">%d answers (%s) &middot; %d received at least one code &middot; %d code assignments &middot; %d distinct codes &middot; counts are answers assigned each code, not prevalence &middot; click a code to list its passages; pick a question above to read its answers</div>
+  <h2>The questions</h2>
+  <div class="meta">In the order the instruments ask them. Click a question to read its answers.</div>
+  %s
+  <h2 style="margin-top:34px">Code frequency</h2>
+  <div class="meta">%d answers (%s) &middot; %d received at least one code &middot; %d code assignments &middot; %d distinct codes &middot; counts are answers assigned each code, not prevalence &middot; click a code to list its passages</div>
   <div class="dom-totals">%s</div>
   <div class="bchart">
     <div class="brow brow-oe bhead"><span class="bcode"></span><span class="btrack"></span>
       <span class="bn">All</span>%s</div>
     %s
   </div></section>',
-  nrow(answers), tool_summary, n_coded_answers, nrow(oe_assign), nrow(oe_counts), oe_dom_cells,
+  q_table, nrow(answers), tool_summary, n_coded_answers, nrow(oe_assign), nrow(oe_counts), oe_dom_cells,
   paste(sprintf('<span class="bf">%s</span>', tool_cols), collapse = ""),
   paste(oe_bar_rows, collapse = "\n"))
 
@@ -560,6 +573,11 @@ render_page <- function(title, heading, sub, tabs, body) paste0(sprintf('<!DOCTY
           cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
   .cb-goto { color:var(--navy); cursor:pointer; text-decoration:underline dotted; }
   .brow-oe { grid-template-columns: 290px 1fr 44px 52px 52px 52px; }
+  table.qlist { border-collapse:collapse; max-width:1100px; font-size:13px; margin-bottom:8px; }
+  table.qlist th { text-align:left; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:#888; border-bottom:2px solid var(--navy); padding:4px 10px 4px 0; }
+  table.qlist td { vertical-align:top; padding:7px 10px 7px 0; border-bottom:1px solid #ececec; }
+  .goto-sec { font:inherit; color:var(--navy); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; text-align:left; }
+  .qtext { font-family:Georgia,serif; font-size:15px; margin:4px 0 6px; max-width:900px; }
   .acard { background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
   .ameta { font-size:11px; color:#888; margin-bottom:4px; }
   .atext { font-family:Georgia,serif; font-size:14px; line-height:1.55; }
@@ -622,6 +640,10 @@ document.querySelectorAll(".cb-goto").forEach(a => a.addEventListener("click", (
   tabBtns[0].click();
   if (!row.classList.contains("open")) row.click();
   row.scrollIntoView({behavior:"smooth", block:"start"});
+}));
+document.querySelectorAll(".goto-sec").forEach(b => b.addEventListener("click", () => {
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active")); window.scrollTo({top: 0});
 }));
 document.querySelectorAll(".goto-ans").forEach(b => b.addEventListener("click", e => {
   e.stopPropagation();
