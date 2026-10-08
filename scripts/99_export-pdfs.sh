@@ -18,9 +18,8 @@
 # more PDF, 1mcc-coding-tabs.pdf: the Codebook tab, one transcript as an
 # example of the coded view (the first in the dropdown, or the one named by
 # DASHBOARD_TRANSCRIPT=<part of its file name>), and, from the companion
-# open-ended.html page next to it, the open-ended answers tab with its code
-# counts and one example question's answers (DASHBOARD_QUESTION, default
-# canvass_q3). A print
+# open-ended.html page next to it, the code-frequency tab and one example
+# question's answers (DASHBOARD_QUESTION, default canvass_q3). A print
 # stylesheet is added to a temporary copy of the page so the chosen tab is the
 # only one shown, the two scrolling columns of a transcript tab expand to full
 # length, and the transcript comes first with its code table after it.
@@ -56,7 +55,6 @@ import sys, os
 extra = """
 <style>@media print {
   .tabs, #txsel, #cbsearch, .legend { display:none !important; }
-  #qsel { border:none; background:none; font-weight:700; color:var(--navy); }
   .panel:not(.print), #sec-unused:not(.print), .plist { display:none !important; }
   .panel.print { display:block !important; }
   .grid { display:block !important; }
@@ -66,13 +64,11 @@ extra = """
   body { background:#fff; }
 }</style>
 <script>(function () {
-  var parts = location.hash.slice(1).split("|"), id = parts[0], q = parts[1]; if (!id) return;
+  var id = location.hash.slice(1); if (!id) return;
   document.querySelectorAll(".panel").forEach(function (p) {
     p.classList.toggle("print", p.id === id); p.classList.toggle("active", p.id === id);
   });
   var u = document.getElementById("sec-unused"); if (u) u.classList.toggle("print", id === "sec-codebook");
-  var qsel = document.getElementById("qsel");
-  if (id === "sec-open" && qsel && q) { qsel.value = q; qsel.dispatchEvent(new Event("change")); }
 })();</script>
 </body>"""
 for src, name in [(sys.argv[1], "dashboard.html"), (sys.argv[2], "open-ended.html")]:
@@ -89,13 +85,13 @@ stems = [i for i in re.findall(r'<section class="tx-section panel" id="(sec-[^"]
          if i not in ("sec-overview", "sec-open", "sec-codebook")]
 pick = next((i for i in stems if want and want in i), stems[0] if stems else None)
 ids = ["dashboard.html#sec-codebook"] + (["dashboard.html#" + pick] if pick else [])
-if os.path.exists(sys.argv[2]): ids.append("open-ended.html#sec-open|" + q)
+if os.path.exists(sys.argv[2]): ids += ["open-ended.html#sec-open", "open-ended.html#sec-q-" + q]
 print(" ".join(ids))
 PY
   )
   parts=()
   for id in $ids; do
-    tmp="exports/pdf/_$(echo "$id" | tr '#|' '__').pdf"
+    tmp="exports/pdf/_$(echo "$id" | tr '#' '_').pdf"
     "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 \
       --print-to-pdf="$tmp" "http://127.0.0.1:$PORT/_print/$id" 2>/dev/null
     parts+=("$tmp")

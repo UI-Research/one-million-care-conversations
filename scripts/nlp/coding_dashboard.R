@@ -363,9 +363,20 @@ answer_cards <- vapply(answers$aid, function(a) {
 questions <- unique(answers[, c("tool", "question", "question_text")])
 questions <- questions[order(questions$tool, questions$question), ]
 q_counts  <- table(answers$question)
-q_options <- sprintf('<option value="%s">%s %s (%d answers): %s</option>', esc(questions$question),
-                     esc(tool_label[questions$tool]), esc(questions$question), as.integer(q_counts[questions$question]),
-                     esc(substr(questions$question_text, 1, 90)))
+q_coded   <- table(answers$question[answers$aid %in% oe_assign$aid])
+q_label   <- sprintf("%s: %s", tool_label[questions$tool], questions$question)
+q_options <- sprintf('<option value="sec-q-%s">%s (%d answers)</option>', esc(questions$question),
+                     esc(q_label), as.integer(q_counts[questions$question]))
+question_sections <- vapply(seq_len(nrow(questions)), function(i) {
+  q <- questions$question[i]
+  sprintf('<section class="tx-section panel" id="sec-q-%s">
+    <h2 class="fname">%s</h2>
+    <div class="meta">%s &middot; %d answers, %d with at least one code &middot; each answer with its excerpts highlighted; hover a highlight for its codes</div>
+    <div class="alist">%s</div></section>',
+    esc(q), esc(q_label[i]), esc(questions$question_text[i]), as.integer(q_counts[q]),
+    as.integer(ifelse(is.na(q_coded[q]), 0, q_coded[q])),
+    paste(answer_cards[answers$question == q], collapse = "\n"))
+}, character(1))
 
 oe_info   <- unique(oe_assign[, c("code", "domain")])
 oe_counts <- as.data.frame(table(code = oe_assign$code), stringsAsFactors = FALSE)
@@ -380,7 +391,7 @@ oe_bar_rows <- vapply(seq_len(nrow(oe_counts)), function(i) {
   ps <- oe_assign[oe_assign$code == cd, ]
   passages <- sprintf(
     '<div class="pitem"><div class="pmeta">%s &middot; %s &middot; pathway: %s %s
-       <button class="goto-ans" data-ans="%d" data-q="%s">open answer &rarr;</button></div>
+       <button class="goto-ans" data-ans="%d" data-sec="sec-q-%s">open answer &rarr;</button></div>
      <div class="passage">&ldquo;%s&rdquo;</div><div class="rationale">%s</div></div>',
     esc(ps$tool_lab), esc(ps$question), esc(ps$pathway), conf_badge(ps$confidence), ps$aid, esc(ps$question),
     esc(ps$excerpt), esc(ps$rationale))
@@ -400,23 +411,18 @@ oe_dom_cells <- paste(sprintf(
 n_coded_answers <- length(unique(oe_assign$aid))
 tool_summary <- paste(sprintf("%s %d", tool_label[names(table(answers$tool))], as.integer(table(answers$tool))), collapse = " &middot; ")
 
-open_tab <- paste0(sprintf('<section class="tx-section panel" id="sec-open">
+open_tab <- sprintf('<section class="tx-section panel" id="sec-open">
   <h2>Open-ended answers: code frequency</h2>
-  <div class="meta">%d answers (%s) &middot; %d received at least one code &middot; %d code assignments &middot; %d distinct codes &middot; counts are answers assigned each code, not prevalence &middot; click a code to list its passages</div>
+  <div class="meta">%d answers (%s) &middot; %d received at least one code &middot; %d code assignments &middot; %d distinct codes &middot; counts are answers assigned each code, not prevalence &middot; click a code to list its passages; pick a question above to read its answers</div>
   <div class="dom-totals">%s</div>
   <div class="bchart">
     <div class="brow brow-oe bhead"><span class="bcode"></span><span class="btrack"></span>
       <span class="bn">All</span>%s</div>
     %s
-  </div>
-  <h2 style="margin-top:34px">Browse answers by question</h2>
-  <div class="meta">Each answer with its excerpts highlighted (hover a highlight for its codes).</div>
-  <select id="qsel"><option value="">Select a question&hellip;</option>%s</select>
-  <div id="alist">',
+  </div></section>',
   nrow(answers), tool_summary, n_coded_answers, nrow(oe_assign), nrow(oe_counts), oe_dom_cells,
   paste(sprintf('<span class="bf">%s</span>', tool_cols), collapse = ""),
-  paste(oe_bar_rows, collapse = "\n"), paste(q_options, collapse = "\n")),
-  paste(answer_cards, collapse = "\n"), '</div></section>')
+  paste(oe_bar_rows, collapse = "\n"))
 
 # ---- codebook tab ------------------------------------------------------------
 
@@ -465,7 +471,8 @@ tabs_tx <- paste(c('<button class="tab active" data-target="sec-overview">Transc
   sprintf('<option value="sec-%s">%s</option>', stems, esc(stems)),
   '</select>'), collapse = "\n")
 tabs_oe <- paste(c('<button class="tab active" data-target="sec-open">Open-ended answers</button>',
-  '<button class="tab" data-target="sec-codebook">Codebook</button>'), collapse = "\n")
+  '<button class="tab" data-target="sec-codebook">Codebook</button>',
+  '<select id="txsel"><option value="">Select a question&hellip;</option>', q_options, '</select>'), collapse = "\n")
 
 # sprintf caps the format string at 8192 bytes, so the page is two pieces. The same
 # template serves both pages: transcripts (with the Codebook tab) and open-ended answers
@@ -553,9 +560,7 @@ render_page <- function(title, heading, sub, tabs, body) paste0(sprintf('<!DOCTY
           cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
   .cb-goto { color:var(--navy); cursor:pointer; text-decoration:underline dotted; }
   .brow-oe { grid-template-columns: 290px 1fr 44px 52px 52px 52px; }
-  #qsel { font:inherit; font-size:12.5px; padding:7px 10px; border:1px solid #ccc; border-radius:6px; max-width:100%%; margin-bottom:14px; }
-  .acard { display:none; background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
-  .acard.show { display:block; }
+  .acard { background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
   .ameta { font-size:11px; color:#888; margin-bottom:4px; }
   .atext { font-family:Georgia,serif; font-size:14px; line-height:1.55; }
   .achips { margin-top:8px; }
@@ -618,12 +623,10 @@ document.querySelectorAll(".cb-goto").forEach(a => a.addEventListener("click", (
   if (!row.classList.contains("open")) row.click();
   row.scrollIntoView({behavior:"smooth", block:"start"});
 }));
-const qsel = document.getElementById("qsel"), cards = [...document.querySelectorAll(".acard")];
-const showQ = q => cards.forEach(c => c.classList.toggle("show", !!q && c.dataset.q === q));
-if (qsel) qsel.addEventListener("change", () => showQ(qsel.value));
 document.querySelectorAll(".goto-ans").forEach(b => b.addEventListener("click", e => {
   e.stopPropagation();
-  qsel.value = b.dataset.q; showQ(b.dataset.q);
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active"));
   const card = document.getElementById(`ans-${b.dataset.ans}`);
   card.scrollIntoView({behavior:"smooth", block:"center"});
   card.style.outline = "2px solid var(--navy)"; setTimeout(() => card.style.outline = "", 2500);
@@ -646,8 +649,8 @@ pages <- list(
   "dashboard.html"  = render_page("1MCC — Coded interview transcripts", "Coded interview transcripts", click_help,
                                   tabs_tx, paste(overview, codebook_tab, sections, unused_note, sep = "\n")),
   "open-ended.html" = render_page("1MCC — Coded open-ended answers", "Coded open-ended answers",
-                                  "Click a code to list its passages; pick a question to read every answer with its excerpts highlighted.",
-                                  tabs_oe, paste(open_tab, codebook_tab, unused_note, sep = "\n")))
+                                  "Click a code to list its passages; pick a question from the dropdown to read every answer with its excerpts highlighted.",
+                                  tabs_oe, paste(open_tab, codebook_tab, paste(question_sections, collapse = "\n"), unused_note, sep = "\n")))
 site_names <- c("dashboard.html" = "index.html", "open-ended.html" = "open-ended.html")
 for (nm in names(pages)) {
   out <- file.path(run_dir, nm)
