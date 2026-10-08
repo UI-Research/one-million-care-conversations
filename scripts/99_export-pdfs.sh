@@ -1,74 +1,88 @@
 #!/usr/bin/env bash
-# Print each page of the rendered site to a PDF, for sharing single pages
-# (e.g. with CAG) without pointing people at the whole website.
+# Print the pages worth sharing (e.g. with CAG) to PDF, without pointing people at
+# the whole website.
 #
-# Usage: scripts/99_export-pdfs.sh                      # after `quarto render` at the root
-#        scripts/99_export-pdfs.sh path/to/dashboard.html  # print the tabs of that coding
-#                                                        # dashboard instead (e.g. a run's)
-#        DASHBOARD_TRANSCRIPT=idv-lf DASHBOARD_QUESTION=q7 scripts/99_export-pdfs.sh  # choose the examples
-# Output: exports/pdf/<page>.pdf (gitignored)
+# Usage: scripts/99_export-pdfs.sh                           # after `quarto render` at the root
+#        scripts/99_export-pdfs.sh path/to/run/dashboard.html  # a run's dashboards instead of the published ones
+#        DASHBOARD_TRANSCRIPT=idv-lf DASHBOARD_QUESTION=q7 scripts/99_export-pdfs.sh   # choose the examples
+# Output (exports/pdf/, gitignored):
+#   overview.pdf             the home page
+#   chartbook.pdf            the chartbook
+#   transcript-coding.pdf    the code frequency tab, then one coded transcript as it looks
+#                            on screen (transcript with highlights beside its code table)
+#   open-ended-coding.pdf    the questions and code frequency tab, then one question's
+#                            answers with their highlights as they look on screen
 #
-# Uses headless Chrome against a local web server so the interactive tables
-# and charts render as they do in the browser. Paged tables print only the
-# page currently shown (the first five rows); the state table and dictionary
-# are the main ones affected.
-#
-# The coding dashboard is one page with tabs, so besides the page as it opens
-# (the overview, 1mcc-coding-dashboard.pdf) the tabs worth sharing go into one
-# more PDF, 1mcc-coding-tabs.pdf: the Codebook tab, one transcript as an
-# example of the coded view (the first in the dropdown, or the one named by
-# DASHBOARD_TRANSCRIPT=<part of its file name>), and, from the companion
-# open-ended.html page next to it, the code-frequency tab and one example
-# question's answers (DASHBOARD_QUESTION, default canvass_q3). A print
-# stylesheet is added to a temporary copy of the page so the chosen tab is the
-# only one shown, the two scrolling columns of a transcript tab expand to full
-# length, and the transcript comes first with its code table after it.
+# Headless Chrome prints the pages against a local web server so interactive tables
+# and charts render as in the browser; paged tables print only the rows shown. The
+# coding dashboards are one page with tabs, so a temporary copy gets a small script
+# that opens the tab named in the URL hash (`#show=<id>`) and a print stylesheet that hides the
+# other tabs. The "as it looks on screen" pages are screenshots of that copy at a
+# fixed window size, turned into a PDF page each.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 [ -x "$CHROME" ] || { echo "Google Chrome not found at $CHROME" >&2; exit 1; }
 [ -f docs/index.html ] || { echo "docs/ is empty; run 'quarto render' first" >&2; exit 1; }
+DASHBOARD="${1:-docs/coding-dashboard/index.html}"
+[ -f "$DASHBOARD" ] || { echo "dashboard not found: $DASHBOARD" >&2; exit 1; }
+OPEN_ENDED="$(dirname "$DASHBOARD")/open-ended.html"
 
-mkdir -p exports/pdf
+OUT=exports/pdf
+mkdir -p "$OUT" docs/_print
 PORT=8771
 python3 -m http.server "$PORT" --bind 127.0.0.1 --directory docs > /dev/null 2>&1 &
 SERVER=$!
-trap 'kill $SERVER 2>/dev/null; wait $SERVER 2>/dev/null' EXIT
+trap 'kill $SERVER 2>/dev/null; wait $SERVER 2>/dev/null || true; rm -rf docs/_print "$OUT"/_*' EXIT
 sleep 1
 
-print_page() { # <relative html path> <pdf name>
-  "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 \
-    --print-to-pdf="exports/pdf/$2.pdf" "http://127.0.0.1:$PORT/$1" 2>/dev/null
-  echo "  exports/pdf/$2.pdf"
+chrome() { "$CHROME" --headless=new --disable-gpu --hide-scrollbars "$@" 2>/dev/null; }
+
+print_page() { # <path under docs/> <output pdf>
+  chrome --no-pdf-header-footer --virtual-time-budget=8000 --print-to-pdf="$2" "http://127.0.0.1:$PORT/$1"
 }
 
-DASHBOARD="${1:-docs/coding-dashboard/index.html}"
-[ -f "$DASHBOARD" ] || { echo "dashboard not found: $DASHBOARD" >&2; exit 1; }
+screenshot_pdf() { # <path under docs/> <output pdf>: one landscape page with the screen view
+  chrome --window-size=1600,1100 --force-device-scale-factor=2 --virtual-time-budget=8000 \
+    --screenshot="$OUT/_shot.png" "http://127.0.0.1:$PORT/$1"
+  python3 -c "
+from PIL import Image; im = Image.open('$OUT/_shot.png').convert('RGB'); im.save('$2', 'PDF', resolution=200)"
+}
 
-# <dashboard html> <pdf name prefix>: one PDF for the Codebook tab, one per transcript
-print_dashboard_tabs() {
-  mkdir -p docs/_print
-  trap 'kill $SERVER 2>/dev/null; wait $SERVER 2>/dev/null; rm -rf docs/_print' EXIT
-  local oe="$(dirname "$1")/open-ended.html"
-  python3 - "$1" "$oe" docs/_print <<'PY'
+merge_pdf() { # <output> <inputs...>
+  python3 - "$@" <<'PY'
+import sys
+from pypdf import PdfWriter
+w = PdfWriter()
+for f in sys.argv[2:]: w.append(f)
+w.write(sys.argv[1])
+PY
+}
+
+# Temporary copies of the dashboards: the URL hash picks the tab (and the dropdown
+# entry) to show; in print the other tabs are hidden.
+python3 - "$DASHBOARD" "$OPEN_ENDED" docs/_print <<'PY'
 import sys, os
 extra = """
 <style>@media print {
-  .tabs, #txsel, #cbsearch, .legend { display:none !important; }
-  .panel:not(.print), #sec-unused:not(.print), .plist { display:none !important; }
+  .tabs, #txsel, #cbsearch, .legend, .plist { display:none !important; }
+  .panel:not(.print) { display:none !important; }
   .panel.print { display:block !important; }
-  .grid { display:block !important; }
-  .transcript, .codes { max-height:none !important; overflow:visible !important; }
-  .codes { margin-top:24px; }
-  .crow, .cb-dom, .pitem { break-inside:avoid; }
+  .crow, .cb-dom, .pitem, table.qlist tr { break-inside:avoid; }
   body { background:#fff; }
 }</style>
 <script>(function () {
-  var id = location.hash.slice(1); if (!id) return;
+  // #show=<section id>: not an element id, so the browser does not scroll to it
+  var m = location.hash.match(/^#show=(.+)$/); if (!m) return; var id = m[1];
   document.querySelectorAll(".panel").forEach(function (p) {
     p.classList.toggle("print", p.id === id); p.classList.toggle("active", p.id === id);
   });
-  var u = document.getElementById("sec-unused"); if (u) u.classList.toggle("print", id === "sec-codebook");
+  var sel = document.getElementById("txsel"), isTab = false;
+  document.querySelectorAll(".tab").forEach(function (b) { if (b.dataset.target === id) isTab = true; b.classList.toggle("active", b.dataset.target === id); });
+  if (sel && !isTab) { sel.value = id; sel.classList.add("active"); }
+  // a transcript pane opens on its first highlighted passage, not the header lines
+  var sec = document.getElementById(id), pane = sec && sec.querySelector(".transcript"), mark = pane && pane.querySelector("mark");
+  if (mark) pane.scrollTop = mark.getBoundingClientRect().top - pane.getBoundingClientRect().top - 24;
 })();</script>
 </body>"""
 for src, name in [(sys.argv[1], "dashboard.html"), (sys.argv[2], "open-ended.html")]:
@@ -76,44 +90,30 @@ for src, name in [(sys.argv[1], "dashboard.html"), (sys.argv[2], "open-ended.htm
         html = open(src, encoding="utf-8").read()
         open(os.path.join(sys.argv[3], name), "w", encoding="utf-8").write(html.replace("</body>", extra, 1))
 PY
-  # the Codebook tab and one example transcript from the transcripts page, the open-ended
-  # tab (with one example question) from the companion page, merged into one PDF
-  ids=$(python3 - "$1" "$oe" "${DASHBOARD_TRANSCRIPT:-}" "${DASHBOARD_QUESTION:-canvass_q3}" <<'PY'
-import sys, re, os
-html, want, q = open(sys.argv[1], encoding="utf-8").read(), sys.argv[3], sys.argv[4]
-stems = [i for i in re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
-         if i not in ("sec-overview", "sec-open", "sec-codebook")]
-pick = next((i for i in stems if want and want in i), stems[0] if stems else None)
-ids = ["dashboard.html#sec-codebook"] + (["dashboard.html#" + pick] if pick else [])
-if os.path.exists(sys.argv[2]): ids += ["open-ended.html#sec-open", "open-ended.html#sec-q-" + q]
-print(" ".join(ids))
-PY
-  )
-  parts=()
-  for id in $ids; do
-    tmp="exports/pdf/_$(echo "$id" | tr '#' '_').pdf"
-    "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 \
-      --print-to-pdf="$tmp" "http://127.0.0.1:$PORT/_print/$id" 2>/dev/null
-    parts+=("$tmp")
-  done
-  python3 - "exports/pdf/$2-tabs.pdf" "${parts[@]}" <<'PY'
-import sys
-from pypdf import PdfWriter
-w = PdfWriter()
-for f in sys.argv[2:]: w.append(f)
-w.write(sys.argv[1])
-PY
-  rm -f "${parts[@]}"
-  echo "  exports/pdf/$2-tabs.pdf  ($ids)"
-}
 
-echo "Printing site pages to PDF:"
-print_page index.html                              1mcc-home
-print_page scripts/01_clean-data.html              1mcc-cleaning
-print_page scripts/survey/01_chartbook.html        1mcc-chartbook
-print_page variables.html                          1mcc-variables
-print_page deliveries.html                         1mcc-deliveries
-print_page coding-dashboard/index.html             1mcc-coding-dashboard
-print_page coding-dashboard/open-ended.html        1mcc-open-ended-dashboard
-echo "Printing coding dashboard tabs from $DASHBOARD:"
-print_dashboard_tabs "$DASHBOARD" 1mcc-coding
+# the example transcript (first in the dropdown unless DASHBOARD_TRANSCRIPT names one)
+TRANSCRIPT=$(python3 - "$DASHBOARD" "${DASHBOARD_TRANSCRIPT:-}" <<'PY'
+import sys, re
+html, want = open(sys.argv[1], encoding="utf-8").read(), sys.argv[2]
+stems = [i for i in re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
+         if i not in ("sec-overview", "sec-codebook")]
+print(next((i for i in stems if want and want in i), stems[0] if stems else ""))
+PY
+)
+QUESTION="sec-q-${DASHBOARD_QUESTION:-canvass_q3}"
+
+echo "Writing PDFs to $OUT/:"
+print_page index.html                        "$OUT/overview.pdf";  echo "  overview.pdf"
+print_page scripts/survey/01_chartbook.html  "$OUT/chartbook.pdf"; echo "  chartbook.pdf"
+
+print_page "_print/dashboard.html#show=sec-overview" "$OUT/_tc1.pdf"
+screenshot_pdf "_print/dashboard.html#show=$TRANSCRIPT" "$OUT/_tc2.pdf"
+merge_pdf "$OUT/transcript-coding.pdf" "$OUT/_tc1.pdf" "$OUT/_tc2.pdf"
+echo "  transcript-coding.pdf  (code frequency; screen view of $TRANSCRIPT)"
+
+if [ -f "$OPEN_ENDED" ]; then
+  print_page "_print/open-ended.html#show=sec-open" "$OUT/_oe1.pdf"
+  screenshot_pdf "_print/open-ended.html#show=$QUESTION" "$OUT/_oe2.pdf"
+  merge_pdf "$OUT/open-ended-coding.pdf" "$OUT/_oe1.pdf" "$OUT/_oe2.pdf"
+  echo "  open-ended-coding.pdf  (questions and code frequency; screen view of $QUESTION)"
+fi
