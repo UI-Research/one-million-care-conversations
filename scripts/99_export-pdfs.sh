@@ -17,9 +17,10 @@
 # (the overview, 1mcc-coding-dashboard.pdf) the tabs worth sharing go into one
 # more PDF, 1mcc-coding-tabs.pdf: the Codebook tab, one transcript as an
 # example of the coded view (the first in the dropdown, or the one named by
-# DASHBOARD_TRANSCRIPT=<part of its file name>), and, when the dashboard has
-# it, the open-ended answers tab with its code counts and one example
-# question's answers (DASHBOARD_QUESTION, default canvass_q3). A print
+# DASHBOARD_TRANSCRIPT=<part of its file name>), and, from the companion
+# open-ended.html page next to it, the open-ended answers tab with its code
+# counts and one example question's answers (DASHBOARD_QUESTION, default
+# canvass_q3). A print
 # stylesheet is added to a temporary copy of the page so the chosen tab is the
 # only one shown, the two scrolling columns of a transcript tab expand to full
 # length, and the transcript comes first with its code table after it.
@@ -49,10 +50,9 @@ DASHBOARD="${1:-docs/coding-dashboard/index.html}"
 print_dashboard_tabs() {
   mkdir -p docs/_print
   trap 'kill $SERVER 2>/dev/null; wait $SERVER 2>/dev/null; rm -rf docs/_print' EXIT
-  python3 - "$1" docs/_print/dashboard.html <<'PY'
-import sys
-src, dst = sys.argv[1], sys.argv[2]
-html = open(src, encoding="utf-8").read()
+  local oe="$(dirname "$1")/open-ended.html"
+  python3 - "$1" "$oe" docs/_print <<'PY'
+import sys, os
 extra = """
 <style>@media print {
   .tabs, #txsel, #cbsearch, .legend { display:none !important; }
@@ -75,24 +75,29 @@ extra = """
   if (id === "sec-open" && qsel && q) { qsel.value = q; qsel.dispatchEvent(new Event("change")); }
 })();</script>
 </body>"""
-open(dst, "w", encoding="utf-8").write(html.replace("</body>", extra, 1))
+for src, name in [(sys.argv[1], "dashboard.html"), (sys.argv[2], "open-ended.html")]:
+    if os.path.exists(src):
+        html = open(src, encoding="utf-8").read()
+        open(os.path.join(sys.argv[3], name), "w", encoding="utf-8").write(html.replace("</body>", extra, 1))
 PY
-  # the Codebook tab plus one example transcript, merged into one PDF
-  ids=$(python3 - "$1" "${DASHBOARD_TRANSCRIPT:-}" "${DASHBOARD_QUESTION:-canvass_q3}" <<'PY'
-import sys, re
-html, want, q = open(sys.argv[1], encoding="utf-8").read(), sys.argv[2], sys.argv[3]
-secs = re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
-stems = [i for i in secs if i not in ("sec-overview", "sec-open", "sec-codebook")]
+  # the Codebook tab and one example transcript from the transcripts page, the open-ended
+  # tab (with one example question) from the companion page, merged into one PDF
+  ids=$(python3 - "$1" "$oe" "${DASHBOARD_TRANSCRIPT:-}" "${DASHBOARD_QUESTION:-canvass_q3}" <<'PY'
+import sys, re, os
+html, want, q = open(sys.argv[1], encoding="utf-8").read(), sys.argv[3], sys.argv[4]
+stems = [i for i in re.findall(r'<section class="tx-section panel" id="(sec-[^"]+)"', html)
+         if i not in ("sec-overview", "sec-open", "sec-codebook")]
 pick = next((i for i in stems if want and want in i), stems[0] if stems else None)
-ids = ["sec-codebook"] + ([pick] if pick else []) + (["sec-open|" + q] if "sec-open" in secs else [])
+ids = ["dashboard.html#sec-codebook"] + (["dashboard.html#" + pick] if pick else [])
+if os.path.exists(sys.argv[2]): ids.append("open-ended.html#sec-open|" + q)
 print(" ".join(ids))
 PY
   )
   parts=()
   for id in $ids; do
-    tmp="exports/pdf/_${id%%|*}.pdf"
+    tmp="exports/pdf/_$(echo "$id" | tr '#|' '__').pdf"
     "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --virtual-time-budget=8000 \
-      --print-to-pdf="$tmp" "http://127.0.0.1:$PORT/_print/dashboard.html#$id" 2>/dev/null
+      --print-to-pdf="$tmp" "http://127.0.0.1:$PORT/_print/$id" 2>/dev/null
     parts+=("$tmp")
   done
   python3 - "exports/pdf/$2-tabs.pdf" "${parts[@]}" <<'PY'
@@ -113,5 +118,6 @@ print_page scripts/survey/01_chartbook.html        1mcc-chartbook
 print_page variables.html                          1mcc-variables
 print_page deliveries.html                         1mcc-deliveries
 print_page coding-dashboard/index.html             1mcc-coding-dashboard
+print_page coding-dashboard/open-ended.html        1mcc-open-ended-dashboard
 echo "Printing coding dashboard tabs from $DASHBOARD:"
 print_dashboard_tabs "$DASHBOARD" 1mcc-coding

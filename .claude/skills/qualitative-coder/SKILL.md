@@ -25,7 +25,7 @@ findings live in `scripts/nlp/PLAN-llm-coding.md`; read it first.
 | `scripts/nlp/03_cost-report.py` → `scripts/nlp/COST-REPORT.md` | cost benchmark from the usage logs | yes |
 | `scripts/nlp/04_compare-runs.py` | two runs → `compare_<a>_vs_<b>.md` + per-run `review_*.md` (the hand-review files) | yes |
 | `scripts/nlp/coding_prompt.md`, `scripts/nlp/prompts/` | prompts | yes |
-| `scripts/nlp/coding_dashboard.R` | dashboard builder | yes |
+| `scripts/nlp/coding_dashboard.R` | dashboard builder: two pages per run, transcripts (`dashboard.html`) and open-ended answers (`open-ended.html`), Codebook tab on both; `<run_id> site` copies them to `coding-dashboard/` | yes |
 | `scripts/nlp/PLAN-llm-coding.md` | design, decisions, findings, Bedrock access matrix | yes |
 
 Nothing under `data/` is ever committed. Print transcript or answer text only as short
@@ -64,7 +64,7 @@ python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5     
 python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume           # finish an interrupted run; refuses if the inputs changed
 python scripts/nlp/03_cost-report.py                          # rebuild COST-REPORT.md
 python scripts/nlp/04_compare-runs.py <run_a> <run_b>          # agreement tables + review files (gitignored)
-Rscript scripts/nlp/coding_dashboard.R                        # dashboard
+Rscript scripts/nlp/coding_dashboard.R [<run_id>] [site]      # dashboards (newest run by default); `site` = publish-ready copy
 ```
 
 Full-run cost at list prices (2026-10-06, 263 segments + 2,061 answers): Sonnet 5 about

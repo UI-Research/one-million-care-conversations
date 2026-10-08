@@ -28,7 +28,9 @@ website:
       - href: deliveries.qmd
         text: Deliveries
       - href: coding-dashboard/index.html
-        text: Coding dashboard
+        text: Transcript coding
+      - href: coding-dashboard/open-ended.html
+        text: Open-ended coding
     right:
       - icon: github
         href: https://github.com/UI-Research/one-million-care-conversations
