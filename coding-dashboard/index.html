@@ -81,9 +81,7 @@
           cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
   .cb-goto { color:var(--navy); cursor:pointer; text-decoration:underline dotted; }
   .brow-oe { grid-template-columns: 290px 1fr 44px 52px 52px 52px; }
-  #qsel { font:inherit; font-size:12.5px; padding:7px 10px; border:1px solid #ccc; border-radius:6px; max-width:100%; margin-bottom:14px; }
-  .acard { display:none; background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
-  .acard.show { display:block; }
+  .acard { background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
   .ameta { font-size:11px; color:#888; margin-bottom:4px; }
   .atext { font-family:Georgia,serif; font-size:14px; line-height:1.55; }
   .achips { margin-top:8px; }
@@ -6602,12 +6600,10 @@ document.querySelectorAll(".cb-goto").forEach(a => a.addEventListener("click", (
   if (!row.classList.contains("open")) row.click();
   row.scrollIntoView({behavior:"smooth", block:"start"});
 }));
-const qsel = document.getElementById("qsel"), cards = [...document.querySelectorAll(".acard")];
-const showQ = q => cards.forEach(c => c.classList.toggle("show", !!q && c.dataset.q === q));
-if (qsel) qsel.addEventListener("change", () => showQ(qsel.value));
 document.querySelectorAll(".goto-ans").forEach(b => b.addEventListener("click", e => {
   e.stopPropagation();
-  qsel.value = b.dataset.q; showQ(b.dataset.q);
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active"));
   const card = document.getElementById(`ans-${b.dataset.ans}`);
   card.scrollIntoView({behavior:"smooth", block:"center"});
   card.style.outline = "2px solid var(--navy)"; setTimeout(() => card.style.outline = "", 2500);
