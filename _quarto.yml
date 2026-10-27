@@ -7,6 +7,7 @@ project:
     - deliveries.qmd
     - scripts/01_clean-data.qmd
     - scripts/survey/01_chartbook.qmd
+    - scripts/nlp/05_inter-rater-reliability.qmd
   # the coding dashboard is built by scripts/nlp/coding_dashboard.R, not by
   # Quarto; copied into the site as-is
   resources:

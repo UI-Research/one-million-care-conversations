@@ -20,7 +20,7 @@ The rendered qmds are read by the research lead (a PhD, not a data scientist): p
 
 ## Hard rules
 
-- **No PII, no coalition data in the repo — ever.** `.gitignore` blocks all of `data/` except the generated `data-dictionary.csv` (schema only), plus `.pdf`/`.docx`. Rendered `.html` under `scripts/` IS committed (Manu's decision, 2026-09-17): keep rendered output to aggregates — no respondent IDs, ZIPs, or free text in printed output. If the PII guard in `01_clean-data.qmd` trips (non-empty address fields), stop and flag it — do not work around it.
+- **No PII, no coalition data in the repo — ever.** `.gitignore` blocks all of `data/` except the generated `data-dictionary.csv` (schema only), plus `.pdf`/`.docx`. Rendered `.html` under `scripts/` IS committed (Manu's decision, 2026-09-17): keep rendered output to aggregates — no respondent IDs, ZIPs, or free text in printed output. Exception (Manu, 2026-10-27): the inter-rater reliability page shows answer text side by side, like the coding dashboard; still no IDs. If the PII guard in `01_clean-data.qmd` trips (non-empty address fields), stop and flag it — do not work around it.
 - Coalition-collected data must never be described as "nationally representative" in any Urban output.
 
 ## Architecture

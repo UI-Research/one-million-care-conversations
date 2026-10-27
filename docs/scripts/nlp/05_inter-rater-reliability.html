@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Manuel Alcalá Kovalski, Urban Institute">
+<meta name="dcterms.date" content="2026-10-27">
+
+<title>Inter-rater reliability: Bree’s coding and the model coding – 1M Care Conversations</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="../../site_libs/core-js-2.5.3/shim.min.js"></script>
+<script src="../../site_libs/react-18.2.0/react.min.js"></script>
+<script src="../../site_libs/react-18.2.0/react-dom.min.js"></script>
+<script src="../../site_libs/reactwidget-1.0.0/react-tools.js"></script>
+<link href="../../site_libs/htmltools-fill-0.5.8.9000/fill.css" rel="stylesheet">
+<script src="../../site_libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<link href="../../site_libs/reactable-0.4.4/reactable.css" rel="stylesheet">
+<script src="../../site_libs/reactable-binding-0.4.4/reactable.js"></script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">1M Care Conversations</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../scripts/01_clean-data.html"> 
+<span class="menu-text">Cleaning</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../scripts/survey/01_chartbook.html"> 
+<span class="menu-text">Chartbook</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../variables.html"> 
+<span class="menu-text">Variables</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../deliveries.html"> 
+<span class="menu-text">Deliveries</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../coding-dashboard/index.html"> 
+<span class="menu-text">Transcript coding</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../coding-dashboard/open-ended.html"> 
+<span class="menu-text">Open-ended coding</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/UI-Research/one-million-care-conversations"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul class="collapse">
+  <li><a href="#what-bree-coded" id="toc-what-bree-coded" class="nav-link active" data-scroll-target="#what-bree-coded">What Bree coded</a></li>
+  <li><a href="#matching-her-coding-to-the-answers" id="toc-matching-her-coding-to-the-answers" class="nav-link" data-scroll-target="#matching-her-coding-to-the-answers">Matching her coding to the answers</a></li>
+  <li><a href="#keeping-the-comparison-like-for-like" id="toc-keeping-the-comparison-like-for-like" class="nav-link" data-scroll-target="#keeping-the-comparison-like-for-like">Keeping the comparison like for like</a></li>
+  <li><a href="#how-closely-the-coders-agree" id="toc-how-closely-the-coders-agree" class="nav-link" data-scroll-target="#how-closely-the-coders-agree">How closely the coders agree</a></li>
+  <li><a href="#how-many-codes-each-coder-uses-and-where" id="toc-how-many-codes-each-coder-uses-and-where" class="nav-link" data-scroll-target="#how-many-codes-each-coder-uses-and-where">How many codes each coder uses, and where</a></li>
+  <li><a href="#agreement-code-by-code" id="toc-agreement-code-by-code" class="nav-link" data-scroll-target="#agreement-code-by-code">Agreement code by code</a></li>
+  <li><a href="#codes-most-often-swapped" id="toc-codes-most-often-swapped" class="nav-link" data-scroll-target="#codes-most-often-swapped">Codes most often swapped</a></li>
+  <li><a href="#what-this-shows-so-far" id="toc-what-this-shows-so-far" class="nav-link" data-scroll-target="#what-this-shows-so-far">What this shows so far</a></li>
+  <li><a href="#every-answer-side-by-side" id="toc-every-answer-side-by-side" class="nav-link" data-scroll-target="#every-answer-side-by-side">Every answer side by side</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content page-columns page-full" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Inter-rater reliability: Bree’s coding and the model coding</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Manuel Alcalá Kovalski, Urban Institute </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 27, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The plan for the open-ended answers and the interview transcripts is that a language model applies Bree’s codebook to everything, and Bree codes a random sample by hand to check it. This page is the first of those checks. It compares Bree’s coding of the answers in her September sample with two model runs from October 6, one by Claude Sonnet 5 and one by Claude Opus 5.5. All data presented in this document are preliminary and not for publication or dissemination.</p>
+<p>Inter-rater reliability usually describes two trained people coding the same material. Here one of the two raters is a model and Bree is the reference, so the numbers say how closely each model reproduces her coding. How closely two people would agree is not measured yet; that needs a second person to code the same answers.</p>
+<section id="what-bree-coded" class="level2">
+<h2 class="anchored" data-anchor-id="what-bree-coded">What Bree coded</h2>
+<p>Bree drew a random 15 percent of the data delivered by September 22, which came to one survey file, one canvassing file, and two interviews, and coded the survey and canvassing files in NVivo. Her coding log on Box marks the files she has finished and the codebook version she used:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>log <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(coding_log, <span class="at">sheet =</span> <span class="st">"Details"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_to_lower</span>(<span class="st">`</span><span class="at">Coding complete</span><span class="st">`</span>) <span class="sc">==</span> <span class="st">"yes"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># a log cell can list several files separated by "/"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>coded_files <span class="ot">&lt;-</span> log<span class="sc">$</span><span class="st">`</span><span class="at">Raw file name</span><span class="st">`</span> <span class="sc">|&gt;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str_split</span>(<span class="st">"/"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unlist</span>() <span class="sc">|&gt;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">str_trim</span>() <span class="sc">|&gt;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">discard</span>(\(f) f <span class="sc">==</span> <span class="st">""</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>log <span class="sc">|&gt;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">File =</span> <span class="st">`</span><span class="at">Raw file name</span><span class="st">`</span> <span class="sc">|&gt;</span> <span class="fu">str_remove</span>(<span class="st">"[</span><span class="sc">\\</span><span class="st">s/]+$"</span>),</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Tool =</span> <span class="st">`</span><span class="at">Data collection tool type</span><span class="st">`</span>,</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Codebook version</span><span class="st">`</span> <span class="ot">=</span> <span class="st">`</span><span class="at">Codebook version used</span><span class="st">`</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-5357bd8855e4aba22a00" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-5357bd8855e4aba22a00">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"File":["nopii_surv_export_20260731-20260805_f3_complete_opentext","nopii_canv_export_20260829_20260831_c2_complete_open"],"Tool":["Survey (F3), open","Canvas (c2), open"],"Codebook version":["version 5","version 5"]},"columns":[{"id":"File","name":"File","type":"character","minWidth":90},{"id":"Tool","name":"Tool","type":"character","minWidth":90},{"id":"Codebook version","name":"Codebook version","type":"character","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"cd31917af5113467b87af5acd2fb289e"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<p>The two interviews in her sample are not coded yet, so this page covers open-ended answers only.</p>
+</section>
+<section id="matching-her-coding-to-the-answers" class="level2">
+<h2 class="anchored" data-anchor-id="matching-her-coding-to-the-answers">Matching her coding to the answers</h2>
+<p>NVivo exports each coded passage as its text, without the respondent’s ID. Each passage is matched to an answer in those files by its text, ignoring case, punctuation, and spacing.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># text as compared: lower case, no punctuation, single spaces</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>match_key <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  x <span class="sc">|&gt;</span> <span class="fu">str_to_lower</span>() <span class="sc">|&gt;</span> <span class="fu">str_remove_all</span>(<span class="st">"[^</span><span class="sc">\\</span><span class="st">w</span><span class="sc">\\</span><span class="st">s]"</span>) <span class="sc">|&gt;</span> <span class="fu">str_squish</span>()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>nvivo <span class="ot">&lt;-</span> <span class="fu">read_excel</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  nvivo_export,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">col_names =</span> <span class="fu">c</span>(<span class="st">"code"</span>, <span class="st">"path"</span>, <span class="st">"source"</span>, <span class="st">"text"</span>), <span class="at">skip =</span> <span class="dv">1</span>, <span class="at">col_types =</span> <span class="st">"text"</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># every code in Bree's NVivo project is listed, coded or not: that is her</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># codebook. NVivo names carry stray spaces ("NEED _OTHER")</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>bree_codes <span class="ot">&lt;-</span> nvivo <span class="sc">|&gt;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_starts</span>(path, <span class="st">"Codes"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(<span class="at">code =</span> <span class="fu">str_remove_all</span>(code, <span class="st">"</span><span class="sc">\\</span><span class="st">s"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(code)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>not_in_v6 <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(bree_codes, codebook<span class="sc">$</span>code)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(not_in_v6) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="st">"Codes in Bree's NVivo export that are not in codebook.csv: {not_in_v6}"</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co"># a few selections run one cell past the answer and pick up the respondent's</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Unique ID on its own line: drop ID-only and blank lines</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>passages <span class="ot">&lt;-</span> nvivo <span class="sc">|&gt;</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(text)) <span class="sc">|&gt;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">code =</span> <span class="fu">str_remove_all</span>(code, <span class="st">"</span><span class="sc">\\</span><span class="st">s"</span>),</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">picked_up_id =</span> <span class="fu">str_detect</span>(text, <span class="st">"</span><span class="sc">\n\\</span><span class="st">s*</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">s*(</span><span class="sc">\n</span><span class="st">|$)"</span>),</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">text =</span> text <span class="sc">|&gt;</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_split</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">map_chr</span>(\(lines) <span class="fu">str_c</span>(lines[<span class="sc">!</span><span class="fu">str_detect</span>(lines, <span class="st">"^</span><span class="sc">\\</span><span class="st">s*</span><span class="sc">\\</span><span class="st">d*</span><span class="sc">\\</span><span class="st">s*$"</span>)], <span class="at">collapse =</span> <span class="st">" "</span>)),</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">key =</span> <span class="fu">match_key</span>(text)</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>sampled <span class="ot">&lt;-</span> answers <span class="sc">|&gt;</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">str_trim</span>(<span class="fu">str_remove</span>(delivery, <span class="st">"</span><span class="sc">\\</span><span class="st">.xlsx$"</span>)) <span class="sc">%in%</span> coded_files) <span class="sc">|&gt;</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">key =</span> <span class="fu">match_key</span>(text))</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>unmatched <span class="ot">&lt;-</span> <span class="fu">anti_join</span>(passages, sampled, <span class="at">by =</span> <span class="st">"key"</span>)</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(unmatched) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="st">"{nrow(unmatched)} coded passage{?s} match no answer in Bree's files"</span>)</span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="co"># identical answers in the same file cannot be told apart by text. Bree coded</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a><span class="co"># each copy, so a code applied to k identical answers appears k times</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>duplicates <span class="ot">&lt;-</span> <span class="fu">count</span>(sampled, key, <span class="at">name =</span> <span class="st">"n_answers"</span>) <span class="sc">|&gt;</span> <span class="fu">filter</span>(n_answers <span class="sc">&gt;</span> <span class="dv">1</span>)</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>uneven <span class="ot">&lt;-</span> passages <span class="sc">|&gt;</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(key, code, <span class="at">name =</span> <span class="st">"n_rows"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(duplicates, <span class="at">by =</span> <span class="st">"key"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(n_rows <span class="sc">!=</span> n_answers)</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(uneven) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="st">"A code covers only some copies of an answer that appears more than once"</span>)</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>bree <span class="ot">&lt;-</span> passages <span class="sc">|&gt;</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">inner_join</span>(<span class="fu">select</span>(sampled, answer_id, key), <span class="at">by =</span> <span class="st">"key"</span>, <span class="at">relationship =</span> <span class="st">"many-to-many"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(answer_id, code) <span class="sc">|&gt;</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">coder =</span> <span class="st">"Bree"</span>)</span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>scope <span class="ot">&lt;-</span> sampled <span class="sc">|&gt;</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(bree, <span class="at">by =</span> <span class="st">"answer_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(answer_id, tool, question, text)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>The export has 120 rows, one for each code applied to a passage, and every row matched an answer (the code stops if one does not). In 12 rows Bree’s selection ran one cell past the answer and picked up the respondent’s Unique ID; that line is dropped before matching. 4 of the answers Bree coded share their text with another answer in her files. She coded every copy the same way, so each copy keeps those codes.</p>
+<p>Bree gave at least one code to all 71 answers in her files:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>scope <span class="sc">|&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(<span class="at">Question =</span> <span class="fu">question_label</span>(question), <span class="at">name =</span> <span class="st">"Answers"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-4ab461793d98b4be437b" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-4ab461793d98b4be437b">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Question":["Canvass Q3","Survey q5a","Survey q5c","Survey q7"],"Answers":[64,3,1,3]},"columns":[{"id":"Question","name":"Question","type":"character","minWidth":90},{"id":"Answers","name":"Answers","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"aaa6ef72048cb8f9665e1b9a80acb63e"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="keeping-the-comparison-like-for-like" class="level2">
+<h2 class="anchored" data-anchor-id="keeping-the-comparison-like-for-like">Keeping the comparison like for like</h2>
+<ul>
+<li><strong>Same answers</strong>: only the answers Bree coded are compared.</li>
+<li><strong>Same list of codes</strong>: Bree used codebook version 5 (145 codes) and the models used version 6, which adds 22 codes and renames none. The models’ uses of the new codes are set aside (table below), so every coder chooses from the same 145 codes.</li>
+<li><strong>Same unit</strong>: one answer. A code counts once per answer, however many passages of the answer it was applied to.</li>
+<li><strong>Same domains</strong>: every code is placed in its version 6 domain for all three coders. No code changed domain between versions.</li>
+<li><strong>Still open: what gets coded.</strong> The models are told to “assign every code whose definition the passage clearly meets,” including codes from different domains, such as who the person cares for or what has been hard. Whether Bree codes everything an answer mentions or only what responds to the question is a question for her. The domain table below shows how much of the difference this accounts for.</li>
+</ul>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>model_raw <span class="ot">&lt;-</span> <span class="fu">imap</span>(runs, \(run, coder) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">read_csv</span>(<span class="fu">here</span>(<span class="st">"data/processed/llm-coding"</span>, run, <span class="st">"coded_open_ended.csv"</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>           <span class="at">show_col_types =</span> <span class="cn">FALSE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(answer_id <span class="sc">%in%</span> scope<span class="sc">$</span>answer_id) <span class="sc">|&gt;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">coder =</span> coder)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">|&gt;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>()</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co"># every coded answer has at least one row in a run, even with no codes</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>missing <span class="ot">&lt;-</span> scope <span class="sc">|&gt;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cross_join</span>(<span class="fu">tibble</span>(<span class="at">coder =</span> <span class="fu">names</span>(runs))) <span class="sc">|&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">anti_join</span>(model_raw, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"answer_id"</span>, <span class="st">"coder"</span>))</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">nrow</span>(missing) <span class="sc">&gt;</span> <span class="dv">0</span>) {</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  cli<span class="sc">::</span><span class="fu">cli_abort</span>(<span class="st">"{nrow(missing)} of Bree's answers are missing from a model run"</span>)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>model_used <span class="ot">&lt;-</span> model_raw <span class="sc">|&gt;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(code)) <span class="sc">|&gt;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(coder, answer_id, code)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>set_aside <span class="ot">&lt;-</span> model_used <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span>code <span class="sc">%in%</span> bree_codes)</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>coded <span class="ot">&lt;-</span> model_used <span class="sc">|&gt;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(code <span class="sc">%in%</span> bree_codes) <span class="sc">|&gt;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>(bree)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>set_aside <span class="sc">|&gt;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(coder, code) <span class="sc">|&gt;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> coder, <span class="at">values_from =</span> n, <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">`</span><span class="at">Version 6 code</span><span class="st">`</span> <span class="ot">=</span> code) <span class="sc">|&gt;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>(</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Model codes set aside because they are not in version 5"</span>,</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">note =</span> <span class="st">"Number of answers each model gave the code."</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p class="table-title">
+<strong>Model codes set aside because they are not in version 5</strong>
+</p>
+<div class="reactable html-widget html-fill-item" id="htmlwidget-bad0141174047285e53f" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-bad0141174047285e53f">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Version 6 code":["CARE_RELATIONSHIP","NEED_CAREGIVER_JOB_QUALITY","SOLUTION_CARE_WORKER_JOB_QUALITY","SOLUTION_EASY_ENROLLMENT","SOLUTION_FAMILY_CAREGIVER_COMPENSATION","SOLUTION_HEALTH_INSURANCE_COVERAGE","SOLUTION_PAID_TIME_OFF","SOLUTION_SUBSIDIES","SOLUTION_UNIVERSAL_CHILD_CARE","CHALLENGE_NO_PAID_LEAVE","NEED_FAMILY_CAREGIVER_COMPENSATION"],"Opus":[4,2,2,1,2,1,1,2,4,0,0],"Sonnet":[5,3,0,1,0,0,0,2,2,1,1]},"columns":[{"id":"Version 6 code","name":"Version 6 code","type":"character","minWidth":90},{"id":"Opus","name":"Opus","type":"numeric","minWidth":90},{"id":"Sonnet","name":"Sonnet","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"af5c1ccce6d2d11f3fbf1e93702df187"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<p class="table-note">Number of answers each model gave the code.</p>
+</div>
+</div>
+</section>
+<section id="how-closely-the-coders-agree" class="level2">
+<h2 class="anchored" data-anchor-id="how-closely-the-coders-agree">How closely the coders agree</h2>
+<p>Each table compares two coders on the 71 answers:</p>
+<ul>
+<li><strong>Identical codes</strong>: the share of answers where both chose exactly the same codes.</li>
+<li><strong>Average overlap</strong>: for each answer, the codes both chose divided by the codes either chose, averaged over answers. 1 means identical, 0 means nothing in common.</li>
+<li><strong>First coder’s codes the second also chose</strong> and the reverse: for Bree and a model, the first is the share of Bree’s codes the model found, the second the share of the model’s codes Bree also used.</li>
+<li><strong>Krippendorff’s alpha</strong>: agreement corrected for the agreement two coders would reach by chance, given how often each code is used. 1 is perfect agreement and 0 is no better than chance. When two coders choose different but overlapping sets of codes, the MASI distance gives partial credit (<a href="https://aclanthology.org/L06-1392/">Passonneau 2006</a>). Krippendorff (2004, <em>Content Analysis</em>, 2nd ed.) recommends relying on coding with alpha of at least 0.80 and treating 0.67 to 0.80 as enough only for tentative conclusions.</li>
+</ul>
+<p>The brackets are 95 percent intervals from resampling the answers 2,000 times. With this few answers they are wide; differences between the two models that fall inside them are not meaningful.</p>
+<p>The second table repeats the comparison one level up: instead of the exact codes, which domains (Desired Supports, Challenges, and so on) each coder used on the answer.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># share of codes in common: both empty counts as identical</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>jaccard <span class="ot">&lt;-</span> <span class="cf">function</span>(a, b) {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  either <span class="ot">&lt;-</span> <span class="fu">union</span>(a, b)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">length</span>(either) <span class="sc">==</span> <span class="dv">0</span>) <span class="fu">return</span>(<span class="dv">1</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">length</span>(<span class="fu">intersect</span>(a, b)) <span class="sc">/</span> <span class="fu">length</span>(either)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># MASI distance between two coders' code sets for one answer (Passonneau 2006):</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 0 = identical sets, 1 = nothing in common, with partial credit in between.</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>masi_distance <span class="ot">&lt;-</span> <span class="cf">function</span>(a, b) {</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">TODO</span><span class="co">(Manu): return the distance between code sets `a` and `b`</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="cn">NA_real_</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co"># distance between every pair of code sets, filled once so the bootstrap only</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co"># indexes into it</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>distance_matrix <span class="ot">&lt;-</span> <span class="cf">function</span>(sets, distance) {</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">length</span>(sets)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="dv">0</span>, n, n)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(n <span class="sc">-</span> <span class="dv">1</span>)) {</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (j <span class="cf">in</span> (i <span class="sc">+</span> <span class="dv">1</span>)<span class="sc">:</span>n) d[i, j] <span class="ot">&lt;-</span> d[j, i] <span class="ot">&lt;-</span> <span class="fu">distance</span>(sets[[i]], sets[[j]])</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  d</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Krippendorff's alpha for two coders: 1 - observed / expected disagreement.</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co"># `d` holds the first coder's sets, then the second's, so answer i is row i</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co"># and row n + i. Observed: the two coders on the same answer. Expected: any</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co"># two sets drawn from all the sets both coders produced.</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>alpha_from_distances <span class="ot">&lt;-</span> <span class="cf">function</span>(d, idx) {</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  n <span class="ot">&lt;-</span> <span class="fu">nrow</span>(d) <span class="sc">/</span> <span class="dv">2</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  pooled <span class="ot">&lt;-</span> <span class="fu">c</span>(idx, n <span class="sc">+</span> idx)</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  observed <span class="ot">&lt;-</span> <span class="fu">mean</span>(d[<span class="fu">cbind</span>(idx, n <span class="sc">+</span> idx)])</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>  m <span class="ot">&lt;-</span> <span class="fu">length</span>(pooled)</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>  expected <span class="ot">&lt;-</span> <span class="fu">sum</span>(d[pooled, pooled]) <span class="sc">/</span> (m <span class="sc">*</span> (m <span class="sc">-</span> <span class="dv">1</span>))</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1</span> <span class="sc">-</span> observed <span class="sc">/</span> expected</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># one code set per coder per answer, in scope order; no codes = empty set</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>code_sets <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="fu">set_names</span>(coders), \(who) {</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  sets <span class="ot">&lt;-</span> coded <span class="sc">|&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(coder <span class="sc">==</span> who) <span class="sc">|&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">codes =</span> <span class="fu">list</span>(<span class="fu">sort</span>(code)), <span class="at">.by =</span> answer_id)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">select</span>(scope, answer_id), sets, <span class="at">by =</span> <span class="st">"answer_id"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(codes) <span class="sc">|&gt;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(\(x) x <span class="sc">%||%</span> <span class="fu">character</span>())</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>domain_of <span class="ot">&lt;-</span> <span class="fu">set_names</span>(codebook<span class="sc">$</span>domain, codebook<span class="sc">$</span>code)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>domain_sets <span class="ot">&lt;-</span> <span class="fu">map</span>(code_sets, \(sets) <span class="fu">map</span>(sets, \(s) <span class="fu">sort</span>(<span class="fu">unique</span>(<span class="fu">unname</span>(domain_of[s])))))</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>pair_agreement <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) {</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  per_answer <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">identical =</span> <span class="fu">map2_lgl</span>(x, y, setequal),</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">overlap   =</span> <span class="fu">map2_dbl</span>(x, y, jaccard),</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">both      =</span> <span class="fu">lengths</span>(<span class="fu">map2</span>(x, y, intersect)),</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_x       =</span> <span class="fu">lengths</span>(x),</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">n_y       =</span> <span class="fu">lengths</span>(y)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  d <span class="ot">&lt;-</span> <span class="fu">distance_matrix</span>(<span class="fu">c</span>(x, y), masi_distance)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  measures <span class="ot">&lt;-</span> <span class="cf">function</span>(idx) {</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    p <span class="ot">&lt;-</span> per_answer[idx, ]</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Identical codes"</span> <span class="ot">=</span> <span class="fu">mean</span>(p<span class="sc">$</span>identical),</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Average overlap"</span> <span class="ot">=</span> <span class="fu">mean</span>(p<span class="sc">$</span>overlap),</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">"First coder’s codes the second also chose"</span> <span class="ot">=</span> <span class="fu">sum</span>(p<span class="sc">$</span>both) <span class="sc">/</span> <span class="fu">sum</span>(p<span class="sc">$</span>n_x),</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Second coder’s codes the first also chose"</span> <span class="ot">=</span> <span class="fu">sum</span>(p<span class="sc">$</span>both) <span class="sc">/</span> <span class="fu">sum</span>(p<span class="sc">$</span>n_y),</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Krippendorff’s alpha (MASI)"</span> <span class="ot">=</span> <span class="fu">alpha_from_distances</span>(d, idx)</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  estimate <span class="ot">&lt;-</span> <span class="fu">measures</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(per_answer)))</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  boot <span class="ot">&lt;-</span> <span class="fu">replicate</span>(n_boot, <span class="fu">measures</span>(<span class="fu">sample</span>(<span class="fu">nrow</span>(per_answer), <span class="at">replace =</span> <span class="cn">TRUE</span>)))</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">measure =</span> <span class="fu">names</span>(estimate),</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    estimate,</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">low  =</span> <span class="fu">apply</span>(boot, <span class="dv">1</span>, quantile, <span class="fl">0.025</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">high =</span> <span class="fu">apply</span>(boot, <span class="dv">1</span>, quantile, <span class="fl">0.975</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>pairs <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="st">"Bree"</span>, <span class="st">"Sonnet"</span>), <span class="fu">c</span>(<span class="st">"Bree"</span>, <span class="st">"Opus"</span>), <span class="fu">c</span>(<span class="st">"Sonnet"</span>, <span class="st">"Opus"</span>))</span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>agreement_table <span class="ot">&lt;-</span> <span class="cf">function</span>(sets) {</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(pairs, \(p) <span class="fu">pair_agreement</span>(sets[[p[<span class="dv">1</span>]]], sets[[p[<span class="dv">2</span>]]]) <span class="sc">|&gt;</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mutate</span>(<span class="at">pair =</span> <span class="fu">str_c</span>(p[<span class="dv">1</span>], <span class="st">" and "</span>, p[<span class="dv">2</span>]))) <span class="sc">|&gt;</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list_rbind</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">shown =</span> <span class="fu">case_when</span>(</span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>      <span class="fu">is.na</span>(estimate) <span class="sc">~</span> <span class="st">"not yet computed"</span>,</span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>      <span class="fu">str_detect</span>(measure, <span class="st">"alpha|overlap"</span>) <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"%.2f (%.2f–%.2f)"</span>, estimate, low, high),</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>      <span class="at">.default =</span> <span class="fu">sprintf</span>(<span class="st">"%.0f%% (%.0f–%.0f)"</span>, <span class="dv">100</span> <span class="sc">*</span> estimate, <span class="dv">100</span> <span class="sc">*</span> low, <span class="dv">100</span> <span class="sc">*</span> high)</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    )) <span class="sc">|&gt;</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(<span class="at">Measure =</span> measure, pair, shown) <span class="sc">|&gt;</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> pair, <span class="at">values_from =</span> shown)</span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a><span class="fu">agreement_table</span>(code_sets) <span class="sc">|&gt;</span> <span class="fu">tbl</span>(<span class="at">title =</span> <span class="st">"Agreement on the exact codes"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p class="table-title">
+<strong>Agreement on the exact codes</strong>
+</p>
+<div class="reactable html-widget html-fill-item" id="htmlwidget-6dbaac139ec43bf9b20a" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-6dbaac139ec43bf9b20a">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Measure":["Identical codes","Average overlap","First coder’s codes the second also chose","Second coder’s codes the first also chose","Krippendorff’s alpha (MASI)"],"Bree and Sonnet":["17% (8–25)","0.37 (0.29–0.45)","52% (42–61)","39% (33–47)","not yet computed"],"Bree and Opus":["17% (8–27)","0.36 (0.28–0.44)","48% (39–57)","35% (28–43)","not yet computed"],"Sonnet and Opus":["41% (30–52)","0.65 (0.58–0.73)","73% (66–79)","68% (62–75)","not yet computed"]},"columns":[{"id":"Measure","name":"Measure","type":"character","minWidth":90},{"id":"Bree and Sonnet","name":"Bree and Sonnet","type":"character","minWidth":90},{"id":"Bree and Opus","name":"Bree and Opus","type":"character","minWidth":90},{"id":"Sonnet and Opus","name":"Sonnet and Opus","type":"character","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"28afc5ac633acde2cba9207d119a9d22"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">agreement_table</span>(domain_sets) <span class="sc">|&gt;</span> <span class="fu">tbl</span>(<span class="at">title =</span> <span class="st">"Agreement on the domains"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p class="table-title">
+<strong>Agreement on the domains</strong>
+</p>
+<div class="reactable html-widget html-fill-item" id="htmlwidget-c54692ed500bea68773f" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-c54692ed500bea68773f">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Measure":["Identical codes","Average overlap","First coder’s codes the second also chose","Second coder’s codes the first also chose","Krippendorff’s alpha (MASI)"],"Bree and Sonnet":["38% (27–49)","0.55 (0.45–0.64)","76% (66–86)","47% (39–54)","not yet computed"],"Bree and Opus":["37% (25–48)","0.52 (0.43–0.61)","75% (65–85)","45% (38–53)","not yet computed"],"Sonnet and Opus":["56% (45–68)","0.78 (0.71–0.84)","82% (76–88)","81% (74–87)","not yet computed"]},"columns":[{"id":"Measure","name":"Measure","type":"character","minWidth":90},{"id":"Bree and Sonnet","name":"Bree and Sonnet","type":"character","minWidth":90},{"id":"Bree and Opus","name":"Bree and Opus","type":"character","minWidth":90},{"id":"Sonnet and Opus","name":"Sonnet and Opus","type":"character","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"b8d698233847efbed5c6712df0342f49"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="how-many-codes-each-coder-uses-and-where" class="level2">
+<h2 class="anchored" data-anchor-id="how-many-codes-each-coder-uses-and-where">How many codes each coder uses, and where</h2>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(coders, \(who) <span class="fu">tibble</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">Coder =</span> who,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Codes per answer</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">mean</span>(<span class="fu">lengths</span>(code_sets[[who]])), <span class="dv">1</span>),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">`</span><span class="at">Answers with no code</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sum</span>(<span class="fu">lengths</span>(code_sets[[who]]) <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>)) <span class="sc">|&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-c25e97fc978e30a4a242" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-c25e97fc978e30a4a242">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Coder":["Bree","Sonnet","Opus"],"Codes per answer":[1.7,2.2,2.4],"Answers with no code":[0,2,3]},"columns":[{"id":"Coder","name":"Coder","type":"character","minWidth":90},{"id":"Codes per answer","name":"Codes per answer","type":"numeric","minWidth":90},{"id":"Answers with no code","name":"Answers with no code","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"b07bd70bcea9a01b1d850f82dc74c5a0"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<p>Answers on which each coder used at least one code from each domain. A domain the models use often and Bree rarely points to a difference in what gets coded, not in how a code is read.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>coded <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">domain =</span> domain_of[code]) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">distinct</span>(coder, answer_id, domain) <span class="sc">|&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(domain, coder) <span class="sc">|&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> coder, <span class="at">values_from =</span> n, <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">Domain =</span> domain, <span class="fu">all_of</span>(coders)) <span class="sc">|&gt;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(Bree), <span class="fu">desc</span>(Sonnet)) <span class="sc">|&gt;</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>(<span class="at">note =</span> <span class="fu">str_glue</span>(<span class="st">"Number of answers, out of {nrow(scope)}."</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-b781565b84026b3b2a43" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-b781565b84026b3b2a43">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Domain":["Desired Supports","Supports","Outcomes","Participant Characteristics","Solutions","Challenges","Ideal System","Framing","Care Context","Navigation"],"Bree":[63,4,3,1,0,0,0,0,0,0],"Sonnet":[50,4,3,9,20,15,7,4,3,1],"Opus":[47,4,4,9,19,13,6,9,5,2]},"columns":[{"id":"Domain","name":"Domain","type":"character","minWidth":90},{"id":"Bree","name":"Bree","type":"numeric","minWidth":90},{"id":"Sonnet","name":"Sonnet","type":"numeric","minWidth":90},{"id":"Opus","name":"Opus","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"e40360134f25c2ac6262c859a0a538cd"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<p class="table-note">Number of answers, out of 71.</p>
+</div>
+</div>
+</section>
+<section id="agreement-code-by-code" class="level2">
+<h2 class="anchored" data-anchor-id="agreement-code-by-code">Agreement code by code</h2>
+<p>Each code Bree used on at least five answers: how many answers each coder gave it, how many both did, and Cohen’s kappa for that code (1 is perfect agreement, 0 is no better than chance). With this few answers per code, these are a guide to where to look, not estimates to report.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>cohen_kappa <span class="ot">&lt;-</span> <span class="cf">function</span>(x, y) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  observed <span class="ot">&lt;-</span> <span class="fu">mean</span>(x <span class="sc">==</span> y)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  expected <span class="ot">&lt;-</span> <span class="fu">mean</span>(x) <span class="sc">*</span> <span class="fu">mean</span>(y) <span class="sc">+</span> <span class="fu">mean</span>(<span class="sc">!</span>x) <span class="sc">*</span> <span class="fu">mean</span>(<span class="sc">!</span>y)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  (observed <span class="sc">-</span> expected) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">-</span> expected)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>frequent <span class="ot">&lt;-</span> bree <span class="sc">|&gt;</span> <span class="fu">count</span>(code) <span class="sc">|&gt;</span> <span class="fu">filter</span>(n <span class="sc">&gt;=</span> <span class="dv">5</span>) <span class="sc">|&gt;</span> <span class="fu">pull</span>(code)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(frequent, \(cd) {</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  has <span class="ot">&lt;-</span> <span class="fu">map</span>(code_sets, \(sets) <span class="fu">map_lgl</span>(sets, \(s) cd <span class="sc">%in%</span> s))</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">Code =</span> cd,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Bree =</span> <span class="fu">sum</span>(has<span class="sc">$</span>Bree),</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sonnet =</span> <span class="fu">sum</span>(has<span class="sc">$</span>Sonnet),</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Both (Sonnet)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sum</span>(has<span class="sc">$</span>Bree <span class="sc">&amp;</span> has<span class="sc">$</span>Sonnet),</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Kappa (Sonnet)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">cohen_kappa</span>(has<span class="sc">$</span>Bree, has<span class="sc">$</span>Sonnet), <span class="dv">2</span>),</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Opus =</span> <span class="fu">sum</span>(has<span class="sc">$</span>Opus),</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Both (Opus)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">sum</span>(has<span class="sc">$</span>Bree <span class="sc">&amp;</span> has<span class="sc">$</span>Opus),</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Kappa (Opus)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="fu">cohen_kappa</span>(has<span class="sc">$</span>Bree, has<span class="sc">$</span>Opus), <span class="dv">2</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">|&gt;</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>() <span class="sc">|&gt;</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(Bree)) <span class="sc">|&gt;</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-147af585d8760a0b6c76" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-147af585d8760a0b6c76">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Code":["NEED_AFFORDABLE_CARE","NEED_HIGH_QUALITY_CARE","NEED_OTHER","NEED_ACCESS_GENERAL","NEED_CHILD_CARE","NEED_SENIOR_CARE","NEED_SUPPORT_CAREGIVERS","NEED_CARE_NAVIGATION_ASSISTANCE","NEED_CARE_ALL"],"Bree":[21,17,14,12,11,9,8,6,5],"Sonnet":[12,3,0,16,12,6,7,2,5],"Both (Sonnet)":[12,3,0,9,10,6,4,2,4],"Kappa (Sonnet)":[0.65,0.25,0,0.56,0.84,0.78,0.48,0.48,0.78],"Opus":[14,2,1,14,9,6,6,2,4],"Both (Opus)":[14,1,1,9,8,6,3,2,3],"Kappa (Opus)":[0.74,0.06,0.11,0.62,0.77,0.78,0.37,0.48,0.64]},"columns":[{"id":"Code","name":"Code","type":"character","minWidth":90},{"id":"Bree","name":"Bree","type":"numeric","minWidth":90},{"id":"Sonnet","name":"Sonnet","type":"numeric","minWidth":90},{"id":"Both (Sonnet)","name":"Both (Sonnet)","type":"numeric","minWidth":90},{"id":"Kappa (Sonnet)","name":"Kappa (Sonnet)","type":"numeric","minWidth":90},{"id":"Opus","name":"Opus","type":"numeric","minWidth":90},{"id":"Both (Opus)","name":"Both (Opus)","type":"numeric","minWidth":90},{"id":"Kappa (Opus)","name":"Kappa (Opus)","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"d544e0bdb10cb8d66acecbf47d80e99c"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="codes-most-often-swapped" class="level2">
+<h2 class="anchored" data-anchor-id="codes-most-often-swapped">Codes most often swapped</h2>
+<p>When Bree and a model disagree on an answer, which of Bree’s codes the model left out and which code it chose instead. Pairs that recur point to codes whose boundary the codebook could draw more sharply.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>swaps <span class="ot">&lt;-</span> <span class="fu">map</span>(<span class="fu">names</span>(runs), \(model) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map2</span>(code_sets<span class="sc">$</span>Bree, code_sets[[model]], \(b, m) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">expand_grid</span>(<span class="st">`</span><span class="at">Bree chose</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">setdiff</span>(b, m), <span class="st">`</span><span class="at">Model chose instead</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">setdiff</span>(m, b))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list_rbind</span>() <span class="sc">|&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">coder =</span> model)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>}) <span class="sc">|&gt;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list_rbind</span>()</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>swaps <span class="sc">|&gt;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(<span class="st">`</span><span class="at">Bree chose</span><span class="st">`</span>, <span class="st">`</span><span class="at">Model chose instead</span><span class="st">`</span>, coder) <span class="sc">|&gt;</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> coder, <span class="at">values_from =</span> n, <span class="at">values_fill =</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">total =</span> Sonnet <span class="sc">+</span> Opus) <span class="sc">|&gt;</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(total <span class="sc">&gt;=</span> <span class="dv">4</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(total)) <span class="sc">|&gt;</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>total) <span class="sc">|&gt;</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>(<span class="at">note =</span> <span class="st">"Number of answers. Pairs seen on fewer than four answers across both models are not shown."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-ceb71d4d435b6dabeb28" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-ceb71d4d435b6dabeb28">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Bree chose":["NEED_HIGH_QUALITY_CARE","NEED_AFFORDABLE_CARE","NEED_AFFORDABLE_CARE","NEED_HIGH_QUALITY_CARE","NEED_OTHER","NEED_AFFORDABLE_CARE","NEED_OTHER","NEED_OTHER","NEED_OTHER","NEED_SUPPORT_CAREGIVERS"],"Model chose instead":["SOLUTION_CAREGIVER_WAGES","CHALLENGE_COST_BARRIER","SOLUTION_GOVERNMENT_PAID","SOLUTION_CAREGIVER_WORKFORCE_DEV","NEED_HEALTH_CARE","FAIRNESS_AND_EQUITY","CHALLENGE_COST_BARRIER","FAIRNESS_AND_EQUITY","SOLUTION_GOVERNMENT_PAID","CHALLENGE_EMOTIONAL_STRESS"],"Sonnet":[5,4,3,3,2,2,2,2,2,2],"Opus":[4,2,2,2,3,2,2,2,2,2]},"columns":[{"id":"Bree chose","name":"Bree chose","type":"character","minWidth":90},{"id":"Model chose instead","name":"Model chose instead","type":"character","minWidth":90},{"id":"Sonnet","name":"Sonnet","type":"numeric","minWidth":90},{"id":"Opus","name":"Opus","type":"numeric","minWidth":90}],"resizable":true,"pagination":false,"defaultPageSize":60,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"ad507f99ab69e6a0770f8afb4af6ef06"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+<p class="table-note">Number of answers. Pairs seen on fewer than four answers across both models are not shown.</p>
+</div>
+</div>
+</section>
+<section id="what-this-shows-so-far" class="level2">
+<h2 class="anchored" data-anchor-id="what-this-shows-so-far">What this shows so far</h2>
+<ul>
+<li><strong>Where Bree and the models code the same thing, they mostly agree.</strong> On child care, senior care, affordability, and care for everyone, kappa is above 0.6 for both models.</li>
+<li><strong>Two of Bree’s codes account for about half of what the models miss.</strong> Of the 58 codes Bree chose that Sonnet did not, 28 are <code>NEED_HIGH_QUALITY_CARE</code> or <code>NEED_OTHER</code> (Opus: 29 of 62). Bree uses <code>NEED_HIGH_QUALITY_CARE</code> for answers about pay and working conditions for caregivers, which the models code as <code>SOLUTION_CAREGIVER_WAGES</code> or <code>SOLUTION_CAREGIVER_WORKFORCE_DEV</code>. Version 6 adds <code>NEED_CAREGIVER_JOB_QUALITY</code>, which may be the code for these answers. Where Bree uses <code>NEED_OTHER</code>, the models usually find a specific code, such as <code>NEED_DIRECT_FINANCIAL_ASSISTANCE</code> for an answer that reads “Money.”</li>
+<li><strong>Most codes the models add come from domains Bree did not use on that answer.</strong> Of the 95 codes Sonnet chose that Bree did not, 70 are in such a domain, mostly Solutions and Challenges (Opus: 84 of 109). The models code what has been hard and what would fix it alongside the support the person asks for. This is the open question of what gets coded.</li>
+<li><strong>The two models agree with each other much more than either agrees with Bree</strong>, and Opus agrees with Bree no more than Sonnet does. The differences point to the instructions and the codebook more than to the choice of model.</li>
+</ul>
+<p>Next steps:</p>
+<ul>
+<li>Bree decides whether an answer is coded for everything it mentions or only for what responds to the question. If the latter, the coding prompt changes to match, and rerunning both models on these answers costs under a dollar.</li>
+<li>Bree settles the boundary between Desired Supports and Solutions codes that describe the same thing, and when <code>NEED_OTHER</code> applies.</li>
+<li>The next round samples answers within each question instead of whole files, so the survey questions with the most answers are covered. This round has 7 survey answers.</li>
+<li>The interviews are added once Bree codes them. A second person coding the same answers would show how far two people agree, which is the standard the models should be held to.</li>
+</ul>
+</section>
+<section id="every-answer-side-by-side" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="every-answer-side-by-side">Every answer side by side</h2>
+<p>Codes a model shares with Bree are in bold. <span class="web-only">Type in the search box to find an answer or a code.</span></p>
+<div class="cell page-columns page-full">
+<details class="code-fold">
+<summary>Show code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># one code per line, bold where it is in `reference`; long code names wrap</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># only at underscores</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>show_codes <span class="ot">&lt;-</span> <span class="cf">function</span>(sets, <span class="at">reference =</span> <span class="cn">NULL</span>) {</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map2_chr</span>(sets, reference <span class="sc">%||%</span> <span class="fu">map</span>(sets, \(s) <span class="fu">character</span>()), \(s, r) {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">length</span>(s) <span class="sc">==</span> <span class="dv">0</span>) <span class="fu">return</span>(<span class="st">"(none)"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    s <span class="ot">&lt;-</span> <span class="fu">str_replace_all</span>(s, <span class="st">"_"</span>, <span class="st">"_&lt;wbr&gt;"</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    shared <span class="ot">&lt;-</span> <span class="fu">str_remove_all</span>(s, <span class="st">"&lt;wbr&gt;"</span>) <span class="sc">%in%</span> r</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">if_else</span>(shared, <span class="fu">str_c</span>(<span class="st">"&lt;b&gt;"</span>, s, <span class="st">"&lt;/b&gt;"</span>), s) <span class="sc">|&gt;</span> <span class="fu">str_c</span>(<span class="at">collapse =</span> <span class="st">"&lt;br&gt;"</span>)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>scope <span class="sc">|&gt;</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">transmute</span>(</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">Question =</span> <span class="fu">question_label</span>(question),</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">Answer =</span> text,</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Bree =</span> <span class="fu">show_codes</span>(code_sets<span class="sc">$</span>Bree),</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Sonnet =</span> <span class="fu">show_codes</span>(code_sets<span class="sc">$</span>Sonnet, code_sets<span class="sc">$</span>Bree),</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Opus =</span> <span class="fu">show_codes</span>(code_sets<span class="sc">$</span>Opus, code_sets<span class="sc">$</span>Bree)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tbl</span>(</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">page_size =</span> <span class="dv">10</span>, <span class="at">searchable =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">list</span>(</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">Question =</span> <span class="fu">colDef</span>(<span class="at">minWidth =</span> <span class="dv">80</span>),</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>      <span class="at">Answer =</span> <span class="fu">colDef</span>(<span class="at">minWidth =</span> <span class="dv">240</span>),</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">Bree =</span> <span class="fu">colDef</span>(<span class="at">html =</span> <span class="cn">TRUE</span>, <span class="at">minWidth =</span> <span class="dv">170</span>),</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>      <span class="at">Sonnet =</span> <span class="fu">colDef</span>(<span class="at">html =</span> <span class="cn">TRUE</span>, <span class="at">minWidth =</span> <span class="dv">170</span>),</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">Opus =</span> <span class="fu">colDef</span>(<span class="at">html =</span> <span class="cn">TRUE</span>, <span class="at">minWidth =</span> <span class="dv">170</span>)</span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display column-page">
+<div class="reactable html-widget html-fill-item" id="htmlwidget-eb50ff1584c4d070ebca" style="width:auto;height:auto;"></div>
+<script type="application/json" data-for="htmlwidget-eb50ff1584c4d070ebca">{"x":{"tag":{"name":"Reactable","attribs":{"data":{"Question":["Survey q5a","Survey q5a","Survey q5a","Survey q5c","Survey q7","Survey q7","Survey q7","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3","Canvass Q3"],"Answer":["Working with key stakeholders in creating strategic partnerships to bridge gaps for community folx","I am now dealing with my 4th person with dementia (3 family members and 1 friend). The help has come from paid caregivers, family members, friends, and healthcare professionals. For my friend, he had dementia as a result of his Parkinson's and I was his healthcare representative (going with him to appointments, advocating for him, and managing his health needs. It took 5 of us to take care of him. I don't know how i would have managed without the other 4 people. My mom had Alzheimer's, and our family benefitted greatly from the support services provided by the [REDACTED DEMENTIA ORGANIZATION].","They assist the parents in my Center.","The government helps with vouchers.","Life beyond work and care. Time to have a hobby again. Space for creative expression.","I believe we would have safer, flourishing communities if we were all taken care of (paid leave, universal child care, liveable wages) etc","I would be less afraid of aging, less worried about how to care for family","Money","More access more info and education for caregivers it feels like an abyss when you are in it","More accessible","Make it free universal cradle to grave free for all","the first thing that comes to mind for me is like a maternity leave and things like that because I mean, I know in the United States very good especially so I feel like I would definitely want to change that adding parental leave in general because I know for some of the caregivers in my life, they have not been able to I would really like to see that.","Think it needs to be built in is more of a system and a network versus an afterthought like proactive versus reactive when people are already like past the point of needing help","Early childhood care and education, a so please come affordable for all thank you we got it.","What would you change? I think like after school programs and supplemental care like outside of school hours I would like really life-changing for a lot of people in my life.","free child care","Hope to make child care universal and accessible to all","Making info more available about services","Having ways to give people ways to know about what's","Eduction and access to educate","More access to care parental leave","More access to healthcare and insurance and time of day","Way more affordable but people doing it deserve to be paid well","More affordability","More access able","More access[i]ble","Peaceful and not too hard in the worker or the elderly","More equality for everyone making sure everyone is taken care of","Subsidized care better for all so care takers and people being cared for have good quality of life","More for elderly accessibility more non traditional opportunities for extended family to come support flexible at work to care for family ||My cousin was in hospice luckily my employer let me go be with her","Wish more facilities to house our elderly and how to navigate on the reservation rather than having to go outside the reservation transport big problem and we want them in the community with us","For child care my sister has it so hard to find child care everything is so expensive for even a week so expensive diabolical how inaccessible it is e dry thing is double standards we want them at home but they can't afford it you want to work you need a nanny you have to pay it's all too much","In nyc about to have our first child maybe process of finding child care I don't know how to navigate the system how can I be more supportive of child care providers subsidies for child care","What do you do? Yeah, right right better resources for learning about quality elder care","More support for caregivers they are giving up wages social opportunities career opportunities","More affordable accessibility","Give protections health care safety so many things","This country needs to reform elder care how do nursing homes not have enough staffing","Everything child care sucks elder care terrible seeing loss of funding in programs for kids in New Mexico they gave free child care but it's crazy some states get that some don't imbalance is crazy they keep taking more we have a deficit of care","Caregiver insurance to nanny, benefits, PTO benefits i had no protection as a nanny","Better training more accessible for caregivers also mental health","Good training having access to care sometimes people not allowed access to care","Accessible support for caregivers","More resources that aren't policed workplace abuses aren't reported because of policing","Less expensive more accessible some people can't afford it it can happen so quick that you need it","Support system government funds to help","I live with my grandma in my career trying to be a nurse it takes a lot to give to others self care so important there's a lot of efforts to talk about it but we need more unity social groups motivating to care for yourself understanding benefits of self care passion is imoirtant mental health is key restorative environment","Encourage people to take up these jobs","Publically available resources","Taking away loopholes to prove you need it making it legitimate as. Career","I'm taking care of my grandma it's hard in the whole family it's heartbreaking I think about people who don't have family to help||Affordable healthcare for seniors is needed it's so expensive lots of elders not even buying groceries healthcare should be free ||You face different levels of struggles trying to be strong for more than yourself ||Being positive while you are suffering ||Meeting people","If we could get more funding to provide free care whether parents or elderly it's so expensive and hard when families have to choose you can't always do both quality care and time","My grandma was dying and I helped with her care and was close to her meaningful to be a caregiver and help her then I got chronic disease it's easier to give than accept for me ||Caregivers need more support caretakers are backbone they need more support I'm lucky we cited help my grandmas caregivers we become so close ||Medical overhaul believing women's pain ||Emotions discredited ||Affordable child care I a, inspired by nyc child care takes a village","More resources to make care more accessible more background checks","Free care for all including mental health we're seeing what happens when it's not","Education mandatory after school care to support single parents social services should be highest funding take from defense","Higher pay for caregiving jobs and in high school have programs that teach kids to be caregivers","Make it more affordable accessible compensate those doing it community focused care where my family is from people take care of each other people show up this doesn't exist in American culture ||It feels tough with elderly care if you don't have the money to","Mom is paid but her labor is more than what she gets she gets 1000 month but it's not enough she can't work anywhere else caregivers should be paid more","Easier access to resources not recognized enough need more","Free child care","Pay more better resources for caring families","Remember it takes a village that means everyone equitable access government support to those least able to do the caregiving","Easier to get caregivers paid lower cost more accessible","Better work conditions for caregivers you can't care if not for yourself making sure everyone is safe","More support for parents affordable childcare allowance parents to stay with babies for longer many countries allow long leave and we just argue in this country it's such a mixed message parents are told to go back to work but supposedly youth is future","More equality in care people can get I worked at a low income daycare funding was minimal we need to bridge quality","More affordable more efficient","More humane","Health care more affordable free childcare","Pay workers more it's a big burnout career not enough support quality can't be as good if we are burned out"],"Bree":["SUPPORT_<wbr>IMPACTS","SUPPORT_<wbr>FAMILY<br>SUPPORT_<wbr>FRIEND_<wbr>COMMUNITY","SUPPORT_<wbr>FAMILY","SUPPORT_<wbr>FINANCIAL","OUTCOME_<wbr>INCREASED_<wbr>OPPORTUNITY","OUTCOME_<wbr>COMMUNITY_<wbr>STRENGTH","OUTCOME_<wbr>OTHER","NEED_<wbr>OTHER","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE","NEED_<wbr>ACCESS_<wbr>GENERAL","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CARE_<wbr>ALL","NEED_<wbr>PARENTAL_<wbr>LEAVE","NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CARE_<wbr>ALL<br>NEED_<wbr>CHILD_<wbr>CARE","NEED_<wbr>CHILD_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE","NEED_<wbr>CARE_<wbr>ALL<br>NEED_<wbr>CHILD_<wbr>CARE","NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE","NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE","NEED_<wbr>OTHER","NEED_<wbr>PARENTAL_<wbr>LEAVE","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>HEALTH_<wbr>CARE<br>NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE","NEED_<wbr>ACCESS_<wbr>GENERAL","NEED_<wbr>ACCESS_<wbr>GENERAL","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>CARE_<wbr>ALL","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CARE_<wbr>ALL<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>SENIOR_<wbr>CARE<br>NEED_<wbr>TRIBAL_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE","FROM_<wbr>URBAN","NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE<br>NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE","NEED_<wbr>OTHER","NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>POTENTIAL_<wbr>QUOTE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>ACCESS_<wbr>GENERAL","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>OTHER<br>NEED_<wbr>SENIOR_<wbr>CARE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>OTHER<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>MENTAL_<wbr>HEALTH","NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>OTHER","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>OTHER<br>NEED_<wbr>SENIOR_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>PARENTAL_<wbr>LEAVE","NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>OTHER","NEED_<wbr>OTHER","NEED_<wbr>AFFORDABLE_<wbr>CARE<br>NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>HEALTH_<wbr>CARE","NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS"],"Sonnet":["(none)","CARE_<wbr>FORMAL_<wbr>SUPPORT<br>CARE_<wbr>INFORMAL_<wbr>SUPPORTS<br>CAREGIVER_<wbr>FAMILY<br>CHRONIC_<wbr>CONDITION_<wbr>CARE<br><b>SUPPORT_<wbr>FAMILY<\/b><br><b>SUPPORT_<wbr>FRIEND_<wbr>COMMUNITY<\/b><br>SUPPORT_<wbr>PROFESSIONAL","CARE_<wbr>SETTING_<wbr>CENTER","<b>SUPPORT_<wbr>FINANCIAL<\/b>","OUTCOME_<wbr>IMPROVED_<wbr>WELLBEING<br>OUTCOME_<wbr>POTENTIAL_<wbr>QUOTE","NEED_<wbr>PAID_<wbr>CARE_<wbr>LEAVE<br><b>OUTCOME_<wbr>COMMUNITY_<wbr>STRENGTH<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","OUTCOME_<wbr>IMPROVED_<wbr>WELLBEING","NEED_<wbr>DIRECT_<wbr>FINANCIAL_<wbr>ASSISTANCE","CHALLENGE_<wbr>EMOTIONAL_<wbr>STRESS<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","<b>NEED_<wbr>CARE_<wbr>ALL<\/b><br>SOLUTION_<wbr>AFFORDABLE_<wbr>CARE","<b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","IDEAL_<wbr>SYSTEM_<wbr>COMPREHENSIVE_<wbr>CARE_<wbr>SYSTEM","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br>NEED_<wbr>EXPANDED_<wbr>SERVICE_<wbr>ACCESS","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CARE_<wbr>ALL<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE<\/b>","<b>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE<\/b>","NEED_<wbr>ACCESS_<wbr>GENERAL<br>SOLUTION_<wbr>EDUCATION","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br><b>NEED_<wbr>HEALTH_<wbr>CARE<\/b>","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","IDEAL_<wbr>SYSTEM_<wbr>CARE_<wbr>DIGNITY_<wbr>RESPECT","FAIRNESS_<wbr>AND_<wbr>EQUITY<br><b>NEED_<wbr>CARE_<wbr>ALL<\/b>","<b>NEED_<wbr>CARE_<wbr>ALL<\/b><br><b>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<\/b>","NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>FLEXIBLE_<wbr>WORK_<wbr>POLICIES<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br>SUPPORT_<wbr>EMPLOYER","CHALLENGE_<wbr>GEOGRAPHIC_<wbr>BARRIER<br>IDEAL_<wbr>SYSTEM_<wbr>COMMUNITY_<wbr>BASED_<wbr>CARE<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br><b>NEED_<wbr>TRIBAL_<wbr>CARE<\/b>","CHALLENGE_<wbr>AVAILABILITY_<wbr>BARRIER<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>FROM_<wbr>URBAN<\/b><br>FUTURE_<wbr>CARE_<wbr>EXPECTED<br>INFORMATION_<wbr>NAVIGATION<br>NEED_<wbr>CHILD_<wbr>CARE","<b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br>SOLUTION_<wbr>EDUCATION","CHALLENGE_<wbr>EMPLOYMENT_<wbr>IMPACT<br>CHALLENGE_<wbr>SOCIAL_<wbr>ISOLATION<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","NEED_<wbr>HEALTH_<wbr>CARE","CARE_<wbr>SETTING_<wbr>FACILITY<br>CHALLENGE_<wbr>WORKFORCE_<wbr>SHORTAGE<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b>","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>FAIRNESS_<wbr>AND_<wbr>EQUITY<br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b>","PAID_<wbr>CARE_<wbr>WORKER","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br><b>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<\/b><br>NEED_<wbr>MENTAL_<wbr>HEALTH","CHALLENGE_<wbr>ACCESS_<wbr>BARRIER<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br><b>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<\/b>","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b>","CHALLENGE_<wbr>OTHER","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","SOLUTION_<wbr>GOVERNMENT_<wbr>PAID<br>SUPPORT_<wbr>FINANCIAL","CAREGIVER_<wbr>FAMILY<br>NEED_<wbr>MENTAL_<wbr>HEALTH<br><b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b>","SOLUTION_<wbr>CAREGIVER_<wbr>WORKFORCE_<wbr>DEV","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","SOLUTION_<wbr>CAREGIVER_<wbr>WORKFORCE_<wbr>DEV","CAREGIVER_<wbr>FAMILY<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br>CHALLENGE_<wbr>EMOTIONAL_<wbr>STRESS<br>NEED_<wbr>HEALTH_<wbr>CARE<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b>","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>CHALLENGE_<wbr>TIME_<wbr>BURDEN<br>SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","CHALLENGE_<wbr>OTHER<br>FORMER_<wbr>CAREGIVER<br>IDEAL_<wbr>SYSTEM_<wbr>COMMUNITY_<wbr>BASED_<wbr>CARE<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>NEED_<wbr>CHILD_<wbr>CARE<br><b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b>","NEED_<wbr>EXPANDED_<wbr>SERVICE_<wbr>ACCESS<br>SOLUTION_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>CARE_<wbr>ALL<br><b>NEED_<wbr>MENTAL_<wbr>HEALTH<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br>SOLUTION_<wbr>EDUCATION<br>SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","SOLUTION_<wbr>CAREGIVER_<wbr>WAGES<br>SOLUTION_<wbr>CAREGIVER_<wbr>WORKFORCE_<wbr>DEV","AGING_<wbr>ADULT_<wbr>CARE<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br>IDEAL_<wbr>SYSTEM_<wbr>COMMUNITY_<wbr>BASED_<wbr>CARE<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","CAREGIVER_<wbr>FAMILY<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","FAIRNESS_<wbr>AND_<wbr>EQUITY<br>IDEAL_<wbr>SYSTEM_<wbr>UNIVERSAL_<wbr>ACCESS<br>SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","(none)","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br><b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","FAIRNESS_<wbr>AND_<wbr>EQUITY<br>PAID_<wbr>CARE_<wbr>WORKER<br>SOLUTION_<wbr>QUALITY_<wbr>CARE","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>SOLUTION_<wbr>AFFORDABLE_<wbr>CARE","IDEAL_<wbr>SYSTEM_<wbr>CARE_<wbr>DIGNITY_<wbr>RESPECT","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br><b>NEED_<wbr>HEALTH_<wbr>CARE<\/b><br>SOLUTION_<wbr>AFFORDABLE_<wbr>CARE","CHALLENGE_<wbr>EMOTIONAL_<wbr>STRESS<br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES"],"Opus":["(none)","CARE_<wbr>_<wbr>DAILY_<wbr>ACTIVITIES<br>CARE_<wbr>FORMAL_<wbr>SUPPORT<br>CARE_<wbr>INFORMAL_<wbr>SUPPORTS<br>CAREGIVER_<wbr>FAMILY<br>CHRONIC_<wbr>CONDITION_<wbr>CARE<br><b>SUPPORT_<wbr>FAMILY<\/b><br>SUPPORT_<wbr>IMPACTS<br>SUPPORT_<wbr>POTENTIAL_<wbr>QUOTE<br>SUPPORT_<wbr>PROFESSIONAL","CARE_<wbr>SETTING_<wbr>CENTER<br>PAID_<wbr>CARE_<wbr>WORKER","<b>SUPPORT_<wbr>FINANCIAL<\/b>","OUTCOME_<wbr>IMPROVED_<wbr>WELLBEING<br><b>OUTCOME_<wbr>INCREASED_<wbr>OPPORTUNITY<\/b>","COMMUNITY_<wbr>RESPONSIBILITY<br><b>OUTCOME_<wbr>COMMUNITY_<wbr>STRENGTH<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","CHALLENGE_<wbr>FUTURE_<wbr>CARE_<wbr>ANXIETY<br>OUTCOME_<wbr>IMPROVED_<wbr>WELLBEING","(none)","INFORMATION_<wbr>NAVIGATION<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<br>SOLUTION_<wbr>EDUCATION","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","IDEAL_<wbr>SYSTEM_<wbr>UNIVERSAL_<wbr>ACCESS<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CARE_<wbr>ALL<\/b>","<b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","IDEAL_<wbr>SYSTEM_<wbr>COMPREHENSIVE_<wbr>CARE_<wbr>SYSTEM","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br>SOLUTION_<wbr>DAY_<wbr>CARE","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE<\/b><br>SOLUTION_<wbr>EDUCATION","<b>NEED_<wbr>CARE_<wbr>NAVIGATION_<wbr>ASSISTANCE<\/b>","SOLUTION_<wbr>EDUCATION","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","<b>NEED_<wbr>HEALTH_<wbr>CARE<\/b>","CARE_<wbr>VALUED<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","IDEAL_<wbr>SYSTEM_<wbr>OTHER","FAIRNESS_<wbr>AND_<wbr>EQUITY<br><b>NEED_<wbr>CARE_<wbr>ALL<\/b>","<b>NEED_<wbr>CARE_<wbr>ALL<\/b><br>OUTCOME_<wbr>IMPROVED_<wbr>WELLBEING","FAMILY_<wbr>AS_<wbr>CAREGIVERS<br>NEED_<wbr>ACCESS_<wbr>GENERAL<br>NEED_<wbr>FLEXIBLE_<wbr>WORK_<wbr>POLICIES<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br>SUPPORT_<wbr>EMPLOYER","CHALLENGE_<wbr>ACCESS_<wbr>BARRIER<br>IDEAL_<wbr>SYSTEM_<wbr>COMMUNITY_<wbr>BASED_<wbr>CARE<br>NEED_<wbr>EXPANDED_<wbr>SERVICE_<wbr>ACCESS<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br><b>NEED_<wbr>TRIBAL_<wbr>CARE<\/b>","CHALLENGE_<wbr>AVAILABILITY_<wbr>BARRIER<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br>CHILD_<wbr>CARE","CHILD_<wbr>CARE<br><b>FROM_<wbr>URBAN<\/b><br>FUTURE_<wbr>CARE_<wbr>EXPECTED<br>INFORMATION_<wbr>NAVIGATION","<b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br>SOLUTION_<wbr>EDUCATION","CHALLENGE_<wbr>EMPLOYMENT_<wbr>IMPACT<br>CHALLENGE_<wbr>SOCIAL_<wbr>ISOLATION<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","NEED_<wbr>HEALTH_<wbr>CARE","CARE_<wbr>SETTING_<wbr>FACILITY<br>CHALLENGE_<wbr>WORKFORCE_<wbr>SHORTAGE<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b>","CHALLENGE_<wbr>AVAILABILITY_<wbr>BARRIER<br>CHALLENGE_<wbr>QUALITY_<wbr>CONCERNS<br>FAIRNESS_<wbr>AND_<wbr>EQUITY","PAID_<wbr>CARE_<wbr>WORKER","NEED_<wbr>MENTAL_<wbr>HEALTH<br>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS","CHALLENGE_<wbr>ACCESS_<wbr>BARRIER<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br><b>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<\/b>","<b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b>","<b>NEED_<wbr>OTHER<\/b>","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","NEED_<wbr>MENTAL_<wbr>HEALTH<br>SOLUTION_<wbr>SUPPORT_<wbr>FOR_<wbr>CAREGIVER","SOLUTION_<wbr>CAREGIVER_<wbr>WORKFORCE_<wbr>DEV","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","SOLUTION_<wbr>CAREGIVER_<wbr>WORKFORCE_<wbr>DEV","AGING_<wbr>ADULT_<wbr>CARE<br>CARE_<wbr>INFORMAL_<wbr>SUPPORTS<br>CAREGIVER_<wbr>FAMILY<br>CHALLENGE_<wbr>COST_<wbr>BARRIER<br>CHALLENGE_<wbr>EMOTIONAL_<wbr>STRESS<br>CHALLENGE_<wbr>POTENTIAL_<wbr>QUOTE<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>NEED_<wbr>HEALTH_<wbr>CARE<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b>","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>CHALLENGE_<wbr>TIME_<wbr>BURDEN<br><b>NEED_<wbr>SENIOR_<wbr>CARE<\/b><br>SOLUTION_<wbr>AFFORDABLE_<wbr>CARE","AGING_<wbr>ADULT_<wbr>CARE<br>CARE_<wbr>RECEIVER<br>CARE_<wbr>VALUED<br>CHRONIC_<wbr>CONDITION_<wbr>CARE<br>FORMER_<wbr>CAREGIVER<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>NEED_<wbr>CHILD_<wbr>CARE<br>NEED_<wbr>HEALTH_<wbr>CARE<br><b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b><br>SUPPORT_<wbr>PROFESSIONAL","<b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br>SOLUTION_<wbr>QUALITY_<wbr>CARE","NEED_<wbr>CARE_<wbr>ALL<br><b>NEED_<wbr>MENTAL_<wbr>HEALTH<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br>SOLUTION_<wbr>DAY_<wbr>CARE<br>SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","SOLUTION_<wbr>CAREGIVER_<wbr>WAGES<br>SOLUTION_<wbr>EDUCATION","CHALLENGE_<wbr>COST_<wbr>BARRIER<br>IDEAL_<wbr>SYSTEM_<wbr>COMMUNITY_<wbr>INVOLVED<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b><br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","CHALLENGE_<wbr>EMPLOYMENT_<wbr>IMPACT<br>CHALLENGE_<wbr>POTENTIAL_<wbr>QUOTE<br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES","CARE_<wbr>VALUED<br><b>NEED_<wbr>ACCESS_<wbr>GENERAL<\/b>","<b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","<b>NEED_<wbr>SUPPORT_<wbr>CAREGIVERS<\/b>","COMMUNITY_<wbr>RESPONSIBILITY<br>FAIRNESS_<wbr>AND_<wbr>EQUITY<br>SOLUTION_<wbr>GOVERNMENT_<wbr>PAID","NEED_<wbr>ACCESS_<wbr>GENERAL<br><b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","(none)","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b><br><b>NEED_<wbr>PARENTAL_<wbr>LEAVE<\/b>","CARE_<wbr>SETTING_<wbr>CENTER<br>CHILD_<wbr>CARE<br>FAIRNESS_<wbr>AND_<wbr>EQUITY<br>NEED_<wbr>HIGH_<wbr>QUALITY_<wbr>CARE<br>PAID_<wbr>CARE_<wbr>WORKER","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b>","IDEAL_<wbr>SYSTEM_<wbr>CARE_<wbr>DIGNITY_<wbr>RESPECT","<b>NEED_<wbr>AFFORDABLE_<wbr>CARE<\/b><br><b>NEED_<wbr>CHILD_<wbr>CARE<\/b>","CHALLENGE_<wbr>EMOTIONAL_<wbr>STRESS<br>CHALLENGE_<wbr>QUALITY_<wbr>CONCERNS<br>PAID_<wbr>CARE_<wbr>WORKER<br>SOLUTION_<wbr>CAREGIVER_<wbr>WAGES"]},"columns":[{"id":"Question","name":"Question","type":"character","minWidth":80},{"id":"Answer","name":"Answer","type":"character","minWidth":240},{"id":"Bree","name":"Bree","type":"character","minWidth":170,"html":true},{"id":"Sonnet","name":"Sonnet","type":"character","minWidth":170,"html":true},{"id":"Opus","name":"Opus","type":"character","minWidth":170,"html":true}],"resizable":true,"searchable":true,"defaultPageSize":10,"showPageSizeOptions":false,"striped":true,"style":{"fontSize":"14px"},"theme":{"borderColor":"#e5e7eb","cellPadding":"8px 12px","headerStyle":{"background":"#f3f4f6","fontWeight":600}},"dataKey":"8b7fe81f95f8bf788740cd2a95d3c5ba"},"children":[]},"class":"reactR_markup"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+      &nbsp;
+    </div>   
+    <div class="nav-footer-center">
+<p>Urban Institute, in partnership with Caring Across Generations</p>
+</div>
+    <div class="nav-footer-right">
+      &nbsp;
+    </div>
+  </div>
+</footer>
+
+
+
+
+</body></html>
