@@ -67,7 +67,7 @@
     "href": "scripts/nlp/05_inter-rater-reliability.html",
     "title": "How Closely the Models Match Bree’s Coding",
     "section": "",
-    "text": "We compared Bree’s hand coding of 71 open-ended answers with the Sonnet and Opus coding of the same answers, using the codes both codebook versions share."
+    "text": "Bree coded the canvassing and survey files in her September sample in NVivo with codebook version 5, 71 open-ended answers in all. NVivo exports coded text without respondent IDs, so each coded passage was matched to its answer by text. Every passage matched. The models used version 6, which adds 22 codes and renames none; the models’ uses of those 22 codes are set aside so that all three coders choose from the same list. A code counts once per answer. Alpha gives partial credit when two coders’ codes overlap, using the MASI distance (Passonneau 2006).\n64 of the 71 answers respond to one canvassing question: “What’s one thing you would change about care, whether it’s for your kids, aging family members, people with disabilities, yourself, or the people around you? (Optional)” The other 7 are survey answers."
   },
   {
     "objectID": "scripts/nlp/05_inter-rater-reliability.html#sonnet-matches-bree-as-well-as-opus-does",

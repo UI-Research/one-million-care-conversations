@@ -172,9 +172,18 @@ same_topics <- map(set_names(names(runs)), \(model) {
 })
 ```
 
-We compared Bree’s hand coding of `r nrow(scope)` open-ended answers with the
-Sonnet and Opus coding of the same answers, using the codes both codebook
-versions share.
+Bree coded the canvassing and survey files in her September sample in NVivo
+with codebook version 5, `r nrow(scope)` open-ended answers in all. NVivo
+exports coded text without respondent IDs, so each coded passage was matched to
+its answer by text. Every passage matched. The models used version 6, which adds
+22 codes and renames none; the models’ uses of those 22 codes are set aside so
+that all three coders choose from the same list. A code counts once per answer.
+Alpha gives partial credit when two coders’ codes overlap, using the MASI
+distance ([Passonneau 2006](https://aclanthology.org/L06-1392/)).
+
+`r sum(scope$question == "canvass_q3")` of the `r nrow(scope)` answers respond
+to one canvassing question: **“`r answers$question_text[answers$question == "canvass_q3"][1]`”**
+The other `r sum(scope$question != "canvass_q3")` are survey answers.
 
 ## Sonnet matches Bree as well as Opus does
 
@@ -406,14 +415,3 @@ side_by_side |>
   tbl(page_size = 10, searchable = TRUE, columns = code_columns)
 ```
 :::
-
-## How we compared
-
-Bree coded the canvassing and survey files in her September sample in NVivo
-with codebook version 5. NVivo exports coded text without respondent IDs, so
-each coded passage was matched to its answer by text. Every passage matched.
-The models used version 6, which adds 22 codes and renames none; the models’
-uses of those 22 codes are set aside so that all three coders choose from the
-same list. A code counts once per answer. Alpha gives partial credit when two
-coders’ codes overlap, using the MASI distance
-([Passonneau 2006](https://aclanthology.org/L06-1392/)).
