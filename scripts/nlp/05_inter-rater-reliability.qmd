@@ -1,0 +1,417 @@
+---
+title: "How Closely the Models Match Bree’s Coding"
+author: "Manuel Alcalá Kovalski, Urban Institute"
+date: today
+toc-depth: 2
+execute:
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+library(readxl)
+library(here)
+library(reactable)
+
+source(here("scripts/00_utils.R"))
+
+tbl <- function(data, title = NULL, note = NULL, page_size = 60, ...) {
+  tbl_interactive(data, title = title, note = note, page_size = page_size, ...)
+}
+
+# Bree's NVivo export and coding log, copied by hand from Box
+# (Research Team/Qualitative Data Analysis)
+nvivo_export <- here("data/raw/human-coding/IRR Check 1 9-22.xlsx")
+coding_log   <- here("data/raw/human-coding/Data Log - Bree's Coding.xlsx")
+
+# the model runs being checked (scripts/nlp/02_code-text.py, codebook v6)
+runs <- c(
+  Sonnet = "20261006_claude-sonnet-5_medium",
+  Opus   = "20261006_claude-opus-5-5_medium"
+)
+coders <- c("Bree", names(runs))
+
+answers  <- read_csv(here("data/processed/open_ended.csv"), show_col_types = FALSE)
+codebook <- read_csv(here("data/processed/codebook.csv"), show_col_types = FALSE)
+
+set.seed(20261027)
+n_boot <- 2000
+
+question_label <- function(question) {
+  case_when(
+    question == "canvass_q3"      ~ "Canvass Q3",
+    question == "canvass_q2_hard" ~ "Canvass Q2",
+    .default = str_c("Survey ", question)
+  )
+}
+```
+
+```{r}
+#| label: match
+#| include: false
+# Bree's export has one row per code applied to a passage, with the passage
+# text but no respondent ID, so passages are matched to answers by text
+
+# text as compared: lower case, no punctuation, single spaces
+match_key <- function(x) {
+  x |> str_to_lower() |> str_remove_all("[^\\w\\s]") |> str_squish()
+}
+
+# the files Bree has finished, from her coding log; a cell can list several
+coded_files <- read_excel(coding_log, sheet = "Details") |>
+  filter(str_to_lower(`Coding complete`) == "yes") |>
+  pull(`Raw file name`) |>
+  str_split("/") |>
+  unlist() |>
+  str_trim() |>
+  discard(\(f) f == "")
+
+nvivo <- read_excel(
+  nvivo_export,
+  col_names = c("code", "path", "source", "text"), skip = 1, col_types = "text"
+)
+
+# every code in Bree's NVivo project is listed, coded or not: that is her
+# codebook (version 5). NVivo names carry stray spaces ("NEED _OTHER")
+bree_codes <- nvivo |>
+  filter(str_starts(path, "Codes")) |>
+  distinct(code = str_remove_all(code, "\\s")) |>
+  pull(code)
+
+not_in_v6 <- setdiff(bree_codes, codebook$code)
+if (length(not_in_v6) > 0) {
+  cli::cli_abort("Codes in Bree's NVivo export that are not in codebook.csv: {not_in_v6}")
+}
+
+# a few selections run one cell past the answer and pick up the respondent's
+# Unique ID on its own line: drop ID-only and blank lines
+passages <- nvivo |>
+  filter(!is.na(text)) |>
+  mutate(
+    code = str_remove_all(code, "\\s"),
+    text = text |>
+      str_split("\n") |>
+      map_chr(\(lines) str_c(lines[!str_detect(lines, "^\\s*\\d*\\s*$")], collapse = " ")),
+    key = match_key(text)
+  )
+
+sampled <- answers |>
+  filter(str_trim(str_remove(delivery, "\\.xlsx$")) %in% coded_files) |>
+  mutate(key = match_key(text))
+
+unmatched <- anti_join(passages, sampled, by = "key")
+if (nrow(unmatched) > 0) {
+  cli::cli_abort("{nrow(unmatched)} coded passage{?s} match no answer in Bree's files")
+}
+
+# identical answers cannot be told apart by text. Bree coded each copy, so a
+# code applied to k identical answers appears k times
+duplicates <- count(sampled, key, name = "n_answers") |> filter(n_answers > 1)
+uneven <- passages |>
+  count(key, code, name = "n_rows") |>
+  inner_join(duplicates, by = "key") |>
+  filter(n_rows != n_answers)
+if (nrow(uneven) > 0) {
+  cli::cli_abort("A code covers only some copies of an answer that appears more than once")
+}
+
+bree <- passages |>
+  inner_join(select(sampled, answer_id, key), by = "key", relationship = "many-to-many") |>
+  distinct(answer_id, code) |>
+  mutate(coder = "Bree")
+
+scope <- sampled |>
+  semi_join(bree, by = "answer_id") |>
+  select(answer_id, tool, question, text)
+```
+
+```{r}
+#| label: model-codes
+#| include: false
+model_raw <- imap(runs, \(run, coder) {
+  read_csv(here("data/processed/llm-coding", run, "coded_open_ended.csv"),
+           show_col_types = FALSE) |>
+    filter(answer_id %in% scope$answer_id) |>
+    mutate(coder = coder)
+}) |>
+  list_rbind()
+
+# every coded answer has at least one row in a run, even with no codes
+missing <- scope |>
+  cross_join(tibble(coder = names(runs))) |>
+  anti_join(model_raw, by = c("answer_id", "coder"))
+if (nrow(missing) > 0) {
+  cli::cli_abort("{nrow(missing)} of Bree's answers are missing from a model run")
+}
+
+# codes added in version 6 are set aside so every coder chooses from the
+# same version 5 list
+coded <- model_raw |>
+  filter(!is.na(code), code %in% bree_codes) |>
+  distinct(coder, answer_id, code) |>
+  bind_rows(bree)
+
+# one code set per coder per answer, in scope order; no codes = empty set
+code_sets <- map(set_names(coders), \(who) {
+  sets <- coded |>
+    filter(coder == who) |>
+    summarise(codes = list(sort(code)), .by = answer_id)
+  left_join(select(scope, answer_id), sets, by = "answer_id") |>
+    pull(codes) |>
+    map(\(x) x %||% character())
+})
+
+domain_of <- set_names(codebook$domain, codebook$code)
+
+# each model's codes limited to the domains Bree used on the same answer
+same_topics <- map(set_names(names(runs)), \(model) {
+  map2(code_sets$Bree, code_sets[[model]], \(b, m) m[domain_of[m] %in% domain_of[b]])
+})
+```
+
+Bree coded the canvassing and survey files in her September sample in NVivo
+with codebook version 5, `r nrow(scope)` open-ended answers in all. NVivo
+exports coded text without respondent IDs, so each coded passage was matched to
+its answer by text. Every passage matched. The models used version 6, which adds
+22 codes and renames none; the models’ uses of those 22 codes are set aside so
+that all three coders choose from the same list. A code counts once per answer.
+Alpha gives partial credit when two coders’ codes overlap, using the MASI
+distance ([Passonneau 2006](https://aclanthology.org/L06-1392/)).
+
+`r sum(scope$question == "canvass_q3")` of the `r nrow(scope)` answers respond
+to one canvassing question: **“`r answers$question_text[answers$question == "canvass_q3"][1]`”**
+The other `r sum(scope$question != "canvass_q3")` are survey answers.
+
+## Sonnet matches Bree as well as Opus does
+
+**Sonnet agrees with Bree as closely as Opus does and costs less than half as
+much per answer ($0.0047 versus $0.0101), so Sonnet is probably the way to go.**
+
+```{r}
+#| label: distances
+# share of codes in common: both empty counts as identical
+jaccard <- function(a, b) {
+  either <- union(a, b)
+  if (length(either) == 0) return(1)
+  length(intersect(a, b)) / length(either)
+}
+
+# MASI distance (Passonneau 2006): 0 = identical sets, 1 = nothing in common.
+# Shared share of codes, weighted by how the sets overlap: identical 1, one
+# contains the other 2/3, partial overlap 1/3, none 0
+masi_distance <- function(a, b) {
+  if (length(union(a, b)) == 0) return(0)
+  shared <- length(intersect(a, b)) / length(union(a, b))
+  weight <- if (setequal(a, b)) 1
+    else if (all(a %in% b) || all(b %in% a)) 2 / 3
+    else if (length(intersect(a, b)) > 0) 1 / 3
+    else 0
+  1 - shared * weight
+}
+
+# distance between every pair of code sets, filled once so the bootstrap only
+# indexes into it
+distance_matrix <- function(sets, distance) {
+  n <- length(sets)
+  d <- matrix(0, n, n)
+  for (i in seq_len(n - 1)) {
+    for (j in (i + 1):n) d[i, j] <- d[j, i] <- distance(sets[[i]], sets[[j]])
+  }
+  d
+}
+
+# Krippendorff's alpha for two coders: 1 - observed / expected disagreement.
+# `d` holds the first coder's sets, then the second's, so answer i is row i
+# and row n + i. Observed: the two coders on the same answer. Expected: any
+# two sets drawn from all the sets both coders produced.
+alpha_from_distances <- function(d, idx) {
+  n <- nrow(d) / 2
+  pooled <- c(idx, n + idx)
+  observed <- mean(d[cbind(idx, n + idx)])
+  m <- length(pooled)
+  expected <- sum(d[pooled, pooled]) / (m * (m - 1))
+  1 - observed / expected
+}
+
+# the three measures for two coders, each with a 95 percent bootstrap interval
+pair_agreement <- function(x, y) {
+  both <- lengths(map2(x, y, intersect))
+  d <- distance_matrix(c(x, y), masi_distance)
+  measures <- function(idx) {
+    c(
+      found  = sum(both[idx]) / sum(lengths(x)[idx]),
+      agreed = sum(both[idx]) / sum(lengths(y)[idx]),
+      alpha  = alpha_from_distances(d, idx)
+    )
+  }
+  estimate <- measures(seq_along(x))
+  boot <- replicate(n_boot, measures(sample(length(x), replace = TRUE)))
+  tibble(
+    measure = names(estimate),
+    estimate,
+    low  = apply(boot, 1, quantile, 0.025),
+    high = apply(boot, 1, quantile, 0.975)
+  )
+}
+```
+
+```{r}
+#| label: agreement
+show <- function(r, what) {
+  r <- filter(r, measure == what)
+  if (what == "alpha") sprintf("%.2f (%.2f–%.2f)", r$estimate, r$low, r$high)
+  else sprintf("%.0f%% (%.0f–%.0f)", 100 * r$estimate, 100 * r$low, 100 * r$high)
+}
+
+all_codes <- map(names(runs), \(m) pair_agreement(code_sets$Bree, code_sets[[m]]))
+topics    <- map(names(runs), \(m) pair_agreement(code_sets$Bree, same_topics[[m]]))
+models    <- pair_agreement(code_sets$Sonnet, code_sets$Opus)
+
+summary_table <- tibble(
+  Measure = c(
+    "Bree’s codes the model also found",
+    "Model’s codes Bree also used",
+    "Model’s codes Bree also used, on topics Bree coded",
+    "Krippendorff’s alpha",
+    "Krippendorff’s alpha, on topics Bree coded"
+  ),
+  `Bree and Sonnet` = c(show(all_codes[[1]], "found"), show(all_codes[[1]], "agreed"),
+                        show(topics[[1]], "agreed"), show(all_codes[[1]], "alpha"),
+                        show(topics[[1]], "alpha")),
+  `Bree and Opus`   = c(show(all_codes[[2]], "found"), show(all_codes[[2]], "agreed"),
+                        show(topics[[2]], "agreed"), show(all_codes[[2]], "alpha"),
+                        show(topics[[2]], "alpha")),
+  `Sonnet and Opus` = c("", "", "", show(models, "alpha"), "")
+)
+
+summary_table |>
+  tbl(note = "95 percent intervals in brackets, from resampling the answers 2,000 times.")
+```
+
+- Each model finds about half of Bree’s codes, and alpha is
+  `r sprintf("%.2f", filter(all_codes[[1]], measure == "alpha")$estimate)` for
+  both, well below the 0.7 to 0.8 we were hoping for. Most of the difference
+  comes down to the two issues in the next section.
+- The two models agree with each other about twice as much (alpha
+  `r sprintf("%.2f", filter(models, measure == "alpha")$estimate)`). The gap
+  with Bree comes from how the task is set up, not from which model does it.
+
+## What drives the disagreement
+
+```{r}
+#| label: gap
+#| include: false
+codes_per_answer <- map_dbl(code_sets, \(s) mean(lengths(s)))
+missed <- map(set_names(names(runs)), \(m) unlist(map2(code_sets$Bree, code_sets[[m]], setdiff)))
+missed_two <- map_dbl(missed, \(x) mean(x %in% c("NEED_HIGH_QUALITY_CARE", "NEED_OTHER")))
+```
+
+**1. The models code every topic an answer mentions; Bree appears to code only
+the answer to the question.** The models use `r sprintf("%.1f", codes_per_answer[["Sonnet"]])`
+to `r sprintf("%.1f", codes_per_answer[["Opus"]])` codes per answer, compared
+with `r sprintf("%.1f", codes_per_answer[["Bree"]])` for Bree. Most of the
+extras are on topics Bree did not code on that answer, such as the hardship
+someone describes when asked what they would change. Leaving those out, about
+7 in 10 model codes match hers. This explains about half the gap, and **Bree’s
+answer on which rule she follows tells us which rule to give the models.**
+
+**2. Two codes account for about half of what the models miss.** Of the codes
+Bree chose that a model did not, `r scales::percent(min(missed_two), 1)` to
+`r scales::percent(max(missed_two), 1)` are `NEED_HIGH_QUALITY_CARE` or
+`NEED_OTHER`. Bree uses `NEED_HIGH_QUALITY_CARE` for answers about caregiver
+pay, where the models choose `SOLUTION_CAREGIVER_WAGES`, and `NEED_OTHER` where
+the models find a specific code. **Where the line falls between these codes is a
+question for Bree.**
+
+Three answers that show each pattern (codes a model shares with Bree in bold):
+
+```{r}
+#| label: show-codes
+#| include: false
+# one code per line, bold where it is in `reference`; long code names wrap
+# only at underscores
+show_codes <- function(sets, reference = NULL) {
+  map2_chr(sets, reference %||% map(sets, \(s) character()), \(s, r) {
+    if (length(s) == 0) return("(none)")
+    shared <- s %in% r
+    s <- str_replace_all(s, "_", "_<wbr>")
+    if_else(shared, str_c("<b>", s, "</b>"), s) |> str_c(collapse = "<br>")
+  })
+}
+
+side_by_side <- scope |>
+  transmute(
+    Question = question_label(question),
+    Answer = text,
+    Bree = show_codes(code_sets$Bree),
+    Sonnet = show_codes(code_sets$Sonnet, code_sets$Bree),
+    Opus = show_codes(code_sets$Opus, code_sets$Bree)
+  )
+
+code_columns <- list(
+  Question = colDef(minWidth = 80),
+  Answer = colDef(minWidth = 240),
+  Bree = colDef(html = TRUE, minWidth = 170),
+  Sonnet = colDef(html = TRUE, minWidth = 170),
+  Opus = colDef(html = TRUE, minWidth = 170)
+)
+```
+
+```{r}
+#| label: examples
+#| column: page
+all_agree <- which(
+  map2_lgl(code_sets$Bree, code_sets$Sonnet, setequal) &
+    map2_lgl(code_sets$Bree, code_sets$Opus, setequal) &
+    map_lgl(code_sets$Bree, \(s) any(c("NEED_CHILD_CARE", "NEED_SENIOR_CARE") %in% s))
+)[1]
+
+examples <- c(
+  which(str_starts(scope$text, "Pay workers more")),  # different pay code + extra topic
+  which(str_to_lower(str_trim(scope$text)) == "money"), # NEED_OTHER versus a specific code
+  all_agree                                            # all three agree
+)
+if (length(examples) != 3) cli::cli_abort("An example answer was not found")
+
+side_by_side[examples, ] |>
+  select(-Question) |>
+  tbl(columns = code_columns[-1])
+```
+
+## How to improve the model coding
+
+- Once Bree answers the first question below, add her rule to the coding
+  prompt and rerun these answers. This costs under a dollar.
+- Add decision rules to the codebook for the caregiver-pay codes and for when
+  `NEED_OTHER` applies. The prompt reads the codebook, so the models pick these
+  up on the next run.
+
+## Questions for Bree
+
+1. **Should every topic an answer mentions get a code, or only the answer to
+   the question asked?** When someone answering “what would you change” also
+   describes a hardship, the models code the hardship and Bree does not. This
+   explains about half the gap, and her answer tells us which rule to give the
+   models.
+2. **Where is the line between `NEED_HIGH_QUALITY_CARE` and the caregiver-pay
+   codes, and when does `NEED_OTHER` apply?** These two codes are about half of
+   what the models miss.
+
+## All `r nrow(scope)` answers side by side
+
+::: {.callout-note collapse="true" appearance="minimal"}
+## Show the table
+
+Codes a model shares with Bree are in bold. [Type in the search box to find an
+answer or a code.]{.web-only}
+
+```{r}
+#| label: side-by-side
+#| column: page
+side_by_side |>
+  tbl(page_size = 10, searchable = TRUE, columns = code_columns)
+```
+:::

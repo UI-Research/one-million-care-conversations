@@ -1,34 +1,53 @@
-# Build an HTML dashboard showing coded interview excerpts in context:
-# left pane = transcript with inline highlights, right pane = code -> supporting
-# passage table (one section per transcript). Reads the LLM coding pilot output.
+# Build an HTML dashboard of one LLM coding run: code frequencies, the codebook,
+# each transcript with inline highlights beside its code -> passage table, and the
+# open-ended survey/canvassing/poll answers with code counts by tool and the answers
+# themselves with their excerpts highlighted.
 #
-# Inputs:  data/raw/interview-transcripts/*.docx (never committed)
-#          data/processed/interview-coding/coded_segments.csv
-#          IMCC Codebook v4.docx (repo root, untracked; rendered as the Codebook tab)
-# Output:  coding-dashboard/index.html — a resource folder of the Quarto
-#          website (_quarto.yml), so `quarto render` publishes it with the
-#          other pages. Embeds transcript text (PII-stripped upstream).
+# Inputs:  data/processed/llm-coding/<run_id>/  (written by 02_code-text.py)
+#            coded_transcripts.csv, coded_open_ended.csv, manifest.json
+#          data/processed/llm-coding/segments.csv   transcript unit table
+#          data/processed/open_ended.csv            answer texts (01_open-ended.R)
+#          data/processed/codebook.csv              the codebook the run used (00_ingest-codebook.R)
+#          data/raw/interview-transcripts/*.docx    transcript text (pandoc)
+# Output:  data/processed/llm-coding/<run_id>/dashboard.html (transcripts + Codebook
+#          tabs) and open-ended.html (open-ended answers + Codebook tabs), gitignored.
+#          Both embed text from PII-skimmed deliveries; they are copied into
+#          coding-dashboard/ (the committed, published site resource, as index.html
+#          and open-ended.html) only when the second argument is `site`, so
+#          publishing a run stays a deliberate step.
 #
-# Excerpts in the CSV were lightly edited (ellipses, [bracketed] notes), so
-# passages are located by exact match first, then anchor-word fuzzy match.
+# Usage:   Rscript scripts/nlp/coding_dashboard.R                  # newest full run
+#          Rscript scripts/nlp/coding_dashboard.R 20261006_claude-sonnet-5_medium
+#          Rscript scripts/nlp/coding_dashboard.R <run_id> site    # also write coding-dashboard/{index,open-ended}.html
+#
+# Excerpts are located by exact match first, then anchor-word fuzzy match.
 
 library(here)
+library(jsonlite)
+`%||%` <- function(a, b) if (is.null(a)) b else a
 
-# Optional arg: path to a coded-segments CSV (default = the pilot). Any CSV with columns
-# file, speaker, excerpt, domain, code, confidence, rationale works, e.g. the
-# llm_ellmer_*.csv files written by ellmer_coding_example.R. Output name follows input.
-csv_path <- commandArgs(trailingOnly = TRUE)[1]
-if (is.na(csv_path)) csv_path <- here("data", "processed", "interview-coding", "coded_segments.csv")
+args <- commandArgs(trailingOnly = TRUE)
+runs_root <- here("data", "processed", "llm-coding")
+run_dirs <- list.dirs(runs_root, recursive = FALSE)
+run_dirs <- run_dirs[file.exists(file.path(run_dirs, "manifest.json"))]
+run_dirs <- run_dirs[vapply(run_dirs, \(d) is.null(fromJSON(file.path(d, "manifest.json"))$limit), logical(1))]
+run_dir <- if (!is.na(args[1])) file.path(runs_root, args[1]) else run_dirs[which.max(file.mtime(run_dirs))]
+if (!dir.exists(run_dir)) stop("run folder not found: ", run_dir)
+manifest <- fromJSON(file.path(run_dir, "manifest.json"))
+to_site  <- identical(args[2], "site")
+
 raw_dir  <- here("data", "raw", "interview-transcripts")
-out_path <- if (basename(csv_path) == "coded_segments.csv")
-  here("coding-dashboard", "index.html") else
-  sub("\\.csv$", "_dashboard.html", csv_path)
-dir.create(dirname(out_path), showWarnings = FALSE)
-# the codebook the pilot was coded with (v3), as the CSV written when it was
-# parsed; the v4 docx renamed codes and needs the transcripts re-coded (#5)
-codebook_path <- here("data", "processed", "interview-coding", "codebook.csv")
+codebook_path <- here("data", "processed", "codebook.csv")
 
-seg <- read.csv(csv_path, encoding = "UTF-8")
+seg <- read.csv(file.path(run_dir, "coded_transcripts.csv"), encoding = "UTF-8", stringsAsFactors = FALSE)
+seg <- seg[!is.na(seg$code) & nzchar(seg$code), ]
+seg$domain[is.na(seg$domain) | !nzchar(seg$domain)] <- "Not in codebook"
+
+oe_codes <- read.csv(file.path(run_dir, "coded_open_ended.csv"), encoding = "UTF-8", stringsAsFactors = FALSE)
+answers  <- read.csv(here("data", "processed", "open_ended.csv"), encoding = "UTF-8", stringsAsFactors = FALSE)
+answers  <- answers[answers$answer_id %in% oe_codes$answer_id, ]
+oe_codes$domain[!is.na(oe_codes$code) & nzchar(oe_codes$code) & (is.na(oe_codes$domain) | !nzchar(oe_codes$domain))] <- "Not in codebook"
+oe_assign <- oe_codes[!is.na(oe_codes$code) & nzchar(oe_codes$code), ]   # one row per answer x code
 
 stems <- sort(unique(seg$file))  # transcripts discovered from the coded CSV
 
@@ -42,9 +61,10 @@ domain_colors <- c(
   "Ideal System"                = "#d0f0ef",
   "Outcomes"                    = "#e0f0d8",
   "Solutions"                   = "#f9d9ec",
-  "Framing"                     = "#d9e2f3"
+  "Framing"                     = "#d9e2f3",
+  "Not in codebook"             = "#e0e0e0"
 )
-new_theme_codes <- c("DESIRED_SUPPORT_OTHER", "SOLUTION_OTHER")
+is_new_theme <- function(code) grepl("_OTHER$", code)
 
 # ---- text handling -----------------------------------------------------------
 
@@ -62,7 +82,9 @@ norm_chars <- function(x) {
 }
 
 read_transcript <- function(stem) {
-  docx <- file.path(raw_dir, paste0(stem, ".docx"))
+  files <- list.files(raw_dir, pattern = "\\.docx$", full.names = TRUE)
+  docx <- files[trimws(sub("\\.docx$", "", basename(files))) == stem][1]
+  if (is.na(docx)) stop("no transcript file for ", stem)
   tmp <- tempfile(fileext = ".txt")
   system2("pandoc", c(shQuote(docx), "-t", "plain", "-o", shQuote(tmp)))
   lines <- readLines(tmp, encoding = "UTF-8", warn = FALSE)
@@ -89,13 +111,15 @@ excerpt_fragments <- function(ex) {
   ex <- norm_chars(ex)
   ex <- gsub("\\[[^]]*\\]", " ... ", ex)  # editorial brackets = split points
   parts <- trimws(strsplit(ex, "\\s*\\.\\.\\.\\s*")[[1]])
-  parts[nchar(parts) >= 12]
+  parts[nchar(parts) >= 7]
 }
 
+# exact match first; fuzzy only for fragments long enough to make a near-miss meaningful
 locate_fragment <- function(frag, mtext) {
   f <- tolower(frag); n <- nchar(f); N <- nchar(mtext)
   p <- regexpr(f, mtext, fixed = TRUE)[1]
   if (p > 0) return(c(p, p + n - 1))
+  if (n < 12) return(NULL)
   words <- regmatches(f, gregexpr("[a-záéíóúñü']{5,}", f))[[1]]
   words <- head(unique(words[order(-nchar(words))]), 4)
   cand <- integer(0)
@@ -144,19 +168,18 @@ read_codebook <- function(path) {
   cb
 }
 
-codebook <- if (grepl("\\.csv$", codebook_path)) {
-  cb <- read.csv(codebook_path, encoding = "UTF-8", stringsAsFactors = FALSE)
-  if (!"question" %in% names(cb)) cb$question <- ""
-  cb
-} else read_codebook(codebook_path)
+codebook <- read.csv(codebook_path, encoding = "UTF-8", stringsAsFactors = FALSE)
+if (!"question" %in% names(codebook)) codebook$question <- ""
+cb_version <- if ("version" %in% names(codebook)) codebook$version[1] else "?"
 
-bad_dom <- setdiff(codebook$domain, names(domain_colors))
+bad_dom <- setdiff(c(codebook$domain, seg$domain, oe_assign$domain), names(domain_colors))
 if (length(bad_dom)) stop("codebook domain(s) without a color: ", paste(bad_dom, collapse = ", "))
 dup <- codebook$code[duplicated(codebook$code)]
 if (length(dup)) message("codebook: duplicate code(s): ", paste(unique(dup), collapse = ", "))
-uncoded <- setdiff(seg$code, codebook$code)
-if (length(uncoded)) message("coded_segments uses code(s) not in codebook: ", paste(uncoded, collapse = ", "))
-code_def <- setNames(codebook$definition, paste(codebook$domain, codebook$code))  # code names repeat across domains
+uncoded <- setdiff(c(seg$code, oe_assign$code), codebook$code)
+if (length(uncoded)) message("run uses code(s) not in codebook: ", paste(uncoded, collapse = ", "))
+code_def <- setNames(codebook$definition, paste(codebook$domain, codebook$code))
+code_def[paste("Not in codebook", uncoded)] <- "not a codebook code"
 
 # ---- build one transcript section -------------------------------------------
 
@@ -208,7 +231,7 @@ build_section <- function(stem) {
     if (!nrow(dr)) next
     code_rows <- c(code_rows, sprintf('<div class="dom-head">%s</div>', esc(dom)))
     for (i in seq_len(nrow(dr))) {
-      flag <- if (dr$code[i] %in% new_theme_codes)
+      flag <- if (is_new_theme(dr$code[i]))
         '<span class="newtheme">possible new code</span>' else ""
       code_rows <- c(code_rows, sprintf(
         '<div class="crow" data-row="%d">
@@ -279,8 +302,8 @@ dom_cells <- paste(sprintf(
   domain_colors[names(dom_totals)], esc(names(dom_totals)), as.integer(dom_totals)), collapse = " ")
 
 overview <- sprintf('<section class="tx-section panel" id="sec-overview">
-  <h2>Code frequency</h2>
-  <div class="meta">%d coded segments across %d transcripts &middot; %d distinct codes &middot; click a code to list all its passages</div>
+  <h2>Transcripts: code frequency</h2>
+  <div class="meta">%d coded segments across %d transcripts &middot; %d distinct codes<span class="web-only"> &middot; click a code to list all its passages</span></div>
   <div class="dom-totals">%s</div>
   <div class="bchart">
     <div class="brow bhead"><span class="bcode"></span><span class="btrack"></span>
@@ -290,57 +313,191 @@ overview <- sprintf('<section class="tx-section panel" id="sec-overview">
   nrow(seg), length(stems), nrow(counts), dom_cells,
   paste(bar_rows, collapse = "\n"))
 
+# ---- open-ended answers tab ------------------------------------------------------
+
+tool_label <- c("survey" = "Survey", "canvassing" = "Canvass", "pre-launch poll" = "Poll")
+answers$tool_lab <- tool_label[answers$tool]
+answers$aid <- seq_len(nrow(answers))                       # DOM id: a row index, never the respondent id
+answers$pathway[is.na(answers$pathway) | !nzchar(answers$pathway)] <- "unknown"
+oe_assign <- merge(oe_assign, answers[, c("answer_id", "aid", "tool_lab", "question_text", "pathway", "text")], by = "answer_id")
+oe_assign <- oe_assign[order(oe_assign$aid), ]
+oe_assign$rid <- seq_len(nrow(oe_assign))
+
+# mark every excerpt inside its answer; returns the answer html with <mark> tags
+mark_answer <- function(text, rows) {
+  mtext <- match_copy(text)
+  intervals <- list()
+  for (i in seq_len(nrow(rows))) for (frag in excerpt_fragments(rows$excerpt[i])) {
+    loc <- locate_fragment(frag, mtext)
+    if (!is.null(loc)) intervals[[length(intervals) + 1]] <- c(loc, rows$rid[i])
+  }
+  if (!length(intervals)) return(esc(text))
+  iv <- do.call(rbind, intervals)
+  bp <- sort(unique(c(1, iv[, 1], iv[, 2] + 1, nchar(text) + 1)))
+  out <- character(0)
+  for (k in seq_len(length(bp) - 1)) {
+    a <- bp[k]; b <- bp[k + 1] - 1
+    piece <- esc(substring(text, a, b))
+    cover <- sort(unique(iv[iv[, 1] <= a & iv[, 2] >= b, 3]))
+    if (length(cover)) {
+      col <- domain_colors[[rows$domain[rows$rid == cover[1]]]]
+      piece <- sprintf('<mark style="background:%s" class="%s" title="%s">%s</mark>', col,
+                       if (length(cover) > 1) "multi" else "", esc(paste(rows$code[rows$rid %in% cover], collapse = ", ")), piece)
+    }
+    out <- c(out, piece)
+  }
+  paste(out, collapse = "")
+}
+
+answer_cards <- vapply(answers$aid, function(a) {
+  rows <- oe_assign[oe_assign$aid == a, ]
+  ans  <- answers[answers$aid == a, ]
+  chips <- if (nrow(rows)) paste(sprintf('<span class="achip" style="background:%s" title="%s">%s</span>%s',
+      domain_colors[rows$domain], esc(rows$rationale), esc(rows$code), conf_badge(rows$confidence)), collapse = " ") else '<span class="nocode">no code</span>'
+  sprintf('<div class="acard" id="ans-%d" data-q="%s"><div class="ameta">%s &middot; %s &middot; pathway: %s</div>
+    <div class="atext">%s</div><div class="achips">%s</div></div>',
+    a, esc(ans$question), esc(ans$tool_lab), esc(ans$question), esc(ans$pathway),
+    mark_answer(ans$text, rows), chips)
+}, character(1))
+
+questions <- unique(answers[, c("tool", "question", "question_order", "question_text", "question_lead")])
+questions <- questions[order(questions$question_order), ]
+q_counts  <- table(answers$question)
+q_coded   <- table(answers$question[answers$aid %in% oe_assign$aid])
+q_n       <- as.integer(q_counts[questions$question])
+q_nc      <- as.integer(q_coded[questions$question]); q_nc[is.na(q_nc)] <- 0L
+q_short   <- c(canvass_q2_hard = "Q2", canvass_q3 = "Q3", poll_change_one_thing = "")
+q_label   <- trimws(sprintf("%s %s", tool_label[questions$tool],
+                            ifelse(questions$question %in% names(q_short), q_short[questions$question], questions$question)))
+short     <- function(x, n = 60) ifelse(nchar(x) > n, paste0(substr(x, 1, n - 1), "\u2026"), x)
+q_options <- sprintf('<option value="sec-q-%s">%s: %s (%d)</option>', esc(questions$question),
+                     esc(q_label), esc(short(questions$question_text)), q_n)
+# the questions in the order asked, with what came before each, linking to its panel
+q_table <- sprintf('<table class="qlist"><thead><tr><th>Asked</th><th>Question</th><th>Comes after</th><th class="cb-n">Answers</th><th class="cb-n">With a code</th></tr></thead><tbody>%s</tbody></table>',
+  paste(sprintf('<tr><td class="cb-code">%s</td><td><button class="goto-sec" data-sec="sec-q-%s">%s</button></td><td class="cb-kw">%s</td><td class="cb-n">%d</td><td class="cb-n">%d</td></tr>',
+                esc(q_label), esc(questions$question), esc(questions$question_text), esc(questions$question_lead), q_n, q_nc), collapse = "\n"))
+
+question_sections <- vapply(seq_len(nrow(questions)), function(i) {
+  q <- questions$question[i]
+  sprintf('<section class="tx-section panel" id="sec-q-%s">
+    <h2 class="fname">%s</h2>
+    <div class="qtext">%s</div>
+    <div class="meta">%s &middot; %d answers, %d with at least one code &middot; each answer with its excerpts highlighted; hover a highlight for its codes</div>
+    <div class="alist">%s</div></section>',
+    esc(q), esc(q_label[i]), esc(questions$question_text[i]), esc(questions$question_lead[i]), q_n[i], q_nc[i],
+    paste(answer_cards[answers$question == q], collapse = "\n"))
+}, character(1))
+
+oe_info   <- unique(oe_assign[, c("code", "domain")])
+oe_counts <- as.data.frame(table(code = oe_assign$code), stringsAsFactors = FALSE)
+oe_counts <- merge(oe_counts, oe_info, by = "code")
+oe_counts <- oe_counts[order(-oe_counts$Freq, oe_counts$code), ]
+oe_by_tool <- table(oe_assign$code, oe_assign$tool_lab)
+tool_cols <- intersect(c("Survey", "Canvass", "Poll"), colnames(oe_by_tool))
+oe_max <- max(oe_counts$Freq)
+
+oe_bar_rows <- vapply(seq_len(nrow(oe_counts)), function(i) {
+  cd <- oe_counts$code[i]; n <- oe_counts$Freq[i]
+  ps <- oe_assign[oe_assign$code == cd, ]
+  passages <- sprintf(
+    '<div class="pitem"><div class="pmeta">%s &middot; %s &middot; pathway: %s %s
+       <button class="goto-ans" data-ans="%d" data-sec="sec-q-%s">open answer &rarr;</button></div>
+     <div class="passage">&ldquo;%s&rdquo;</div><div class="rationale">%s</div></div>',
+    esc(ps$tool_lab), esc(ps$question), esc(ps$pathway), conf_badge(ps$confidence), ps$aid, esc(ps$question),
+    esc(ps$excerpt), esc(ps$rationale))
+  cells <- paste(sprintf('<span class="bf">%d</span>', as.integer(oe_by_tool[cd, tool_cols])), collapse = "")
+  sprintf('<div class="brow brow-oe" data-code="%s">
+     <span class="bcode">%s</span>
+     <span class="btrack"><span class="bar" style="width:%.1f%%;background:%s"></span></span>
+     <span class="bn">%d</span>%s
+   </div><div class="plist">%s</div>', esc(cd), esc(cd), 100 * n / oe_max,
+    domain_colors[[oe_counts$domain[i]]], n, cells, paste(passages, collapse = "\n"))
+}, character(1))
+
+oe_dom_totals <- sort(table(oe_assign$domain), decreasing = TRUE)
+oe_dom_cells <- paste(sprintf(
+  '<span class="lg"><span class="chip" style="background:%s"></span>%s&nbsp;<b>%d</b></span>',
+  domain_colors[names(oe_dom_totals)], esc(names(oe_dom_totals)), as.integer(oe_dom_totals)), collapse = " ")
+n_coded_answers <- length(unique(oe_assign$aid))
+tool_summary <- paste(sprintf("%s %d", tool_label[names(table(answers$tool))], as.integer(table(answers$tool))), collapse = " &middot; ")
+
+open_tab <- sprintf('<section class="tx-section panel" id="sec-open">
+  <h2>The questions</h2>
+  <div class="meta">In the order the instruments ask them.<span class="web-only"> Click a question to read its answers.</span></div>
+  %s
+  <h2 style="margin-top:34px">Code frequency</h2>
+  <div class="meta">%d answers (%s) &middot; %d received at least one code &middot; %d code assignments &middot; %d distinct codes &middot; counts are answers assigned each code, not prevalence<span class="web-only"> &middot; click a code to list its passages</span></div>
+  <div class="dom-totals">%s</div>
+  <div class="bchart">
+    <div class="brow brow-oe bhead"><span class="bcode"></span><span class="btrack"></span>
+      <span class="bn">All</span>%s</div>
+    %s
+  </div></section>',
+  q_table, nrow(answers), tool_summary, n_coded_answers, nrow(oe_assign), nrow(oe_counts), oe_dom_cells,
+  paste(sprintf('<span class="bf">%s</span>', tool_cols), collapse = ""),
+  paste(oe_bar_rows, collapse = "\n"))
+
 # ---- codebook tab ------------------------------------------------------------
 
-n_coded <- table(seg$code)
-cb_domains <- unique(codebook$domain)  # docx order
-cb_blocks <- vapply(cb_domains, function(dom) {
-  d <- codebook[codebook$domain == dom, ]
-  n <- as.integer(n_coded[d$code]); n[is.na(n)] <- 0L
-  trs <- sprintf('<tr data-domain="%s"><td class="cb-code">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class="cb-kw">%s</td><td class="cb-n">%s</td></tr>',
-    esc(dom), esc(d$code), esc(d$parent), esc(d$definition), esc(d$include), esc(d$exclude),
-    esc(d$keywords), ifelse(n > 0, sprintf('<a class="cb-goto" data-code="%s" title="List all passages">%d</a>', esc(d$code), n), ""))
-  sprintf('<div class="cb-dom" id="cb-%s">
-    <div class="cb-dom-head"><span class="chip" style="background:%s"></span>%s
-      <span class="cb-q">%s</span></div>
-    <table class="cb"><thead><tr><th>Code</th><th>Parent</th><th>Definition</th><th>Include</th>
-      <th>Exclude</th><th>Keywords</th><th class="cb-n" title="Segments assigned this code in the pilot">n</th></tr></thead>
-    <tbody>%s</tbody></table></div>',
-    gsub("[^a-z]", "", tolower(dom)), domain_colors[[dom]], esc(dom), esc(d$question[1]),
-    paste(trs, collapse = "\n"))
-}, character(1))
+cb_domains <- unique(codebook$domain)  # codebook order
 
-# codes in the codebook that no coded segment has used yet, grouped by domain,
-# so readers can see what the transcripts have not (yet) covered
-code_n <- table(paste(seg$domain, seg$code))
-unused <- codebook[!(paste(codebook$domain, codebook$code) %in% names(code_n)), ]
-unused_blocks <- vapply(cb_domains, function(dom) {
-  d <- unused[unused$domain == dom, ]
-  if (!nrow(d)) return("")
-  sprintf('<p><span class="chip" style="background:%s"></span><strong>%s</strong> (%d): %s</p>',
-          domain_colors[[dom]], esc(dom), nrow(d), paste(esc(d$code), collapse = ", "))
-}, character(1))
-unused_note <- sprintf('<section class="tx-section" id="sec-unused" style="border-top:1px solid #e4e4e4">
-  <h2>Codes not yet observed</h2>
-  <div class="meta">%d of %d codebook codes have not been assigned to any transcript segment so far. This is a function of how few transcripts have been coded (%d), not evidence that the themes are absent.</div>
-  %s</section>', nrow(unused), nrow(codebook), length(stems), paste(unused_blocks[unused_blocks != ""], collapse = "\n"))
+# The Codebook tab is built once per page from that page's own assignments, so the n
+# column counts transcript segments on the transcripts page and answers on the
+# open-ended page. `unit` names what is counted; `n_units` is how many passages.
+codebook_tab_for <- function(assign, unit, n_units) {
+  n_coded <- table(assign$code)
+  cb_blocks <- vapply(cb_domains, function(dom) {
+    d <- codebook[codebook$domain == dom, ]
+    n <- as.integer(n_coded[d$code]); n[is.na(n)] <- 0L
+    trs <- sprintf('<tr data-domain="%s"><td class="cb-code">%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td class="cb-kw">%s</td><td class="cb-n">%s</td></tr>',
+      esc(dom), esc(d$code), esc(d$parent), esc(d$definition), esc(d$include), esc(d$exclude),
+      esc(d$keywords), ifelse(n > 0, sprintf('<a class="cb-goto" data-code="%s" title="List all passages">%d</a>', esc(d$code), n), ""))
+    sprintf('<div class="cb-dom" id="cb-%s">
+      <div class="cb-dom-head"><span class="chip" style="background:%s"></span>%s
+        <span class="cb-q">%s</span></div>
+      <table class="cb"><thead><tr><th>Code</th><th>Parent</th><th>Definition</th><th>Include</th>
+        <th>Exclude</th><th>Keywords</th><th class="cb-n" title="%s assigned this code">n</th></tr></thead>
+      <tbody>%s</tbody></table></div>',
+      gsub("[^a-z]", "", tolower(dom)), domain_colors[[dom]], esc(dom), esc(d$question[1]), esc(unit),
+      paste(trs, collapse = "\n"))
+  }, character(1))
+  # codes in the codebook that nothing on this page has used yet, grouped by domain
+  code_n <- table(paste(assign$domain, assign$code))
+  unused <- codebook[!(paste(codebook$domain, codebook$code) %in% names(code_n)), ]
+  unused_blocks <- vapply(cb_domains, function(dom) {
+    d <- unused[unused$domain == dom, ]
+    if (!nrow(d)) return("")
+    sprintf('<p><span class="chip" style="background:%s"></span><strong>%s</strong> (%d): %s</p>',
+            domain_colors[[dom]], esc(dom), nrow(d), paste(esc(d$code), collapse = ", "))
+  }, character(1))
+  unused_note <- sprintf('<section class="tx-section" id="sec-unused" style="border-top:1px solid #e4e4e4">
+    <h2>Codes not yet observed</h2>
+    <div class="meta">%d of %d codebook codes were assigned to none of the %d %s in this run. Absence here is not evidence that the theme is absent from the data.</div>
+    %s</section>', nrow(unused), nrow(codebook), n_units, unit, paste(unused_blocks[unused_blocks != ""], collapse = "\n"))
+  tab <- sprintf('<section class="tx-section panel" id="sec-codebook">
+    <h2>Codebook</h2>
+    <div class="meta">1MCC Codebook v%s &middot; %d codes across %d domains &middot; n = %s assigned the code in this run</div>
+    <input id="cbsearch" type="search" placeholder="Filter codes, definitions, keywords&hellip;" autocomplete="off">
+    %s</section>', cb_version, nrow(codebook), length(cb_domains), unit, paste(cb_blocks, collapse = "\n"))
+  list(tab = tab, unused = unused_note)
+}
+n_segments_all <- nrow(read.csv(here("data", "processed", "llm-coding", "segments.csv")))
+cb_tx <- codebook_tab_for(seg, "transcript segments", n_segments_all)
+cb_oe <- codebook_tab_for(oe_assign, "open-ended answers", nrow(answers))
 
-codebook_tab <- sprintf('<section class="tx-section panel" id="sec-codebook">
-  <h2>Codebook</h2>
-  <div class="meta">IMCC Codebook v3 (pilot) &middot; %d codes across %d domains &middot; n = segments assigned the code in the pilot</div>
-  <input id="cbsearch" type="search" placeholder="Filter codes, definitions, keywords&hellip;" autocomplete="off">
-  %s</section>', nrow(codebook), length(cb_domains), paste(cb_blocks, collapse = "\n"))
-
-tabs <- paste(c('<button class="tab active" data-target="sec-overview">Overview</button>',
+tabs_tx <- paste(c('<button class="tab active" data-target="sec-overview">Transcripts</button>',
   '<button class="tab" data-target="sec-codebook">Codebook</button>',
   '<select id="txsel"><option value="">Select a transcript&hellip;</option>',
   sprintf('<option value="sec-%s">%s</option>', stems, esc(stems)),
   '</select>'), collapse = "\n")
+tabs_oe <- paste(c('<button class="tab active" data-target="sec-open">Open-ended answers</button>',
+  '<button class="tab" data-target="sec-codebook">Codebook</button>',
+  '<select id="txsel"><option value="">Select a question&hellip;</option>', q_options, '</select>'), collapse = "\n")
 
-# sprintf caps the format string at 8192 bytes, so the page is two pieces
-page <- paste0(sprintf('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
-<title>1MCC — Coded interview transcripts (LLM pilot)</title>
-<style>
+# sprintf caps the format string at 8192 bytes, so the page is two pieces. The same
+# template serves both pages: transcripts (with the Codebook tab) and open-ended answers
+# (with the Codebook tab), built from one run.
+page_css <- '
   :root { --navy:#0a2240; --orange:#e0592a; }
   body { margin:0; font-family:-apple-system,"Segoe UI",Helvetica,Arial,sans-serif; color:#1b1b1b; background:#fafafa; }
   header { padding:28px 40px 18px; border-bottom:4px solid var(--orange); background:#fff; }
@@ -393,16 +550,16 @@ page <- paste0(sprintf('<!DOCTYPE html><html lang="en"><head><meta charset="utf-
   .bcode { font-family:ui-monospace,Menlo,monospace; font-weight:600; color:var(--navy);
            text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .btrack { background:#f0f0f0; border-radius:3px; height:14px; }
-  .bar { display:block; height:100%%; border-radius:3px; border-right:1px solid rgba(0,0,0,.18); }
+  .bar { display:block; height:100%; border-radius:3px; border-right:1px solid rgba(0,0,0,.18); }
   .bn { font-weight:700; text-align:right; } .bf { color:#999; text-align:right; }
   footer { padding:20px 40px 34px; font-size:12px; color:#777; }
-  #cbsearch { width:360px; max-width:100%%; padding:7px 10px; font:inherit; font-size:13px;
+  #cbsearch { width:360px; max-width:100%; padding:7px 10px; font:inherit; font-size:13px;
               border:1px solid #ccc; border-radius:6px; margin:4px 0 18px; }
   .cb-dom { margin-bottom:28px; }
   .cb-dom-head { font-size:13px; font-weight:700; color:var(--navy); text-transform:uppercase;
                  letter-spacing:.05em; display:flex; align-items:center; gap:8px; margin-bottom:6px; }
   .cb-q { font-weight:400; text-transform:none; letter-spacing:0; color:#666; font-style:italic; }
-  table.cb { border-collapse:collapse; width:100%%; font-size:12.5px; }
+  table.cb { border-collapse:collapse; width:100%; font-size:12.5px; }
   table.cb th { text-align:left; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:#888;
                 border-bottom:2px solid var(--navy); padding:4px 8px 4px 0; }
   table.cb td { vertical-align:top; padding:6px 8px 6px 0; border-bottom:1px solid #ececec; }
@@ -420,17 +577,35 @@ page <- paste0(sprintf('<!DOCTYPE html><html lang="en"><head><meta charset="utf-
   .goto { font:inherit; font-size:11px; color:var(--navy); background:none; border:none;
           cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
   .cb-goto { color:var(--navy); cursor:pointer; text-decoration:underline dotted; }
-</style></head><body>
-<header><h1>Coded interview transcripts — LLM pilot, IMCC Codebook v3</h1>
-<div class="sub">Click a code row to jump to its passage; click a highlight to see its codes (dotted underline = multiple codes overlap).</div></header>
+  .brow-oe { grid-template-columns: 290px 1fr 44px 52px 52px 52px; }
+  table.qlist { border-collapse:collapse; max-width:1100px; font-size:13px; margin-bottom:8px; }
+  table.qlist th { text-align:left; font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:#888; border-bottom:2px solid var(--navy); padding:4px 10px 4px 0; }
+  table.qlist td { vertical-align:top; padding:7px 10px 7px 0; border-bottom:1px solid #ececec; }
+  .goto-sec { font:inherit; color:var(--navy); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; text-align:left; }
+  .qtext { font-family:Georgia,serif; font-size:15px; margin:4px 0 6px; max-width:900px; }
+  .acard { background:#fff; border:1px solid #e2e2e2; border-radius:6px; padding:12px 16px; margin-bottom:10px; max-width:900px; }
+  .ameta { font-size:11px; color:#888; margin-bottom:4px; }
+  .atext { font-family:Georgia,serif; font-size:14px; line-height:1.55; }
+  .achips { margin-top:8px; }
+  .achip { font-family:ui-monospace,Menlo,monospace; font-size:11px; font-weight:600; color:var(--navy); padding:2px 7px; border-radius:3px; margin-right:2px; border:1px solid rgba(0,0,0,.12); }
+  .nocode { font-size:11px; color:#999; font-style:italic; }
+  .print-only { display:none; }
+  @media print { .web-only { display:none !important; } .print-only { display:inline; } }
+  .goto-ans { font:inherit; font-size:11px; color:var(--navy); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; margin-left:6px; }
+'
+
+render_page <- function(title, heading, deliverable_text, sub, tabs, body) paste0(
+  '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>', esc(title), '</title><style>', page_css, '</style></head><body>',
+  sprintf('
+<header><h1>%s — 1MCC Codebook v%s</h1>
+<div class="sub">%s <span class="web-only">Run <code>%s</code>: %s, effort %s, %s. %s Model output, not yet reviewed against human coding.</span>
+<span class="web-only">For more details on the codebook or themes listed below, see the Codebook tab.</span><span class="print-only">For more details on the codebook or themes listed below, see the Codebook at the end of this document.</span></div></header>
 <nav class="tabs">%s</nav>
 <div class="legend">%s</div>
 %s
-%s
-%s
-%s
-<footer>Generated by scripts/nlp/coding_dashboard.R from coded_segments.csv.</footer>
-', tabs, legend, overview, codebook_tab, sections, unused_note), '<script>
+<footer>Generated by scripts/nlp/coding_dashboard.R from data/processed/llm-coding/%s/.</footer>
+', heading, cb_version, deliverable_text, manifest$run_id, manifest$model, manifest$effort, manifest$run_date %||% substr(manifest$started, 1, 10),
+   sub, tabs, legend, body, manifest$run_id), '<script>
 document.querySelectorAll(".tx-section").forEach(sec => {
   const marks = [...sec.querySelectorAll("mark")], rows = [...sec.querySelectorAll(".crow")];
   const clear = () => { marks.forEach(m => m.classList.remove("active")); rows.forEach(r => r.classList.remove("sel")); };
@@ -453,20 +628,20 @@ const tabBtns = [...document.querySelectorAll(".tab")], sel = document.getElemen
 const show = id => panels.forEach(p => p.classList.toggle("active", p.id === id));
 tabBtns.forEach(b => b.addEventListener("click", () => {
   show(b.dataset.target); tabBtns.forEach(x => x.classList.toggle("active", x === b));
-  sel.classList.remove("active"); sel.value = "";
+  if (sel) { sel.classList.remove("active"); sel.value = ""; }
 }));
-sel.addEventListener("change", () => {
+if (sel) sel.addEventListener("change", () => {
   if (!sel.value) return;
   show(sel.value); sel.classList.add("active"); tabBtns.forEach(x => x.classList.remove("active"));
 });
-show("sec-overview");
+show(tabBtns[0].dataset.target);
 // Overview: click a code row to list every passage assigned that code
 document.querySelectorAll(".brow[data-code]").forEach(r => r.addEventListener("click", () => {
   r.classList.toggle("open"); r.nextElementSibling.classList.toggle("open");
 }));
 document.querySelectorAll(".goto").forEach(b => b.addEventListener("click", e => {
   e.stopPropagation();
-  show(b.dataset.sec); sel.value = b.dataset.sec; sel.classList.add("active");
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
   tabBtns.forEach(x => x.classList.remove("active"));
   const crow = document.querySelector(`#${b.dataset.sec} .crow[data-row="${b.dataset.row}"]`);
   crow.click(); crow.scrollIntoView({block:"center"});
@@ -477,6 +652,18 @@ document.querySelectorAll(".cb-goto").forEach(a => a.addEventListener("click", (
   tabBtns[0].click();
   if (!row.classList.contains("open")) row.click();
   row.scrollIntoView({behavior:"smooth", block:"start"});
+}));
+document.querySelectorAll(".goto-sec").forEach(b => b.addEventListener("click", () => {
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active")); window.scrollTo({top: 0});
+}));
+document.querySelectorAll(".goto-ans").forEach(b => b.addEventListener("click", e => {
+  e.stopPropagation();
+  show(b.dataset.sec); if (sel) { sel.value = b.dataset.sec; sel.classList.add("active"); }
+  tabBtns.forEach(x => x.classList.remove("active"));
+  const card = document.getElementById(`ans-${b.dataset.ans}`);
+  card.scrollIntoView({behavior:"smooth", block:"center"});
+  card.style.outline = "2px solid var(--navy)"; setTimeout(() => card.style.outline = "", 2500);
 }));
 document.getElementById("cbsearch").addEventListener("input", e => {
   const q = e.target.value.trim().toLowerCase();
@@ -491,5 +678,24 @@ document.getElementById("cbsearch").addEventListener("input", e => {
 });
 </script></body></html>')
 
-writeLines(page, out_path, useBytes = FALSE)
-cat("Wrote", out_path, "\n")
+click_help <- "Click a code row to jump to its passage; click a highlight to see its codes (dotted underline = multiple codes overlap)."
+preliminary <- "The codebook will continue to be revised as more responses come in. Coding and themes will be updated throughout the project. All data presented in this document are preliminary and not for publication or dissemination."
+pages <- list(
+  "dashboard.html"  = render_page("1MCC — Coded interview transcripts", "Coded interview transcripts",
+                                  paste("Themes identified in the interview transcripts using version", cb_version, "of the codebook.", preliminary),
+                                  click_help, tabs_tx, paste(overview, cb_tx$tab, sections, cb_tx$unused, sep = "\n")),
+  "open-ended.html" = render_page("1MCC — Coded open-ended answers", "Coded open-ended answers",
+                                  paste("Themes identified in the survey and canvass open-ended text responses using version", cb_version, "of the codebook.", preliminary),
+                                  "Click a code to list its passages; pick a question from the dropdown to read every answer with its excerpts highlighted.",
+                                  tabs_oe, paste(open_tab, cb_oe$tab, paste(question_sections, collapse = "\n"), cb_oe$unused, sep = "\n")))
+site_names <- c("dashboard.html" = "index.html", "open-ended.html" = "open-ended.html")
+for (nm in names(pages)) {
+  out <- file.path(run_dir, nm)
+  writeLines(pages[[nm]], out, useBytes = FALSE)
+  cat("Wrote", out, "\n")
+  if (to_site) {
+    dir.create(here("coding-dashboard"), showWarnings = FALSE)
+    file.copy(out, here("coding-dashboard", site_names[[nm]]), overwrite = TRUE)
+    cat("Copied to coding-dashboard/", site_names[[nm]], " (site resource)\n", sep = "")
+  }
+}

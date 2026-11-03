@@ -1,97 +1,117 @@
 ---
 name: qualitative-coder
-description: Workflow for LLM-assisted qualitative coding of 1MCC interview transcripts with the IMCC codebook — running a coding pass, reviewing model output against the codebook, comparing runs to the pilot or to human coding, and drafting codebook revision notes. Use when asked to code transcripts, review or validate coded segments, compare coders, or update the coding prompt.
+description: Run, review, and cost the LLM coding of 1MCC interview transcripts and open-ended survey answers against Bree's codebook (Python coder on Bedrock, v6 codebook, dashboard). Use for any coding run, prompt change, hand review, or cost question.
 ---
 
 # Qualitative coder (1MCC)
 
-Thin workflow skill. The coding rules themselves live in ONE place,
-`scripts/nlp/coding_prompt.md`, shared by the ellmer test script and the Python
-pipeline. Never restate or paraphrase those rules here or in a session; read the file.
-The plan and its findings live in `scripts/nlp/PLAN-llm-coding.md`; read it first.
+Thin workflow skill. The coding rules live in ONE place, `scripts/nlp/coding_prompt.md`;
+task framings and user-message templates live in `scripts/nlp/prompts/`. Never restate
+or paraphrase the rules here or in a session; read the files. The design, decisions and
+findings live in `scripts/nlp/PLAN-llm-coding.md`; read it first.
 
 ## Files
 
 | Path | What | Committed? |
 |---|---|---|
-| `IMCC Codebook v3.docx` (repo root) | Bree's codebook, source of truth | no (`*.docx` ignored) |
-| `data/processed/interview-coding/codebook.csv` | flat parse, 123 rows, code names normalised | no |
+| `data/raw/codebook/IMCC Codebook v<N>.xlsx` | Bree's codebook, source of truth | no |
+| `data/processed/codebook.csv` | flat parse of the newest codebook (`00_ingest-codebook.R`), with `version` | no |
 | `data/raw/interview-transcripts/*.docx` | transcripts, `nopii_` prefixed | no |
-| `data/processed/interview-coding/coded_segments.csv` | the pilot (Fable, in-session, 94 rows) | no |
-| `data/processed/interview-coding/llm_ellmer_<model>.csv` | API runs, one row per segment × code | no |
-| `data/processed/interview-coding/*_dashboard.html` | rendered dashboards | no |
-| `scripts/nlp/coding_prompt.md` | system prompt (rules) | yes |
-| `scripts/nlp/ellmer_coding_example.R` | Bedrock smoke-test coder (R) | yes |
-| `scripts/nlp/coding_dashboard.R` | dashboard builder | yes |
-| `scripts/nlp/PLAN-llm-coding.md` | design, decisions, findings | yes |
+| `data/processed/open_ended.csv` | every open-ended answer (`01_open-ended.R`) | no |
+| `data/processed/llm-coding/segments.csv` | transcript unit table, one row per participant segment | no |
+| `data/processed/llm-coding/<run_id>/` | one run: `manifest.json`, `usage.csv`, `coded_transcripts.csv`, `coded_open_ended.csv`, `raw/*.json`, rendered system prompts | no |
+| `data/processed/interview-coding/` | the September pilot (v3 codebook) and its notes | no |
+| `scripts/nlp/02_code-text.py` | the coder (Python, `anthropic[bedrock]`) | yes |
+| `scripts/nlp/03_cost-report.py` → `scripts/nlp/COST-REPORT.md` | cost benchmark from the usage logs | yes |
+| `scripts/nlp/04_compare-runs.py` | two runs → `compare_<a>_vs_<b>.md` + per-run `review_*.md` (the hand-review files) | yes |
+| `scripts/nlp/coding_prompt.md`, `scripts/nlp/prompts/` | prompts | yes |
+| `scripts/nlp/coding_dashboard.R` | dashboard builder: two pages per run, transcripts (`dashboard.html`) and open-ended answers (`open-ended.html`), Codebook tab on both; `<run_id> site` copies them to `coding-dashboard/` | yes |
+| `scripts/nlp/PLAN-llm-coding.md` | design, decisions, findings, Bedrock access matrix | yes |
 
-Nothing under `data/` is ever committed. Print transcript text only as short excerpts.
+Nothing under `data/` is ever committed. Print transcript or answer text only as short
+excerpts.
 
-## Coded-segment CSV contract
+## Coded CSV contract
 
 Every coder (pilot, model run, human) produces the same columns so the dashboard and
-the comparison scripts work unchanged:
+comparisons work unchanged. Transcripts:
 `segment_id, file, speaker, code, excerpt, rationale, confidence, domain, parent_code`
-(plus `model`, `run_date`, `possible_new_code` for API runs). `file` is the transcript
-stem; `excerpt` must be verbatim from the segment so the dashboard can highlight it.
+plus `in_codebook, possible_new_code, model, effort, run_date`. Open-ended answers:
+`answer_id, tool, question` in place of `segment_id, file, speaker`; an answer with no
+code keeps one row with `code` empty so coverage can be counted. `excerpt` must be
+verbatim from the passage so the dashboard can highlight it.
 
 ## Standing decisions (ratification by Teresa/Bree pending)
 
-- Unit = participant speaker turn. Interviewer, facilitator, and translator turns are
-  excluded. The letter is one segment.
-- Multi-label allowed. Participant Characteristics codes once per participant.
+- Unit = participant speaker turn for transcripts; the letter is one segment;
+  interviewer, facilitator, translator turns and facilitator questions are excluded.
+  Unit = one answer for the open-ended questions.
+- Multi-label allowed. Participant Characteristics codes and CARE_RELATIONSHIP once per
+  participant, on the passage that states the fact.
 - Code Spanish from the original; quote the Spanish.
-- Duplicate v3 code names are disambiguated as `DESIRED_DISABILITY_CARE` /
-  `DESIRED_CHILD_CARE` until v4 renames them.
+- Effort `medium`, adaptive thinking, 20 answers per call, 4 workers, for every
+  benchmarked model, so runs are comparable.
 
 ## Commands
 
 ```sh
-Rscript scripts/nlp/ellmer_coding_example.R 5      # smoke test (5 segments) — check cost first
-Rscript scripts/nlp/ellmer_coding_example.R 200    # all segments, Sonnet 5 by default
-IMCC_MODEL=us.anthropic.claude-opus-5 Rscript scripts/nlp/ellmer_coding_example.R 200
-Rscript scripts/nlp/coding_dashboard.R             # pilot dashboard
-Rscript scripts/nlp/coding_dashboard.R data/processed/interview-coding/llm_ellmer_<model>.csv
+Rscript scripts/nlp/00_ingest-codebook.R                     # newest codebook xlsx -> codebook.csv
+Rscript scripts/nlp/01_open-ended.R                          # survey/canvass/poll answers -> open_ended.csv
+export AWS_REGION=us-east-1                                  # credentials via the AWS chain (~/.Renviron has the keys)
+python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --limit 5          # smoke test, cents
+python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5                    # full run
+python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5             # Opus 5.5 (legacy endpoint)
+python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume           # finish an interrupted run; refuses if the inputs changed
+python scripts/nlp/03_cost-report.py                          # rebuild COST-REPORT.md
+python scripts/nlp/04_compare-runs.py <run_a> <run_b>          # agreement tables + review files (gitignored)
+Rscript scripts/nlp/coding_dashboard.R [<run_id>] [site]      # dashboards (newest run by default); `site` = publish-ready copy
 ```
 
-Full runs on the ellmer path cost ~$5 (Sonnet) / ~$13 (Opus) because it has no prompt
-caching. Do not launch a full run or a bigger model without saying the cost and
-getting a yes. Never redeploy the GitHub Pages site (`gh-pages` branch) with a new run
-unless Manu explicitly asks; the published pilot is what the team has seen.
+Full-run cost at list prices (2026-10-06, 263 segments + 2,061 answers): Sonnet 5 about
+$9, Opus 5.5 about $15, Fable 5.1 projected about $35. Do not launch a full run or a
+bigger model without saying the cost and getting a yes. Fable 5.1 is blocked on an AWS
+account setting (see the PLAN). Never redeploy the GitHub Pages site (`gh-pages`
+branch) with a new run unless Manu explicitly asks.
 
 ## Reviewing a model run (do this by hand, every run)
 
-Build a review file: for each coded segment, the segment text, then each assignment
-with its codebook definition, exclude rule, excerpt, and rationale. Read all of it.
+`04_compare-runs.py` writes the review file (`<run>/review_<task>.md`): for each coded
+passage, the passage text, then each assignment with its codebook definition, exclude
+rule, excerpt, and rationale. Read all of it.
 Judge each assignment right / defensible / wrong and report the tally plus the
 patterns. Check specifically:
 
-1. Role codes (Care Role, Care Type, Location) re-applied on every turn instead of once.
+1. Role codes (Care Role, Care Type, Location, CARE_RELATIONSHIP) re-applied on every
+   turn instead of once.
 2. Rationales that lean on other turns ("as established earlier"); excerpts not in the
-   segment.
+   passage.
 3. Current vs former caregiving where the care recipient has died.
 4. `_POTENTIAL_QUOTE` count and whether each is a self-contained, quotable sentence in
    the participant's own words.
-5. Stretches: LOSS_OF_CONTROL without an explicit no-choice statement, ACCESS_BARRIER
-   for a person being unhelpful, SOCIAL_ISOLATION for a missing service, Outcomes codes
-   for things unrelated to care being met, CARE_MULTIPLE_SETTINGS for multiple
-   populations.
-6. Spanish segments: coded from the original, Spanish in the excerpt.
-7. Codes outside the codebook; `_OTHER` uses and their `possible_new_code`.
+5. Stretches: CHALLENGE_LOSS_OF_CONTROL without an explicit no-choice statement,
+   CHALLENGE_ACCESS_BARRIER for a person being unhelpful, CHALLENGE_SOCIAL_ISOLATION for
+   a missing service, Outcomes codes for things unrelated to care being met,
+   CARE_MULTIPLE_SETTINGS for multiple populations.
+6. Spanish passages: coded from the original, Spanish in the excerpt.
+7. Codes outside the codebook (`in_codebook == FALSE`); `_OTHER` uses and their
+   `possible_new_code`.
 8. Whether the `low` confidence flag tracks the assignments you doubt.
+9. Open-ended answers: share of answers left uncoded per question, and whether the
+   Framing and Ideal System codes are applied to q7 ("what could become possible").
 
-Then compare to the pilot or to human coding: align rows to segments by locating the
-excerpt in the segment text, report recall / precision / per-segment Jaccard and a
-domain-level table, list zero-overlap segments with both code sets. Numbers go in a
-table in the reply; the interpretation is what matters.
+Then compare runs or compare to human coding: align rows to passages by id, report
+recall / precision / per-passage Jaccard and a domain-level table, list zero-overlap
+passages with both code sets. Numbers go in a table in the reply; the interpretation is
+what matters.
 
 ## Changing the prompt
 
-Edit `scripts/nlp/coding_prompt.md` only. Add a rule as a concrete instruction with the
-failure it prevents; prefer an example over an adjective. Rerun, redo the review and
-the comparison, and record before/after numbers in `PLAN-llm-coding.md` under
-Findings. Do not tune the prompt toward the pilot: the pilot is one unvalidated coder,
-not ground truth. Bree's coding is the reference once it exists.
+Edit `scripts/nlp/coding_prompt.md` (rules) or `scripts/nlp/prompts/task_*.md`
+(framing) only. Add a rule as a concrete instruction with the failure it prevents;
+prefer an example over an adjective. Rerun, redo the review and the comparison, and
+record before/after numbers in `PLAN-llm-coding.md` under Findings. Do not tune the
+prompt toward the pilot or toward one model: the pilot is one unvalidated coder, not
+ground truth. Bree's coding is the reference once it exists.
 
 ## Codebook feedback for Bree
 

@@ -56,6 +56,19 @@ survey_open <- map(survey_files, \(f) {
   left_join(survey, by = join_by(respondent_id)) |>
   mutate(tool = "survey")
 
+# The f1 Aug 13-31 export also holds f4/f6 respondents (the same overlap the cleaning
+# step dedupes), so an answer can arrive twice. Keep the copy from the delivery that
+# matches the respondent's form; the other export sometimes carries a differently
+# edited text.
+n_before <- nrow(survey_open)
+survey_open <- survey_open |>
+  mutate(delivery_matches_form = str_detect(delivery, fixed(str_c("_", form_version, "_")))) |>
+  arrange(respondent_id, question, desc(delivery_matches_form)) |>
+  distinct(respondent_id, question, .keep_all = TRUE) |>
+  select(-delivery_matches_form)
+if (nrow(survey_open) < n_before)
+  cli::cli_warn("{n_before - nrow(survey_open)} survey answer{?s} appeared in two deliveries; kept the form-specific copy")
+
 # a q5 answer should sit in the column for the respondent's pathway
 expected_q5 <- c(current = "q5a", past = "q5c", observer = "q5d")
 q5_mismatch <- survey_open |>
@@ -94,7 +107,8 @@ poll <- deliveries |> filter(tool == "poll") |> pull(file) |>
     x <- read_text_export(f)
     col <- which(str_detect(names(x), "If money was not an issue"))
     stopifnot(length(col) == 1)
-    tibble(delivery = f, respondent_id = NA_character_, question = "poll_change_one_thing", text = x[[col]],
+    # the poll export has no respondent ID; the row within the export is the stable key
+    tibble(delivery = f, respondent_id = str_c("row", seq_len(nrow(x))), question = "poll_change_one_thing", text = x[[col]],
            tool = "pre-launch poll", form_version = NA_character_, response_status = NA_character_)
   }) |>
   list_rbind() |>
@@ -102,24 +116,37 @@ poll <- deliveries |> filter(tool == "poll") |> pull(file) |>
 
 # ---- assemble ----------------------------------------------------------------
 
-question_text <- c(
-  q5a = "How did these people or supports help, and what made the biggest difference? (current pathway)",
-  q5c = "How did these people or supports help, and what made the biggest difference? (past pathway)",
-  q5d = "How do these people or supports help, and what makes the biggest difference? (observer pathway)",
-  q7  = "What could become possible if everyone had this support? How would it help you, your family, or your neighbors?",
-  canvass_q3 = "What's one thing you would change about care?",
-  canvass_q2_hard = "What's been hard about that?",
-  poll_change_one_thing = "If money was not an issue, and you could change one thing about how care works in our country, what would it be?"
+# The questions in the order the instruments ask them: the survey first (its open
+# question follows the "who helps" checklist of each pathway, and q7 follows the q6
+# ideal-care checklist), then the revised canvassing form, then the pre-launch poll.
+# `question_lead` is the question that precedes it, so a reader sees what "that" and
+# "this support" refer to.
+question_info <- tibble::tribble(
+  ~question, ~question_order, ~question_text, ~question_lead,
+  "q5a", 1L, "How did these people or supports help, and what made the biggest difference?",
+    "Survey, current-care pathway, after q4a \"What or who helps you most with care? (Choose your top 3)\"",
+  "q5c", 2L, "How did these people or supports help, and what made the biggest difference?",
+    "Survey, past-care pathway, after q4c \"What or who helped most with care? (Choose your top 3)\"",
+  "q5d", 3L, "How do these people or supports help, and what makes the biggest difference?",
+    "Survey, observer pathway, after q4d \"What or who helps most with their care? (Choose your top 3)\"",
+  "q7",  4L, "What could become possible if everyone had this support? How would it help you, your family, or your neighbors?",
+    "Survey, all pathways, after q6 \"What would ideal care support and services look like for you? (Choose up to three)\"",
+  "canvass_q2_hard", 5L, "What's been hard about that?",
+    "Canvassing (revised form c1-c3), after the screener \"Do you need care or is there someone in your life you help take care of: a kid, a parent, a grandparent, or anyone else?\"",
+  "canvass_q3", 6L, "What's one thing you would change about care, whether it's for your kids, aging family members, people with disabilities, yourself, or the people around you? (Optional)",
+    "Canvassing (Canvass 2.0 form), after the \"What's been hard or worries you about that?\" checklist",
+  "poll_change_one_thing", 7L, "If money was not an issue, and you could change one thing about how care works in our country, what would it be?",
+    "Pre-launch poll (EveryAction, March to April 2026), the only open question"
 )
 
 open_ended <- bind_rows(survey_open, canvass_open, canvass_hard, poll) |>
+  left_join(question_info, by = join_by(question)) |>
   mutate(
-    question_text = question_text[question],
     pathway = as.character(pathway),
-    answer_id = str_c(tool, "_", question, "_", coalesce(respondent_id, str_c("row", row_number())))
+    answer_id = str_c(tool, "_", question, "_", respondent_id)
   ) |>
-  select(answer_id, tool, question, question_text, text, respondent_id, pathway, form_version, response_status, delivery) |>
-  arrange(tool, question, respondent_id)
+  select(answer_id, tool, question, question_order, question_text, question_lead, text, respondent_id, pathway, form_version, response_status, delivery) |>
+  arrange(question_order, respondent_id)
 
 write_csv(open_ended, here("data/processed/open_ended.csv"))
 cli::cli_inform("Wrote {nrow(open_ended)} open-ended answers to data/processed/open_ended.csv")

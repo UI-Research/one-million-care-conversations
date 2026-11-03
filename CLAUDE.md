@@ -20,12 +20,12 @@ The rendered qmds are read by the research lead (a PhD, not a data scientist): p
 
 ## Hard rules
 
-- **No PII, no coalition data in the repo — ever.** `.gitignore` blocks all of `data/` except the generated `data-dictionary.csv` (schema only), plus `.pdf`/`.docx`. Rendered `.html` under `scripts/` IS committed (Manu's decision, 2026-09-17): keep rendered output to aggregates — no respondent IDs, ZIPs, or free text in printed output. If the PII guard in `01_clean-data.qmd` trips (non-empty address fields), stop and flag it — do not work around it.
+- **No PII, no coalition data in the repo — ever.** `.gitignore` blocks all of `data/` except the generated `data-dictionary.csv` (schema only), plus `.pdf`/`.docx`. Rendered `.html` under `scripts/` IS committed (Manu's decision, 2026-09-17): keep rendered output to aggregates — no respondent IDs, ZIPs, or free text in printed output. Exception (Manu, 2026-10-27): the inter-rater reliability page shows answer text side by side, like the coding dashboard; still no IDs. If the PII guard in `01_clean-data.qmd` trips (non-empty address fields), stop and flag it — do not work around it.
 - Coalition-collected data must never be described as "nationally representative" in any Urban output.
 
 ## Architecture
 
-Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.csv`, `canvassing_clean.csv`, `canvassing_revised_clean.csv`, `data-dictionary.csv` — CSV only, by Manu's preference; `read_clean()` in 00_utils.R restores factor levels from the dictionary) → `scripts/survey/01_chartbook.qmd` (issue #1: counts by state and tool, demographics, selection rates). Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/nlp/` holds the LLM transcript-coding pipeline and its review dashboard.
+Pipeline: `scripts/00_ingest-raw.R` (Box API sync by file ID; writes `data/raw/box-manifest.csv` with sha1s for change detection) → `data/raw/Raw data backups/` (untouched mirror of the Box delivery folder) → `scripts/01_clean-data.qmd` → `data/processed/` (`survey_clean.csv`, `canvassing_clean.csv`, `canvassing_revised_clean.csv`, `data-dictionary.csv` — CSV only, by Manu's preference; `read_clean()` in 00_utils.R restores factor levels from the dictionary) → `scripts/survey/01_chartbook.qmd` (issue #1: counts by state and tool, demographics, selection rates). Shared helpers live in `scripts/00_utils.R`, sourced by both qmds. `scripts/nlp/` holds the LLM coding pipeline (codebook ingest, open-ended answer reader, the Python coder `02_code-text.py` on Bedrock, cost report, run comparison) and its review dashboard; the `qualitative-coder` skill and `scripts/nlp/PLAN-llm-coding.md` describe how to run and review it.
 
 Key design decisions that span files:
 

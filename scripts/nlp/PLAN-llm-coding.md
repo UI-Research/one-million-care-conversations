@@ -1,7 +1,51 @@
 # Plan: LLM-assisted coding pipeline + validation
 
-Status: **plan only, nothing built yet** (written 2026-09-11). Revisit in a fresh
-session with the kickoff prompt at the bottom.
+Status: **built and run** (plan written 2026-09-11; Python coder, v6 codebook, and the
+Sonnet 5 / Opus 5.5 benchmark runs on 2026-10-06). See "What exists now" and Findings.
+
+## What exists now (2026-10-06)
+
+- `scripts/nlp/00_ingest-codebook.R`: Bree's `IMCC Codebook v6.xlsx` (in
+  `data/raw/codebook/`) to `data/processed/codebook.csv` (167 codes, 10 domains).
+- `scripts/nlp/01_open-ended.R`: every open-ended answer from the survey (q5a/q5c/q5d,
+  q7), the canvassing forms (Q2 hard, Q3) and the pre-launch poll into
+  `data/processed/open_ended.csv` (2,061 answers with text).
+- `scripts/nlp/02_code-text.py`: the coder. Official `anthropic` Python SDK on Bedrock,
+  prompt caching on the codebook and the transcript, adaptive thinking with a chosen
+  effort, one tool call (`submit_codes`) as the structured output, pydantic validation,
+  per-call token log, manifest with prompt hashes and a cost estimate. Transcripts are
+  one call per participant segment with the transcript as cached context; open-ended
+  answers go 20 per call grouped by question. `--limit N` smoke-tests, `--resume`
+  finishes an interrupted run from the saved raw responses. Output under
+  `data/processed/llm-coding/<run_id>/`.
+- `scripts/nlp/03_cost-report.py`: usage logs to `scripts/nlp/COST-REPORT.md` (committed;
+  aggregates only).
+- `scripts/nlp/04_compare-runs.py`: two runs to an agreement file plus the per-run hand-review
+  files (all gitignored, they quote passages).
+- `scripts/nlp/coding_dashboard.R`: now reads a run folder; adds the open-ended answers tab
+  (code counts by tool, answers with highlighted excerpts); writes into the run folder and
+  only copies to the published `coding-dashboard/` on request (the answers come from
+  PII-skimmed deliveries like the transcripts; publishing a run is a deliberate step).
+- Prompts: rules in `scripts/nlp/coding_prompt.md` (shared), task framing and user
+  templates in `scripts/nlp/prompts/` (see its README).
+- `scripts/nlp/ellmer_coding_example.R` is superseded: ellmer 0.4.0 cannot read the
+  thinking blocks Opus 5.5 and Fable always return and does not cache. Kept for the
+  September findings below.
+
+### Bedrock access as of 2026-10-06 (IAM user in `~/.Renviron`, us-east-1)
+
+| Model | Works | How |
+|---|---|---|
+| Sonnet 5 | yes | `anthropic.claude-sonnet-5` on the Claude-in-Bedrock endpoint (`AnthropicBedrockMantle`) |
+| Opus 5.5 | yes | `global.anthropic.claude-opus-5-5` through the legacy InvokeModel client (`AnthropicBedrock`); the new endpoint returns 403 because the IAM user lacks `aws-marketplace:Subscribe` |
+| Opus 5 | yes | `anthropic.claude-opus-5` on the new endpoint |
+| Fable 5.1 | **no** | legacy path: `data retention mode 'default' is not available for this model` (account-level Bedrock data-retention setting must be switched to the 30-day mode); new endpoint: 404. Ask Rob. |
+
+Two Bedrock limitations shaped the code: structured outputs (`output_config.format`)
+and `strict` tools are not available there, so the schema is a plain tool definition
+validated client-side; forced `tool_choice` is rejected on Opus 5.5 and Fable 5.1, so
+the prompt asks for the tool call and the code falls back to "no tool call" as an
+error.
 
 ## Where we are
 
@@ -240,30 +284,86 @@ not available for this model" — it needs the account's Bedrock data-retention 
 changed to the 30-day mode first (an AWS-side config; ask Rob). Fable also cannot run
 thinking-disabled, so it needs the Python path, not ellmer.
 
-## Kickoff prompt for the next session
+## Findings from the v6 benchmark runs (2026-10-06)
 
-Paste this into a new Claude Code session in this repo:
+Both runs: codebook v6, adaptive thinking, effort medium, 263 transcript segments and
+2,058 answer passages (1,998 distinct answers; 60 were in the input twice, see the
+dedupe now in `01_open-ended.R`). Cost figures are in `COST-REPORT.md`.
 
-```
-Read scripts/nlp/PLAN-llm-coding.md and CLAUDE.md, then build the validation pipeline
-it describes, in Python, under scripts/nlp/:
+| | Sonnet 5 | Opus 5.5 |
+|---|---:|---:|
+| Transcript assignments (segments with a code) | 351 (200 of 263) | 473 (192 of 263) |
+| Answer assignments (answers with a code) | 5,174 (1,918 of 1,998) | 7,394 (1,916 of 1,998) |
+| Codes per coded answer | 2.7 | 3.9 |
+| Excerpt verbatim in passage (transcripts / answers) | 98% / 91% | 99% / 99% |
+| Codes outside the codebook | 3 rows (`SUPPORT_FORMAL_SUPPORT`) | 0 |
+| `_POTENTIAL_QUOTE` (transcripts / answers) | 24 / 155 | 30 / 377 |
+| `_OTHER` with a proposed code (transcripts / answers) | 3 / 61 | 7 / 100 |
+| `CARE_RELATIONSHIP` (transcripts / answers) | 20 / 312 | 27 / 571 |
+| Cost at list prices / wall-clock, 4 workers | $12.04 / 35 min | $24.55 / 113 min |
 
-1. codebook_to_csv.py, segment.py, code_segments.py, validate.py, plus a
-   requirements.txt (anthropic[bedrock], pydantic, pandas, scikit-learn, krippendorff).
-2. Use AnthropicBedrockMantle from the anthropic SDK; take region and model ID from
-   environment variables (AWS_REGION, IMCC_MODEL) with claude-sonnet-5 as the default
-   model. Do not hardcode credentials.
-3. Use messages.parse with the Pydantic schema in the plan, the system prompt from
-   scripts/nlp/coding_prompt.md, prompt caching on the system prompt and transcript,
-   adaptive thinking, effort medium. Match the CSV columns written by
-   scripts/nlp/ellmer_coding_example.R.
-4. Everything written under data/ must stay gitignored; check `git status` before
-   finishing. Never print transcript text to the terminal beyond short excerpts.
-5. Dry-run mode: a --limit N flag that codes only the first N segments so I can smoke
-   test against Bedrock cheaply before the full run.
-6. validate.py should work with any number of human_*.csv and llm_*.csv files in
-   data/processed/interview-coding/ and write agreement.md there.
+**Agreement between the two models** (`04_compare-runs.py`): transcripts, mean per-segment
+Jaccard 0.46, identical code sets on 26% of segments, Opus recovers 68% of Sonnet's
+assignments and 51% of Opus's assignments are also Sonnet's; answers, Jaccard 0.56,
+identical sets on 25%, recall 77%, precision 54%. The gap is mostly Opus adding codes
+rather than disagreeing: `SUPPORT_IMPACTS` (409 vs 100 on answers), `CARE_RELATIONSHIP`
+(571 vs 312), `CAREGIVER_FAMILY` (330 vs 155), and quotes (Opus uses the domain-specific
+quote codes, Sonnet mostly `CARE_POTENTIAL_QUOTE`). Where they pick different codes for
+the same passage, Opus's choice is often the finer one (`CHALLENGE_MISMATCH` where Sonnet
+used `CHALLENGE_QUALITY_CONCERNS`; `CARE_MULTIPLE_SETTINGS` for home-then-nursing-home).
+Spot check of Opus on the first 26 segments of the notes-style group transcript, against
+the full Sonnet review: excerpts exact, same strengths on loss-of-control and former
+caregiving, but the once-per-participant rule is followed less (role and condition codes
+repeat across turns) and `SUPPORT_IMPACTS` is attached to almost any statement that
+something helped. Neither run has been scored against human coding; that comparison,
+not this one, decides which model to use.
 
-Ask me for Bedrock region and model IDs before running anything against the API. Do
-not run the full coding job without confirming cost first.
-```
+Opus 5.5 ran at about one 20-answer call every two minutes on the `global.` profile
+(six server 500 errors after retries, one reply without a tool call; the 140 answers in
+those batches were recovered by the retry pass). Its transcript phase took 12 minutes.
+
+**Hand review of the Sonnet 5 run** (all 351 transcript assignments read; a structured
+sample of 144 answers covering every 25th answer plus all-sampled `_OTHER`, low
+confidence, quote and Participant Characteristics rows). Roughly 75-80% right, 10-15%
+defensible, under 10% wrong, on both tasks. What worked: no cross-turn rationales;
+`CHALLENGE_LOSS_OF_CONTROL` only with explicit no-choice statements (5 uses, all
+right); current vs former caregiving right in every case checked (the widow is
+`FORMER_CAREGIVER` once, at the death, never `CAREGIVER_FAMILY`); Spanish coded from the
+original; the letter got 17 well-grounded codes; `low` confidence flagged most of the
+rows I doubted. What did not:
+
+1. **`CARE_RELATIONSHIP` is over-applied.** 20 transcript uses and 323 answer uses. It
+   fires on every mention of "my husband", on relationships that are not
+   caregiver-recipient (a daughter's house, "paid caregiver"), and repeatedly for the
+   same participant despite the once-per-participant rule. Either Bree narrows the
+   definition or the rule needs an example of what does not count.
+2. **Participant Characteristics on survey answers** (648 assignments): applied by the
+   rules, but the respondent's pathway, relationship and care type are already
+   structured survey items. Decide with Bree whether these codes belong on answers at
+   all; dropping them removes a third of the answer assignments and most of the
+   repetition.
+3. **`CHALLENGE_QUALITY_CONCERNS` (30 transcript uses) stretches to opinions** about the
+   care industry ("this is a natural progression for 95% of people with dementia").
+4. **Outcomes stretches**: `OUTCOME_INDEPENDENCE` for "I choose who I work with",
+   `OUTCOME_ECONOMIC_SECURITY` for "work part-time", `OUTCOME_FAMILY_STABILITY` for a
+   grandchild's affection. Rule 10 needs an example.
+5. **Quotes with reported speech**: two transcript `_POTENTIAL_QUOTE`s are the husband's
+   words ("Do you see the tunnel?"), which rule 13 excludes.
+6. **Peer support groups have no v6 code.** The model splits them between
+   `SUPPORT_FRIEND_COMMUNITY` and `SUPPORT_OTHER` with `SUPPORT_PEER_GROUP` proposed
+   repeatedly; "lack of support" in the canvass answers goes to `CHALLENGE_OTHER` with
+   `CHALLENGE_LACK_OF_SUPPORT` proposed. Both are codebook gaps, not prompt problems.
+7. **Segmentation**: Descript transcripts carry the facilitator's backchannels ("Mm-hmm",
+   "Yeah") inside participant turns; harmless under rule 15 but visible in excerpts.
+
+Two malformed replies (the `passages` array sent as a JSON string) and one empty reply
+out of 372 calls; the coder repairs the first and retries the second.
+
+## Prompt changes for v6 (2026-10-06)
+
+The rules were generalised from "segment" to "passage" so one rule file serves both
+transcripts and short answers; code names were updated to v6 (`CHALLENGE_LOSS_OF_CONTROL`,
+`CHALLENGE_ACCESS_BARRIER`, `CHALLENGE_SOCIAL_ISOLATION`, `OUTCOME_*`, `NEED_OTHER`);
+`CARE_RELATIONSHIP` joined the once-per-participant rule; rationales capped at 20
+words; a boundary line for the new Ideal System domain. The duplicate code names of v3
+are resolved in v6, so the `DESIRED_*` workaround is gone.

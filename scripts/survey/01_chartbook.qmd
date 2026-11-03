@@ -105,14 +105,27 @@ rates_by <- function(data, q, group) {
     transmute(Answer = label, group, rate)
 }
 
+# Up to four groups are drawn as grouped bars; more than that is unreadable side by
+# side, so larger splits get one small panel per group in the same answer order.
 rates_by_chart <- function(rates, title) {
-  rates |>
-    mutate(Answer = fct_reorder(str_wrap(Answer, 40), rate, .fun = max)) |>
-    ggplot(aes(rate, Answer, fill = group)) +
-    geom_col(position = position_dodge(width = 0.8), width = 0.75) +
-    scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .05))) +
-    labs(title = title, x = NULL, y = NULL, fill = NULL) +
-    theme(legend.position = "top", legend.direction = "vertical")
+  rates <- rates |> mutate(Answer = fct_reorder(str_wrap(Answer, 40), rate, .fun = max))
+  if (n_distinct(rates$group) <= 4) {
+    rates |>
+      ggplot(aes(rate, Answer, fill = group)) +
+      geom_col(position = position_dodge(width = 0.8), width = 0.75) +
+      scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .05))) +
+      labs(title = title, x = NULL, y = NULL, fill = NULL) +
+      theme(legend.position = "top", legend.direction = "vertical")
+  } else {
+    rates |>
+      ggplot(aes(rate, Answer)) +
+      geom_col(width = 0.75) +
+      facet_wrap(~group, ncol = 3, labeller = label_wrap_gen(18)) +
+      scale_x_continuous(labels = label_percent(), expand = expansion(mult = c(0, .05))) +
+      labs(title = title, x = NULL, y = NULL) +
+      theme(panel.spacing.x = unit(14, "pt"), strip.text = element_text(size = 8),
+            axis.text.y = element_text(size = 8))
+  }
 }
 
 # the split as a titled table; chart = TRUE also draws it as grouped bars
@@ -136,7 +149,8 @@ share_table <- function(data, var) {
 
 This chartbook is a first look at who the 1M Care Conversations campaign is
 reaching and what people are saying. It covers responses received through
-**`r format(data_through, "%B %e, %Y")`**.
+**`r format(data_through, "%B %e, %Y")`**. All data presented in this document
+are preliminary and not for publication or dissemination.
 
 Three things to keep in mind while reading:
 
@@ -148,8 +162,10 @@ Three things to keep in mind while reading:
 - Survey counts include people who stopped partway through. Each chart says
   which respondents it is based on.
 
+::: {.web-only}
 The [Cleaning page](/scripts/01_clean-data.qmd) explains how the raw exports
 were handled.
+:::
 
 ## How many responses
 
@@ -190,6 +206,7 @@ bind_rows(
   geom_col() +
   facet_wrap(~tool, ncol = 1, scales = "free_y") +
   scale_x_date(date_labels = "%b %e") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(title = "Responses received per week", x = NULL, y = "Responses")
 ```
 
@@ -300,7 +317,7 @@ Foundation's 2024 care-policy report card, which the coalition's outreach
 guidance uses to prioritize states with D and F grades. Those states hold
 `r percent(share_failing(state_counts$share_us_adults), accuracy = 1)` of US
 adults and `r percent(share_failing(state_counts$survey), accuracy = 1)` of
-survey respondents so far. Click a column heading to sort.
+survey respondents so far. [Click a column heading to sort.]{.web-only}
 
 ```{r}
 #| label: states-table
@@ -404,7 +421,9 @@ much rural health research, and the urban/rural split the coalition asked for
 also the cut the Health Resources and Services Administration's Federal
 Office of Rural Health Policy uses to
 [define rural](https://www.hrsa.gov/rural-health/about-us/what-is-rural) for
-its programs.
+its programs. The last column is the share of US adults living in each RUCA
+group, from the
+[ERS RUCA documentation](https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes/descriptions-and-maps).
 
 ```{r}
 #| label: ruca
@@ -420,10 +439,17 @@ survey_state <- survey_state |>
       factor(levels = c("Urban (RUCA 1-3)", "Rural (RUCA 4-10)"))
   )
 
+# share of the US population in each RUCA group, from the ERS RUCA documentation
+# (https://www.ers.usda.gov/data-products/rural-urban-commuting-area-codes/descriptions-and-maps)
+us_adults_by_ruca <- c("Metropolitan (1-3)" = 0.83, "Micropolitan (4-6)" = 0.08, "Small town (7-9)" = 0.03, "Rural (10)" = 0.06)
+
 survey_state |>
   filter(!is.na(rurality)) |>
-  count(urban_rural, rurality, name = "respondents") |>
-  mutate(share = percent(respondents / sum(respondents), accuracy = 1)) |>
+  count(urban_rural, rurality, name = "Survey") |>
+  mutate(
+    `Share of survey`    = percent(Survey / sum(Survey), accuracy = 1),
+    `Share of US adults` = percent(us_adults_by_ruca[as.character(rurality)], accuracy = 1)
+  ) |>
   rename("Urban or rural" = urban_rural, "RUCA group" = rurality) |>
   tbl()
 ```
@@ -879,8 +905,8 @@ q6_all |>
 
 The same question, split by age, disability, household income, household
 size, and race and ethnicity. Each column is one group; the number in the heading is how
-many people in that group answered. The splits with few groups are also drawn
-as charts; the many-column splits are tables only.
+many people in that group answered. Each split is drawn as a chart and
+given as a table.
 These splits follow the project's standard for reporting on subgroups: a
 group with fewer than 50 respondents is not shown, a group with 50 to 199 is
 marked "interpret with caution," and a group with 200 or more is reported
@@ -889,7 +915,8 @@ every demographic.
 
 ```{r}
 #| label: q6-by-age
-show_rates_by(survey, "q6", age, "Ideal care by age")
+#| fig-height: 10
+show_rates_by(survey, "q6", age, "Ideal care by age", chart = TRUE)
 ```
 
 ```{r}
@@ -900,17 +927,20 @@ show_rates_by(survey, "q6", disability, "Ideal care by disability or chronic hea
 
 ```{r}
 #| label: q6-by-income
-show_rates_by(survey, "q6", hh_income, "Ideal care by household income")
+#| fig-height: 10
+show_rates_by(survey, "q6", hh_income, "Ideal care by household income", chart = TRUE)
 ```
 
 ```{r}
 #| label: q6-by-hh-size
-show_rates_by(survey, "q6", hh_size, "Ideal care by household size")
+#| fig-height: 8
+show_rates_by(survey, "q6", hh_size, "Ideal care by household size", chart = TRUE)
 ```
 
 ```{r}
 #| label: q6-by-race
-show_rates_by(survey, "q6", race_ethnicity, "Ideal care by race and ethnicity")
+#| fig-height: 8
+show_rates_by(survey, "q6", race_ethnicity, "Ideal care by race and ethnicity", chart = TRUE)
 ```
 
 ### In their own words
