@@ -63,60 +63,53 @@
     "text": "Not in this chartbook yet\n\nRural detail: rural respondents can be split further (small towns, remote areas, commuting patterns) once there are enough of them.\nOpen-ended answers: the survey’s and canvassing’s open-text questions are coded separately once the codebook is updated.\nThe Spanish survey link: no responses have been delivered from it yet; they will flow into the same charts when they arrive."
   },
   {
-    "objectID": "deliveries.html",
-    "href": "deliveries.html",
-    "title": "Deliveries",
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html",
+    "href": "scripts/nlp/05_inter-rater-reliability.html",
+    "title": "How Closely the Models Match Bree’s Coding",
     "section": "",
-    "text": "Caring Across Generations sends data as a batch of files, roughly once a month, and records every file in a log on Box: what it is, when it was delivered, what dates it covers, and whether it has been checked for personal information. The sync step reads that log, and everything on this page comes from it. The register lists every file received; the grid below it is the team’s own month-by-month view of what has arrived, with an automatic check that it matches the files we actually hold."
+    "text": "We compared Bree’s hand coding of 71 open-ended answers with the Sonnet and Opus coding of the same answers, using the codes both codebook versions share."
   },
   {
-    "objectID": "deliveries.html#files-received",
-    "href": "deliveries.html#files-received",
-    "title": "Deliveries",
-    "section": "Files received",
-    "text": "Files received\n43 files so far, the most recent delivered September 22, 2026. Search by any word (a form number, “open”, “partial”, a month)."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#sonnet-matches-bree-as-well-as-opus-does",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#sonnet-matches-bree-as-well-as-opus-does",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "Sonnet matches Bree as well as Opus does",
+    "text": "Sonnet matches Bree as well as Opus does\nSonnet agrees with Bree as closely as Opus does and costs less than half as much per answer ($0.0047 versus $0.0101), so Sonnet is probably the way to go.\n\n\nShow code\n# share of codes in common: both empty counts as identical\njaccard &lt;- function(a, b) {\n  either &lt;- union(a, b)\n  if (length(either) == 0) return(1)\n  length(intersect(a, b)) / length(either)\n}\n\n# MASI distance (Passonneau 2006): 0 = identical sets, 1 = nothing in common.\n# Shared share of codes, weighted by how the sets overlap: identical 1, one\n# contains the other 2/3, partial overlap 1/3, none 0\nmasi_distance &lt;- function(a, b) {\n  if (length(union(a, b)) == 0) return(0)\n  shared &lt;- length(intersect(a, b)) / length(union(a, b))\n  weight &lt;- if (setequal(a, b)) 1\n    else if (all(a %in% b) || all(b %in% a)) 2 / 3\n    else if (length(intersect(a, b)) &gt; 0) 1 / 3\n    else 0\n  1 - shared * weight\n}\n\n# distance between every pair of code sets, filled once so the bootstrap only\n# indexes into it\ndistance_matrix &lt;- function(sets, distance) {\n  n &lt;- length(sets)\n  d &lt;- matrix(0, n, n)\n  for (i in seq_len(n - 1)) {\n    for (j in (i + 1):n) d[i, j] &lt;- d[j, i] &lt;- distance(sets[[i]], sets[[j]])\n  }\n  d\n}\n\n# Krippendorff's alpha for two coders: 1 - observed / expected disagreement.\n# `d` holds the first coder's sets, then the second's, so answer i is row i\n# and row n + i. Observed: the two coders on the same answer. Expected: any\n# two sets drawn from all the sets both coders produced.\nalpha_from_distances &lt;- function(d, idx) {\n  n &lt;- nrow(d) / 2\n  pooled &lt;- c(idx, n + idx)\n  observed &lt;- mean(d[cbind(idx, n + idx)])\n  m &lt;- length(pooled)\n  expected &lt;- sum(d[pooled, pooled]) / (m * (m - 1))\n  1 - observed / expected\n}\n\n# the three measures for two coders, each with a 95 percent bootstrap interval\npair_agreement &lt;- function(x, y) {\n  both &lt;- lengths(map2(x, y, intersect))\n  d &lt;- distance_matrix(c(x, y), masi_distance)\n  measures &lt;- function(idx) {\n    c(\n      found  = sum(both[idx]) / sum(lengths(x)[idx]),\n      agreed = sum(both[idx]) / sum(lengths(y)[idx]),\n      alpha  = alpha_from_distances(d, idx)\n    )\n  }\n  estimate &lt;- measures(seq_along(x))\n  boot &lt;- replicate(n_boot, measures(sample(length(x), replace = TRUE)))\n  tibble(\n    measure = names(estimate),\n    estimate,\n    low  = apply(boot, 1, quantile, 0.025),\n    high = apply(boot, 1, quantile, 0.975)\n  )\n}\n\n\n\n\nShow code\nshow &lt;- function(r, what) {\n  r &lt;- filter(r, measure == what)\n  if (what == \"alpha\") sprintf(\"%.2f (%.2f–%.2f)\", r$estimate, r$low, r$high)\n  else sprintf(\"%.0f%% (%.0f–%.0f)\", 100 * r$estimate, 100 * r$low, 100 * r$high)\n}\n\nall_codes &lt;- map(names(runs), \\(m) pair_agreement(code_sets$Bree, code_sets[[m]]))\ntopics    &lt;- map(names(runs), \\(m) pair_agreement(code_sets$Bree, same_topics[[m]]))\nmodels    &lt;- pair_agreement(code_sets$Sonnet, code_sets$Opus)\n\nsummary_table &lt;- tibble(\n  Measure = c(\n    \"Bree’s codes the model also found\",\n    \"Model’s codes Bree also used\",\n    \"Model’s codes Bree also used, on topics Bree coded\",\n    \"Krippendorff’s alpha\",\n    \"Krippendorff’s alpha, on topics Bree coded\"\n  ),\n  `Bree and Sonnet` = c(show(all_codes[[1]], \"found\"), show(all_codes[[1]], \"agreed\"),\n                        show(topics[[1]], \"agreed\"), show(all_codes[[1]], \"alpha\"),\n                        show(topics[[1]], \"alpha\")),\n  `Bree and Opus`   = c(show(all_codes[[2]], \"found\"), show(all_codes[[2]], \"agreed\"),\n                        show(topics[[2]], \"agreed\"), show(all_codes[[2]], \"alpha\"),\n                        show(topics[[2]], \"alpha\")),\n  `Sonnet and Opus` = c(\"\", \"\", \"\", show(models, \"alpha\"), \"\")\n)\n\nsummary_table |&gt;\n  tbl(note = \"95 percent intervals in brackets, from resampling the answers 2,000 times.\")\n\n\n\n\n95 percent intervals in brackets, from resampling the answers 2,000 times.\n\n\n\nEach model finds about half of Bree’s codes, and alpha is 0.25 for both. Krippendorff’s alpha is the standard agreement score: 1 is perfect agreement, 0 is no better than chance, and 0.80 is the usual bar for relying on coding.\nThe two models agree with each other about twice as much (alpha 0.52). The gap with Bree comes from how the task is set up, not from which model does it."
   },
   {
-    "objectID": "deliveries.html#the-teams-month-by-month-view",
-    "href": "deliveries.html#the-teams-month-by-month-view",
-    "title": "Deliveries",
-    "section": "The team’s month-by-month view",
-    "text": "The team’s month-by-month view\nThe log’s Overview sheet, as the team keeps it: one row per kind of file, one column per month, with “Received”, “None”, or “N/A” (not applicable yet) in each cell."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#what-drives-the-disagreement",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#what-drives-the-disagreement",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "What drives the disagreement",
+    "text": "What drives the disagreement\n1. The models code every topic an answer mentions; Bree appears to code only the answer to the question. The models use 2.2 to 2.4 codes per answer, compared with 1.7 for Bree. Most of the extras are on topics Bree did not code on that answer, such as the hardship someone describes when asked what they would change. Leaving those out, about 7 in 10 model codes match hers. This explains about half the gap, and Bree’s answer on which rule she follows tells us which rule to give the models.\n2. Two codes account for about half of what the models miss. Of the codes Bree chose that a model did not, 47% to 48% are NEED_HIGH_QUALITY_CARE or NEED_OTHER. Bree uses NEED_HIGH_QUALITY_CARE for answers about caregiver pay, where the models choose SOLUTION_CAREGIVER_WAGES, and NEED_OTHER where the models find a specific code. Where the line falls between these codes is a question for Bree.\nThree answers that show each pattern (codes a model shares with Bree in bold):\n\n\nShow code\nall_agree &lt;- which(\n  map2_lgl(code_sets$Bree, code_sets$Sonnet, setequal) &\n    map2_lgl(code_sets$Bree, code_sets$Opus, setequal) &\n    map_lgl(code_sets$Bree, \\(s) any(c(\"NEED_CHILD_CARE\", \"NEED_SENIOR_CARE\") %in% s))\n)[1]\n\nexamples &lt;- c(\n  which(str_starts(scope$text, \"Pay workers more\")),  # different pay code + extra topic\n  which(str_to_lower(str_trim(scope$text)) == \"money\"), # NEED_OTHER versus a specific code\n  all_agree                                            # all three agree\n)\nif (length(examples) != 3) cli::cli_abort(\"An example answer was not found\")\n\nside_by_side[examples, ] |&gt;\n  select(-Question) |&gt;\n  tbl(columns = code_columns[-1])"
   },
   {
-    "objectID": "deliveries.html#does-the-grid-match-the-files-we-hold",
-    "href": "deliveries.html#does-the-grid-match-the-files-we-hold",
-    "title": "Deliveries",
-    "section": "Does the grid match the files we hold?",
-    "text": "Does the grid match the files we hold?\nEach “Received” cell should correspond to a file in the register whose data cover that month, and every file in the register should have its cell marked. Rows the check can read are the survey and canvassing rows (a form number, closed or open text, complete or partial); interviews and the pre-launch poll are counted by tool. Cells listed below are worth a look rather than errors: so far they come from a collection window logged as a single day, one logged as “Unknown”, and a file whose logged dates run into the following month.\n\n\n\nCells where the grid and the files differ\n\n\n\n\n\nMonths the grid does not cover yet, and cells the check could not read, are left out rather than reported as disagreements."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#how-to-improve-the-model-coding",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#how-to-improve-the-model-coding",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "How to improve the model coding",
+    "text": "How to improve the model coding\n\nOnce Bree answers the first question below, add her rule to the coding prompt and rerun these answers. This costs under a dollar.\nAdd decision rules to the codebook for the caregiver-pay codes and for when NEED_OTHER applies. The prompt reads the codebook, so the models pick these up on the next run.\nIn the next check, draw a random sample of answers from each question instead of whole files. Sampling files gave us one canvassing event (64 answers to one question) and only 7 survey answers, though the survey questions have most of the answers."
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "1M Conversations About Care",
-    "section": "",
-    "text": "The 1M Conversations About Care initiative, led by Caring Across Generations, aims to shift how the country talks about caregiving: from care as an individual challenge to care as a shared one, and from a broken system to one where real choices are possible. That shift begins with listening. Through a digital survey, canvassing, and interviews, the initiative is engaging one million working- and middle-class families about their caregiving challenges, their vision for a future where care is supported well, and the policies that could make that vision real.\nWhat the data cover so far: 3,172 survey responses submitted through September 1, 2026, 146 canvassing contacts through August 31, 2026, and the interview transcripts delivered to date."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#questions-for-bree",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#questions-for-bree",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "Questions for Bree",
+    "text": "Questions for Bree\n\nShould every topic an answer mentions get a code, or only the answer to the question asked? When someone answering “what would you change” also describes a hardship, the models code the hardship and Bree does not. This explains about half the gap, and her answer tells us which rule to give the models.\nWhere is the line between NEED_HIGH_QUALITY_CARE and the caregiver-pay codes, and when does NEED_OTHER apply? These two codes are about half of what the models miss."
   },
   {
-    "objectID": "index.html#whats-here",
-    "href": "index.html#whats-here",
-    "title": "1M Conversations About Care",
-    "section": "What’s here",
-    "text": "What’s here\n\n\n\nCleaning: how the raw exports become analysis files, step by step, with the checks that run on every delivery. Read this to understand what each column in the data means and what we do when a delivery looks different from the last one.\n\n\n\n\nChartbook: who is responding and what they are saying. Response counts by state and tool, urban and rural, survey demographics compared with US adults, care pathways, challenges, supports, what ideal care would look like, and the revised canvassing form.\n\n\n\n\nVariables: a reference for every column in the clean files, with the question it came from and the answer text behind it.\n\n\n\n\nDeliveries: every file the coalition has sent, with the team’s month-by-month view of what has arrived and a check that the two agree.\n\n\n\n\nCoding dashboard: the interview transcripts coded against the project codebook, for review by the qualitative team."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#all-71-answers-side-by-side",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#all-71-answers-side-by-side",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "All 71 answers side by side",
+    "text": "All 71 answers side by side\n\n\n\n\n\n\nShow the table\n\n\n\n\n\nCodes a model shares with Bree are in bold. Type in the search box to find an answer or a code.\n\n\nShow code\nside_by_side |&gt;\n  tbl(page_size = 10, searchable = TRUE, columns = code_columns)"
   },
   {
-    "objectID": "index.html#two-things-to-keep-in-mind",
-    "href": "index.html#two-things-to-keep-in-mind",
-    "title": "1M Conversations About Care",
-    "section": "Two things to keep in mind",
-    "text": "Two things to keep in mind\n\nThe three tools reach different people in different ways and are always reported separately.\nThese are the people who chose to respond. The numbers shown here describe respondents and are not nationally representative."
-  },
-  {
-    "objectID": "index.html#contact",
-    "href": "index.html#contact",
-    "title": "1M Conversations About Care",
-    "section": "Contact",
-    "text": "Contact\nTeresa Kroeger, Research Lead and Co-Principal Investigator, and Manuel Alcalá Kovalski, Quantitative and Computational Analyst, Urban Institute. Code is on GitHub."
+    "objectID": "scripts/nlp/05_inter-rater-reliability.html#how-we-compared",
+    "href": "scripts/nlp/05_inter-rater-reliability.html#how-we-compared",
+    "title": "How Closely the Models Match Bree’s Coding",
+    "section": "How we compared",
+    "text": "How we compared\nBree coded the canvassing and survey files in her September sample in NVivo with codebook version 5. NVivo exports coded text without respondent IDs, so each coded passage was matched to its answer by text. Every passage matched. The models used version 6, which adds 22 codes and renames none; the models’ uses of those 22 codes are set aside so that all three coders choose from the same list. A code counts once per answer. Alpha gives partial credit when two coders’ codes overlap, using the MASI distance (Passonneau 2006)."
   },
   {
     "objectID": "variables.html",
@@ -308,6 +301,62 @@
     "text": "hard\nQuestion: 2. What’s been hard about that?\n\n\n\nColumn\nAnswer text\n\n\n\n\nhard_text\nFree text, kept verbatim (revised canvassing form)"
   },
   {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "1M Conversations About Care",
+    "section": "",
+    "text": "The 1M Conversations About Care initiative, led by Caring Across Generations, aims to shift how the country talks about caregiving: from care as an individual challenge to care as a shared one, and from a broken system to one where real choices are possible. That shift begins with listening. Through a digital survey, canvassing, and interviews, the initiative is engaging one million working- and middle-class families about their caregiving challenges, their vision for a future where care is supported well, and the policies that could make that vision real.\nWhat the data cover so far: 3,172 survey responses submitted through September 1, 2026, 146 canvassing contacts through August 31, 2026, and the interview transcripts delivered to date."
+  },
+  {
+    "objectID": "index.html#whats-here",
+    "href": "index.html#whats-here",
+    "title": "1M Conversations About Care",
+    "section": "What’s here",
+    "text": "What’s here\n\n\n\nCleaning: how the raw exports become analysis files, step by step, with the checks that run on every delivery. Read this to understand what each column in the data means and what we do when a delivery looks different from the last one.\n\n\n\n\nChartbook: who is responding and what they are saying. Response counts by state and tool, urban and rural, survey demographics compared with US adults, care pathways, challenges, supports, what ideal care would look like, and the revised canvassing form.\n\n\n\n\nVariables: a reference for every column in the clean files, with the question it came from and the answer text behind it.\n\n\n\n\nDeliveries: every file the coalition has sent, with the team’s month-by-month view of what has arrived and a check that the two agree.\n\n\n\n\nCoding dashboard: the interview transcripts coded against the project codebook, for review by the qualitative team."
+  },
+  {
+    "objectID": "index.html#two-things-to-keep-in-mind",
+    "href": "index.html#two-things-to-keep-in-mind",
+    "title": "1M Conversations About Care",
+    "section": "Two things to keep in mind",
+    "text": "Two things to keep in mind\n\nThe three tools reach different people in different ways and are always reported separately.\nThese are the people who chose to respond. The numbers shown here describe respondents and are not nationally representative."
+  },
+  {
+    "objectID": "index.html#contact",
+    "href": "index.html#contact",
+    "title": "1M Conversations About Care",
+    "section": "Contact",
+    "text": "Contact\nTeresa Kroeger, Research Lead and Co-Principal Investigator, and Manuel Alcalá Kovalski, Quantitative and Computational Analyst, Urban Institute. Code is on GitHub."
+  },
+  {
+    "objectID": "deliveries.html",
+    "href": "deliveries.html",
+    "title": "Deliveries",
+    "section": "",
+    "text": "Caring Across Generations sends data as a batch of files, roughly once a month, and records every file in a log on Box: what it is, when it was delivered, what dates it covers, and whether it has been checked for personal information. The sync step reads that log, and everything on this page comes from it. The register lists every file received; the grid below it is the team’s own month-by-month view of what has arrived, with an automatic check that it matches the files we actually hold."
+  },
+  {
+    "objectID": "deliveries.html#files-received",
+    "href": "deliveries.html#files-received",
+    "title": "Deliveries",
+    "section": "Files received",
+    "text": "Files received\n43 files so far, the most recent delivered September 22, 2026. Search by any word (a form number, “open”, “partial”, a month)."
+  },
+  {
+    "objectID": "deliveries.html#the-teams-month-by-month-view",
+    "href": "deliveries.html#the-teams-month-by-month-view",
+    "title": "Deliveries",
+    "section": "The team’s month-by-month view",
+    "text": "The team’s month-by-month view\nThe log’s Overview sheet, as the team keeps it: one row per kind of file, one column per month, with “Received”, “None”, or “N/A” (not applicable yet) in each cell."
+  },
+  {
+    "objectID": "deliveries.html#does-the-grid-match-the-files-we-hold",
+    "href": "deliveries.html#does-the-grid-match-the-files-we-hold",
+    "title": "Deliveries",
+    "section": "Does the grid match the files we hold?",
+    "text": "Does the grid match the files we hold?\nEach “Received” cell should correspond to a file in the register whose data cover that month, and every file in the register should have its cell marked. Rows the check can read are the survey and canvassing rows (a form number, closed or open text, complete or partial); interviews and the pre-launch poll are counted by tool. Cells listed below are worth a look rather than errors: so far they come from a collection window logged as a single day, one logged as “Unknown”, and a file whose logged dates run into the following month.\n\n\n\nCells where the grid and the files differ\n\n\n\n\n\nMonths the grid does not cover yet, and cells the check could not read, are left out rather than reported as disagreements."
+  },
+  {
     "objectID": "scripts/01_clean-data.html",
     "href": "scripts/01_clean-data.html",
     "title": "Cleaning the survey and canvassing data",
@@ -362,75 +411,5 @@
     "title": "Cleaning the survey and canvassing data",
     "section": "Data dictionary",
     "text": "Data dictionary\nThe column names and answer lists above already describe every column in the clean files. This step writes them out as one table, with a row per column (or per answer of a single-answer question) and the question and answer text behind it, so anyone using the clean files can look up what a column means without reading the code.\n\n\nShow code\n# the dictionary shows the original wording of each question\nquestion_text &lt;- c(\n  col_map,\n  col_map_canv[setdiff(names(col_map_canv), names(col_map))],\n  col_map_canv_revised[c(\"screener\", \"hard_text\")]\n) |&gt;\n  map_chr(\\(x) x[1])\nall_multiselect &lt;- c(multiselect_options, list(canvass_challenges = canvass_challenge_options))\n\ndict_options &lt;- all_multiselect |&gt;\n  imap(\\(opts, q) tibble(\n    column   = str_c(q, \"_\", c(names(opts), \"other\", \"other_text\")),\n    question = unname(question_text[q]),\n    # aliased options (form revisions) list every accepted wording\n    option   = c(unname(map_chr(opts, str_flatten, collapse = \" [or] \")),\n                 \"Other (any response not in the structured options)\",\n                 \"Free text captured from other responses\")\n  )) |&gt;\n  list_rbind()\n\ndict_factors &lt;- list(survey, canvassing, canvassing_revised) |&gt;\n  map(\\(data) {\n    data |&gt;\n      select(where(is.factor)) |&gt;\n      as.list() |&gt;\n      imap(\\(v, nm) tibble(\n        column   = nm,\n        question = unname(question_text[nm]),\n        option   = levels(v)\n      )) |&gt;\n      list_rbind()\n  }) |&gt;\n  list_rbind() |&gt;\n  distinct()\n\ndictionary &lt;- bind_rows(\n  dict_options,\n  dict_factors,\n  tibble(column = \"hard_text\", question = unname(question_text[\"hard_text\"]),\n         option = \"Free text, kept verbatim (revised canvassing form)\")\n) |&gt;\n  mutate(question = case_when(\n    column == \"pathway\" ~ \"Derived from q1 (priority: current &gt; past &gt; future &gt; observer &gt; none)\",\n    column == \"race_ethnicity\" ~ \"Derived from the race boxes: Hispanic of any race; otherwise the single race, or two or more races\",\n    TRUE ~ question\n  ))\n\nwrite_csv(dictionary, here(\"data/processed/data-dictionary.csv\"))\n\n\nSearch or page through the dictionary here. The Variables page presents the same information question by question."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html",
-    "href": "scripts/nlp/05_inter-rater-reliability.html",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "",
-    "text": "The plan for the open-ended answers and the interview transcripts is that a language model applies Bree’s codebook to everything, and Bree codes a random sample by hand to check it. This page is the first of those checks. It compares Bree’s coding of the answers in her September sample with two model runs from October 6, one by Claude Sonnet 5 and one by Claude Opus 5.5. All data presented in this document are preliminary and not for publication or dissemination.\nInter-rater reliability usually describes two trained people coding the same material. Here one of the two raters is a model and Bree is the reference, so the numbers say how closely each model reproduces her coding. How closely two people would agree is not measured yet; that needs a second person to code the same answers."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#what-bree-coded",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#what-bree-coded",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "What Bree coded",
-    "text": "What Bree coded\nBree drew a random 15 percent of the data delivered by September 22, which came to one survey file, one canvassing file, and two interviews, and coded the survey and canvassing files in NVivo. Her coding log on Box marks the files she has finished and the codebook version she used:\n\n\nShow code\nlog &lt;- read_excel(coding_log, sheet = \"Details\") |&gt;\n  filter(str_to_lower(`Coding complete`) == \"yes\")\n\n# a log cell can list several files separated by \"/\"\ncoded_files &lt;- log$`Raw file name` |&gt;\n  str_split(\"/\") |&gt;\n  unlist() |&gt;\n  str_trim() |&gt;\n  discard(\\(f) f == \"\")\n\nlog |&gt;\n  transmute(\n    File = `Raw file name` |&gt; str_remove(\"[\\\\s/]+$\"),\n    Tool = `Data collection tool type`,\n    `Codebook version` = `Codebook version used`\n  ) |&gt;\n  tbl()\n\n\n\n\n\n\nThe two interviews in her sample are not coded yet, so this page covers open-ended answers only."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#matching-her-coding-to-the-answers",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#matching-her-coding-to-the-answers",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "Matching her coding to the answers",
-    "text": "Matching her coding to the answers\nNVivo exports each coded passage as its text, without the respondent’s ID. Each passage is matched to an answer in those files by its text, ignoring case, punctuation, and spacing.\n\n\nShow code\n# text as compared: lower case, no punctuation, single spaces\nmatch_key &lt;- function(x) {\n  x |&gt; str_to_lower() |&gt; str_remove_all(\"[^\\\\w\\\\s]\") |&gt; str_squish()\n}\n\nnvivo &lt;- read_excel(\n  nvivo_export,\n  col_names = c(\"code\", \"path\", \"source\", \"text\"), skip = 1, col_types = \"text\"\n)\n\n# every code in Bree's NVivo project is listed, coded or not: that is her\n# codebook. NVivo names carry stray spaces (\"NEED _OTHER\")\nbree_codes &lt;- nvivo |&gt;\n  filter(str_starts(path, \"Codes\")) |&gt;\n  distinct(code = str_remove_all(code, \"\\\\s\")) |&gt;\n  pull(code)\n\nnot_in_v6 &lt;- setdiff(bree_codes, codebook$code)\nif (length(not_in_v6) &gt; 0) {\n  cli::cli_abort(\"Codes in Bree's NVivo export that are not in codebook.csv: {not_in_v6}\")\n}\n\n# a few selections run one cell past the answer and pick up the respondent's\n# Unique ID on its own line: drop ID-only and blank lines\npassages &lt;- nvivo |&gt;\n  filter(!is.na(text)) |&gt;\n  mutate(\n    code = str_remove_all(code, \"\\\\s\"),\n    picked_up_id = str_detect(text, \"\\n\\\\s*\\\\d+\\\\s*(\\n|$)\"),\n    text = text |&gt;\n      str_split(\"\\n\") |&gt;\n      map_chr(\\(lines) str_c(lines[!str_detect(lines, \"^\\\\s*\\\\d*\\\\s*$\")], collapse = \" \")),\n    key = match_key(text)\n  )\n\nsampled &lt;- answers |&gt;\n  filter(str_trim(str_remove(delivery, \"\\\\.xlsx$\")) %in% coded_files) |&gt;\n  mutate(key = match_key(text))\n\nunmatched &lt;- anti_join(passages, sampled, by = \"key\")\nif (nrow(unmatched) &gt; 0) {\n  cli::cli_abort(\"{nrow(unmatched)} coded passage{?s} match no answer in Bree's files\")\n}\n\n# identical answers in the same file cannot be told apart by text. Bree coded\n# each copy, so a code applied to k identical answers appears k times\nduplicates &lt;- count(sampled, key, name = \"n_answers\") |&gt; filter(n_answers &gt; 1)\nuneven &lt;- passages |&gt;\n  count(key, code, name = \"n_rows\") |&gt;\n  inner_join(duplicates, by = \"key\") |&gt;\n  filter(n_rows != n_answers)\nif (nrow(uneven) &gt; 0) {\n  cli::cli_abort(\"A code covers only some copies of an answer that appears more than once\")\n}\n\nbree &lt;- passages |&gt;\n  inner_join(select(sampled, answer_id, key), by = \"key\", relationship = \"many-to-many\") |&gt;\n  distinct(answer_id, code) |&gt;\n  mutate(coder = \"Bree\")\n\nscope &lt;- sampled |&gt;\n  semi_join(bree, by = \"answer_id\") |&gt;\n  select(answer_id, tool, question, text)\n\n\nThe export has 120 rows, one for each code applied to a passage, and every row matched an answer (the code stops if one does not). In 12 rows Bree’s selection ran one cell past the answer and picked up the respondent’s Unique ID; that line is dropped before matching. 4 of the answers Bree coded share their text with another answer in her files. She coded every copy the same way, so each copy keeps those codes.\nBree gave at least one code to all 71 answers in her files:\n\n\nShow code\nscope |&gt;\n  count(Question = question_label(question), name = \"Answers\") |&gt;\n  tbl()"
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#keeping-the-comparison-like-for-like",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#keeping-the-comparison-like-for-like",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "Keeping the comparison like for like",
-    "text": "Keeping the comparison like for like\n\nSame answers: only the answers Bree coded are compared.\nSame list of codes: Bree used codebook version 5 (145 codes) and the models used version 6, which adds 22 codes and renames none. The models’ uses of the new codes are set aside (table below), so every coder chooses from the same 145 codes.\nSame unit: one answer. A code counts once per answer, however many passages of the answer it was applied to.\nSame domains: every code is placed in its version 6 domain for all three coders. No code changed domain between versions.\nStill open: what gets coded. The models are told to “assign every code whose definition the passage clearly meets,” including codes from different domains, such as who the person cares for or what has been hard. Whether Bree codes everything an answer mentions or only what responds to the question is a question for her. The domain table below shows how much of the difference this accounts for.\n\n\n\nShow code\nmodel_raw &lt;- imap(runs, \\(run, coder) {\n  read_csv(here(\"data/processed/llm-coding\", run, \"coded_open_ended.csv\"),\n           show_col_types = FALSE) |&gt;\n    filter(answer_id %in% scope$answer_id) |&gt;\n    mutate(coder = coder)\n}) |&gt;\n  list_rbind()\n\n# every coded answer has at least one row in a run, even with no codes\nmissing &lt;- scope |&gt;\n  cross_join(tibble(coder = names(runs))) |&gt;\n  anti_join(model_raw, by = c(\"answer_id\", \"coder\"))\nif (nrow(missing) &gt; 0) {\n  cli::cli_abort(\"{nrow(missing)} of Bree's answers are missing from a model run\")\n}\n\nmodel_used &lt;- model_raw |&gt;\n  filter(!is.na(code)) |&gt;\n  distinct(coder, answer_id, code)\n\nset_aside &lt;- model_used |&gt; filter(!code %in% bree_codes)\n\ncoded &lt;- model_used |&gt;\n  filter(code %in% bree_codes) |&gt;\n  bind_rows(bree)\n\nset_aside |&gt;\n  count(coder, code) |&gt;\n  pivot_wider(names_from = coder, values_from = n, values_fill = 0) |&gt;\n  rename(`Version 6 code` = code) |&gt;\n  tbl(\n    title = \"Model codes set aside because they are not in version 5\",\n    note = \"Number of answers each model gave the code.\"\n  )\n\n\n\nModel codes set aside because they are not in version 5\n\n\n\nNumber of answers each model gave the code."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#how-closely-the-coders-agree",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#how-closely-the-coders-agree",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "How closely the coders agree",
-    "text": "How closely the coders agree\nEach table compares two coders on the 71 answers:\n\nIdentical codes: the share of answers where both chose exactly the same codes.\nAverage overlap: for each answer, the codes both chose divided by the codes either chose, averaged over answers. 1 means identical, 0 means nothing in common.\nFirst coder’s codes the second also chose and the reverse: for Bree and a model, the first is the share of Bree’s codes the model found, the second the share of the model’s codes Bree also used.\nKrippendorff’s alpha: agreement corrected for the agreement two coders would reach by chance, given how often each code is used. 1 is perfect agreement and 0 is no better than chance. When two coders choose different but overlapping sets of codes, the MASI distance gives partial credit (Passonneau 2006). Krippendorff (2004, Content Analysis, 2nd ed.) recommends relying on coding with alpha of at least 0.80 and treating 0.67 to 0.80 as enough only for tentative conclusions.\n\nThe brackets are 95 percent intervals from resampling the answers 2,000 times. With this few answers they are wide; differences between the two models that fall inside them are not meaningful.\nThe second table repeats the comparison one level up: instead of the exact codes, which domains (Desired Supports, Challenges, and so on) each coder used on the answer.\n\n\nShow code\n# share of codes in common: both empty counts as identical\njaccard &lt;- function(a, b) {\n  either &lt;- union(a, b)\n  if (length(either) == 0) return(1)\n  length(intersect(a, b)) / length(either)\n}\n\n# MASI distance between two coders' code sets for one answer (Passonneau 2006):\n# 0 = identical sets, 1 = nothing in common, with partial credit in between.\nmasi_distance &lt;- function(a, b) {\n  # TODO(Manu): return the distance between code sets `a` and `b`\n  NA_real_\n}\n\n# distance between every pair of code sets, filled once so the bootstrap only\n# indexes into it\ndistance_matrix &lt;- function(sets, distance) {\n  n &lt;- length(sets)\n  d &lt;- matrix(0, n, n)\n  for (i in seq_len(n - 1)) {\n    for (j in (i + 1):n) d[i, j] &lt;- d[j, i] &lt;- distance(sets[[i]], sets[[j]])\n  }\n  d\n}\n\n# Krippendorff's alpha for two coders: 1 - observed / expected disagreement.\n# `d` holds the first coder's sets, then the second's, so answer i is row i\n# and row n + i. Observed: the two coders on the same answer. Expected: any\n# two sets drawn from all the sets both coders produced.\nalpha_from_distances &lt;- function(d, idx) {\n  n &lt;- nrow(d) / 2\n  pooled &lt;- c(idx, n + idx)\n  observed &lt;- mean(d[cbind(idx, n + idx)])\n  m &lt;- length(pooled)\n  expected &lt;- sum(d[pooled, pooled]) / (m * (m - 1))\n  1 - observed / expected\n}\n\n\n\n\nShow code\n# one code set per coder per answer, in scope order; no codes = empty set\ncode_sets &lt;- map(set_names(coders), \\(who) {\n  sets &lt;- coded |&gt;\n    filter(coder == who) |&gt;\n    summarise(codes = list(sort(code)), .by = answer_id)\n  left_join(select(scope, answer_id), sets, by = \"answer_id\") |&gt;\n    pull(codes) |&gt;\n    map(\\(x) x %||% character())\n})\n\ndomain_of &lt;- set_names(codebook$domain, codebook$code)\ndomain_sets &lt;- map(code_sets, \\(sets) map(sets, \\(s) sort(unique(unname(domain_of[s])))))\n\npair_agreement &lt;- function(x, y) {\n  per_answer &lt;- tibble(\n    identical = map2_lgl(x, y, setequal),\n    overlap   = map2_dbl(x, y, jaccard),\n    both      = lengths(map2(x, y, intersect)),\n    n_x       = lengths(x),\n    n_y       = lengths(y)\n  )\n  d &lt;- distance_matrix(c(x, y), masi_distance)\n  measures &lt;- function(idx) {\n    p &lt;- per_answer[idx, ]\n    c(\n      \"Identical codes\" = mean(p$identical),\n      \"Average overlap\" = mean(p$overlap),\n      \"First coder’s codes the second also chose\" = sum(p$both) / sum(p$n_x),\n      \"Second coder’s codes the first also chose\" = sum(p$both) / sum(p$n_y),\n      \"Krippendorff’s alpha (MASI)\" = alpha_from_distances(d, idx)\n    )\n  }\n  estimate &lt;- measures(seq_len(nrow(per_answer)))\n  boot &lt;- replicate(n_boot, measures(sample(nrow(per_answer), replace = TRUE)))\n  tibble(\n    measure = names(estimate),\n    estimate,\n    low  = apply(boot, 1, quantile, 0.025, na.rm = TRUE),\n    high = apply(boot, 1, quantile, 0.975, na.rm = TRUE)\n  )\n}\n\npairs &lt;- list(c(\"Bree\", \"Sonnet\"), c(\"Bree\", \"Opus\"), c(\"Sonnet\", \"Opus\"))\n\nagreement_table &lt;- function(sets) {\n  map(pairs, \\(p) pair_agreement(sets[[p[1]]], sets[[p[2]]]) |&gt;\n        mutate(pair = str_c(p[1], \" and \", p[2]))) |&gt;\n    list_rbind() |&gt;\n    mutate(shown = case_when(\n      is.na(estimate) ~ \"not yet computed\",\n      str_detect(measure, \"alpha|overlap\") ~ sprintf(\"%.2f (%.2f–%.2f)\", estimate, low, high),\n      .default = sprintf(\"%.0f%% (%.0f–%.0f)\", 100 * estimate, 100 * low, 100 * high)\n    )) |&gt;\n    select(Measure = measure, pair, shown) |&gt;\n    pivot_wider(names_from = pair, values_from = shown)\n}\n\nagreement_table(code_sets) |&gt; tbl(title = \"Agreement on the exact codes\")\n\n\n\nAgreement on the exact codes\n\n\n\n\n\nShow code\nagreement_table(domain_sets) |&gt; tbl(title = \"Agreement on the domains\")\n\n\n\nAgreement on the domains"
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#how-many-codes-each-coder-uses-and-where",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#how-many-codes-each-coder-uses-and-where",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "How many codes each coder uses, and where",
-    "text": "How many codes each coder uses, and where\n\n\nShow code\nmap(coders, \\(who) tibble(\n  Coder = who,\n  `Codes per answer` = round(mean(lengths(code_sets[[who]])), 1),\n  `Answers with no code` = sum(lengths(code_sets[[who]]) == 0)\n)) |&gt;\n  list_rbind() |&gt;\n  tbl()\n\n\n\n\n\n\nAnswers on which each coder used at least one code from each domain. A domain the models use often and Bree rarely points to a difference in what gets coded, not in how a code is read.\n\n\nShow code\ncoded |&gt;\n  mutate(domain = domain_of[code]) |&gt;\n  distinct(coder, answer_id, domain) |&gt;\n  count(domain, coder) |&gt;\n  pivot_wider(names_from = coder, values_from = n, values_fill = 0) |&gt;\n  select(Domain = domain, all_of(coders)) |&gt;\n  arrange(desc(Bree), desc(Sonnet)) |&gt;\n  tbl(note = str_glue(\"Number of answers, out of {nrow(scope)}.\"))\n\n\n\n\nNumber of answers, out of 71."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#agreement-code-by-code",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#agreement-code-by-code",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "Agreement code by code",
-    "text": "Agreement code by code\nEach code Bree used on at least five answers: how many answers each coder gave it, how many both did, and Cohen’s kappa for that code (1 is perfect agreement, 0 is no better than chance). With this few answers per code, these are a guide to where to look, not estimates to report.\n\n\nShow code\ncohen_kappa &lt;- function(x, y) {\n  observed &lt;- mean(x == y)\n  expected &lt;- mean(x) * mean(y) + mean(!x) * mean(!y)\n  (observed - expected) / (1 - expected)\n}\n\nfrequent &lt;- bree |&gt; count(code) |&gt; filter(n &gt;= 5) |&gt; pull(code)\n\nmap(frequent, \\(cd) {\n  has &lt;- map(code_sets, \\(sets) map_lgl(sets, \\(s) cd %in% s))\n  tibble(\n    Code = cd,\n    Bree = sum(has$Bree),\n    Sonnet = sum(has$Sonnet),\n    `Both (Sonnet)` = sum(has$Bree & has$Sonnet),\n    `Kappa (Sonnet)` = round(cohen_kappa(has$Bree, has$Sonnet), 2),\n    Opus = sum(has$Opus),\n    `Both (Opus)` = sum(has$Bree & has$Opus),\n    `Kappa (Opus)` = round(cohen_kappa(has$Bree, has$Opus), 2)\n  )\n}) |&gt;\n  list_rbind() |&gt;\n  arrange(desc(Bree)) |&gt;\n  tbl()"
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#codes-most-often-swapped",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#codes-most-often-swapped",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "Codes most often swapped",
-    "text": "Codes most often swapped\nWhen Bree and a model disagree on an answer, which of Bree’s codes the model left out and which code it chose instead. Pairs that recur point to codes whose boundary the codebook could draw more sharply.\n\n\nShow code\nswaps &lt;- map(names(runs), \\(model) {\n  map2(code_sets$Bree, code_sets[[model]], \\(b, m) {\n    expand_grid(`Bree chose` = setdiff(b, m), `Model chose instead` = setdiff(m, b))\n  }) |&gt;\n    list_rbind() |&gt;\n    mutate(coder = model)\n}) |&gt;\n  list_rbind()\n\nswaps |&gt;\n  count(`Bree chose`, `Model chose instead`, coder) |&gt;\n  pivot_wider(names_from = coder, values_from = n, values_fill = 0) |&gt;\n  mutate(total = Sonnet + Opus) |&gt;\n  filter(total &gt;= 4) |&gt;\n  arrange(desc(total)) |&gt;\n  select(-total) |&gt;\n  tbl(note = \"Number of answers. Pairs seen on fewer than four answers across both models are not shown.\")\n\n\n\n\nNumber of answers. Pairs seen on fewer than four answers across both models are not shown."
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#every-answer-side-by-side",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#every-answer-side-by-side",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "Every answer side by side",
-    "text": "Every answer side by side\nCodes a model shares with Bree are in bold. Type in the search box to find an answer or a code.\n\n\nShow code\n# one code per line, bold where it is in `reference`; long code names wrap\n# only at underscores\nshow_codes &lt;- function(sets, reference = NULL) {\n  map2_chr(sets, reference %||% map(sets, \\(s) character()), \\(s, r) {\n    if (length(s) == 0) return(\"(none)\")\n    s &lt;- str_replace_all(s, \"_\", \"_&lt;wbr&gt;\")\n    shared &lt;- str_remove_all(s, \"&lt;wbr&gt;\") %in% r\n    if_else(shared, str_c(\"&lt;b&gt;\", s, \"&lt;/b&gt;\"), s) |&gt; str_c(collapse = \"&lt;br&gt;\")\n  })\n}\n\nscope |&gt;\n  transmute(\n    Question = question_label(question),\n    Answer = text,\n    Bree = show_codes(code_sets$Bree),\n    Sonnet = show_codes(code_sets$Sonnet, code_sets$Bree),\n    Opus = show_codes(code_sets$Opus, code_sets$Bree)\n  ) |&gt;\n  tbl(\n    page_size = 10, searchable = TRUE,\n    columns = list(\n      Question = colDef(minWidth = 80),\n      Answer = colDef(minWidth = 240),\n      Bree = colDef(html = TRUE, minWidth = 170),\n      Sonnet = colDef(html = TRUE, minWidth = 170),\n      Opus = colDef(html = TRUE, minWidth = 170)\n    )\n  )"
-  },
-  {
-    "objectID": "scripts/nlp/05_inter-rater-reliability.html#what-this-shows-so-far",
-    "href": "scripts/nlp/05_inter-rater-reliability.html#what-this-shows-so-far",
-    "title": "Inter-rater reliability: Bree’s coding and the model coding",
-    "section": "What this shows so far",
-    "text": "What this shows so far\n\nWhere Bree and the models code the same thing, they mostly agree. On child care, senior care, affordability, and care for everyone, kappa is above 0.6 for both models.\nTwo of Bree’s codes account for about half of what the models miss. Of the 58 codes Bree chose that Sonnet did not, 28 are NEED_HIGH_QUALITY_CARE or NEED_OTHER (Opus: 29 of 62). Bree uses NEED_HIGH_QUALITY_CARE for answers about pay and working conditions for caregivers, which the models code as SOLUTION_CAREGIVER_WAGES or SOLUTION_CAREGIVER_WORKFORCE_DEV. Version 6 adds NEED_CAREGIVER_JOB_QUALITY, which may be the code for these answers. Where Bree uses NEED_OTHER, the models usually find a specific code, such as NEED_DIRECT_FINANCIAL_ASSISTANCE for an answer that reads “Money.”\nMost codes the models add come from domains Bree did not use on that answer. Of the 95 codes Sonnet chose that Bree did not, 70 are in such a domain, mostly Solutions and Challenges (Opus: 84 of 109). The models code what has been hard and what would fix it alongside the support the person asks for. This is the open question of what gets coded.\nThe two models agree with each other much more than either agrees with Bree, and Opus agrees with Bree no more than Sonnet does. The differences point to the instructions and the codebook more than to the choice of model.\n\nNext steps:\n\nBree decides whether an answer is coded for everything it mentions or only for what responds to the question. If the latter, the coding prompt changes to match, and rerunning both models on these answers costs under a dollar.\nBree settles the boundary between Desired Supports and Solutions codes that describe the same thing, and when NEED_OTHER applies.\nThe next round samples answers within each question instead of whole files, so the survey questions with the most answers are covered. This round has 7 survey answers.\nThe interviews are added once Bree codes them. A second person coding the same answers would show how far two people agree, which is the standard the models should be held to."
   }
 ]

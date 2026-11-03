@@ -32,6 +32,8 @@ website:
         text: Transcript coding
       - href: coding-dashboard/open-ended.html
         text: Open-ended coding
+      - href: scripts/nlp/05_inter-rater-reliability.qmd
+        text: Coding agreement
     right:
       - icon: github
         href: https://github.com/UI-Research/one-million-care-conversations
