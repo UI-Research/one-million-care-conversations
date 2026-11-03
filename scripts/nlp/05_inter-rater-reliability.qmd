@@ -284,9 +284,8 @@ summary_table |>
 
 - Each model finds about half of Bree’s codes, and alpha is
   `r sprintf("%.2f", filter(all_codes[[1]], measure == "alpha")$estimate)` for
-  both. Krippendorff’s alpha is the standard agreement score: 1 is perfect
-  agreement, 0 is no better than chance, and 0.80 is the usual bar for
-  relying on coding.
+  both, well below the 0.7 to 0.8 we were hoping for. Most of the difference
+  comes down to the two issues in the next section.
 - The two models agree with each other about twice as much (alpha
   `r sprintf("%.2f", filter(models, measure == "alpha")$estimate)`). The gap
   with Bree comes from how the task is set up, not from which model does it.
@@ -380,10 +379,6 @@ side_by_side[examples, ] |>
 - Add decision rules to the codebook for the caregiver-pay codes and for when
   `NEED_OTHER` applies. The prompt reads the codebook, so the models pick these
   up on the next run.
-- In the next check, draw a random sample of answers from each question
-  instead of whole files. Sampling files gave us one canvassing event (64
-  answers to one question) and only `r sum(scope$tool == "survey")` survey
-  answers, though the survey questions have most of the answers.
 
 ## Questions for Bree
 

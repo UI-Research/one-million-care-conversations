@@ -343,7 +343,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <ul>
-<li>Each model finds about half of Bree’s codes, and alpha is 0.25 for both. Krippendorff’s alpha is the standard agreement score: 1 is perfect agreement, 0 is no better than chance, and 0.80 is the usual bar for relying on coding.</li>
+<li>Each model finds about half of Bree’s codes, and alpha is 0.25 for both, well below the 0.7 to 0.8 we were hoping for. Most of the difference comes down to the two issues in the next section.</li>
 <li>The two models agree with each other about twice as much (alpha 0.52). The gap with Bree comes from how the task is set up, not from which model does it.</li>
 </ul>
 </section>
@@ -383,7 +383,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li>Once Bree answers the first question below, add her rule to the coding prompt and rerun these answers. This costs under a dollar.</li>
 <li>Add decision rules to the codebook for the caregiver-pay codes and for when <code>NEED_OTHER</code> applies. The prompt reads the codebook, so the models pick these up on the next run.</li>
-<li>In the next check, draw a random sample of answers from each question instead of whole files. Sampling files gave us one canvassing event (64 answers to one question) and only 7 survey answers, though the survey questions have most of the answers.</li>
 </ul>
 </section>
 <section id="questions-for-bree" class="level2">
