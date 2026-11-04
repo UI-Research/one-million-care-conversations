@@ -27,15 +27,16 @@ tbl <- function(data, title = NULL, note = NULL, page_size = 60, ...) {
 nvivo_export <- here("data/raw/human-coding/IRR Check 1 9-22.xlsx")
 coding_log   <- here("data/raw/human-coding/Data Log - Bree's Coding.xlsx")
 
-# the model runs being checked (scripts/nlp/02_code-text.py, codebook v6)
+# the model runs being checked: Bree's answers only, with the codebook she
+# used (scripts/nlp/02_code-text.py --codebook codebook_v5.csv --tag irr-v5)
 runs <- c(
-  Sonnet = "20261006_claude-sonnet-5_medium",
-  Opus   = "20261006_claude-opus-5-5_medium"
+  Sonnet = "20261104_claude-sonnet-5_medium_irr-v5",
+  Opus   = "20261104_claude-opus-5-5_medium_irr-v5"
 )
 coders <- c("Bree", names(runs))
 
 answers  <- read_csv(here("data/processed/open_ended.csv"), show_col_types = FALSE)
-codebook <- read_csv(here("data/processed/codebook.csv"), show_col_types = FALSE)
+codebook <- read_csv(here("data/processed/codebook_v5.csv"), show_col_types = FALSE)
 
 set.seed(20261027)
 n_boot <- 2000
@@ -75,15 +76,15 @@ nvivo <- read_excel(
 )
 
 # every code in Bree's NVivo project is listed, coded or not: that is her
-# codebook (version 5). NVivo names carry stray spaces ("NEED _OTHER")
+# codebook (version 5), and it must be the list the models were given. NVivo
+# names carry stray spaces ("NEED _OTHER")
 bree_codes <- nvivo |>
   filter(str_starts(path, "Codes")) |>
   distinct(code = str_remove_all(code, "\\s")) |>
   pull(code)
 
-not_in_v6 <- setdiff(bree_codes, codebook$code)
-if (length(not_in_v6) > 0) {
-  cli::cli_abort("Codes in Bree's NVivo export that are not in codebook.csv: {not_in_v6}")
+if (!setequal(bree_codes, codebook$code)) {
+  cli::cli_abort("Bree's NVivo codes and codebook_v5.csv are not the same list")
 }
 
 # a few selections run one cell past the answer and pick up the respondent's
@@ -147,10 +148,13 @@ if (nrow(missing) > 0) {
   cli::cli_abort("{nrow(missing)} of Bree's answers are missing from a model run")
 }
 
-# codes added in version 6 are set aside so every coder chooses from the
-# same version 5 list
+not_in_v5 <- setdiff(na.omit(model_raw$code), bree_codes)
+if (length(not_in_v5) > 0) {
+  cli::cli_abort("Model codes that are not in codebook version 5: {not_in_v5}")
+}
+
 coded <- model_raw |>
-  filter(!is.na(code), code %in% bree_codes) |>
+  filter(!is.na(code)) |>
   distinct(coder, answer_id, code) |>
   bind_rows(bree)
 
@@ -174,8 +178,8 @@ same_topics <- map(set_names(names(runs)), \(model) {
 
 Bree coded the canvassing and survey files in her September sample in NVivo
 with codebook version 5, `r nrow(scope)` open-ended answers in all. We compared
-her codes with the codes Sonnet and Opus gave the same answers, counting only
-codes from version 5 so that all three coders choose from the same list. The
+her codes with the codes Sonnet and Opus gave the same answers, coding with the
+same codebook. The
 [last section](#memo) has a short write-up of the methods and results for the
 qualitative researcher memo.
 
@@ -434,9 +438,9 @@ NVivo coding of the September 22 random selection, `r nrow(scope)` open-ended
 answers (`r sum(scope$tool == "canvassing")` from the canvass export and
 `r sum(scope$tool != "canvassing")` from the open-ended survey export), with
 the coding of the same answers by two large language models, Claude Sonnet 5
-and Claude Opus 5.5. The models were given codebook version 6 and written coding
-rules and did not see Bree’s codes. The 22 codes added in version 6 were set
-aside, so all three coders chose from the same `r length(bree_codes)` codes.
+and Claude Opus 5.5. The models were given the same codebook (version 5,
+`r length(bree_codes)` codes) and written coding rules and did not see Bree’s
+codes.
 NVivo exports do not include respondent IDs, so coded passages were matched to
 answers by text. Because an answer can carry several codes, agreement was
 measured on each answer’s full set of codes with Krippendorff’s alpha using the
