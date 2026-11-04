@@ -62,6 +62,7 @@ python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --limit 5  
 python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5                    # full run
 python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5             # Opus 5.5 (legacy endpoint)
 python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume           # finish an interrupted run; refuses if the inputs changed
+python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --tasks open_ended --codebook data/processed/codebook_v5.csv --answers data/processed/human-coding_answer_ids.txt --tag irr-v5   # Bree's IRR answers with her codebook (Rscript scripts/nlp/00_ingest-codebook.R 5 first)
 python scripts/nlp/03_cost-report.py                          # rebuild COST-REPORT.md
 python scripts/nlp/04_compare-runs.py <run_a> <run_b>          # agreement tables + review files (gitignored)
 Rscript scripts/nlp/coding_dashboard.R [<run_id>] [site]      # dashboards (newest run by default); `site` = publish-ready copy

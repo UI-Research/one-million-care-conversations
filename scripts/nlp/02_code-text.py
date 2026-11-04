@@ -8,6 +8,8 @@ Usage
   python scripts/nlp/02_code-text.py --model global.anthropic.claude-opus-5-5         # legacy endpoint
   python scripts/nlp/02_code-text.py --model anthropic.claude-fable-5-1 --tasks open_ended
   python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --resume            # finish an interrupted run (same inputs only)
+  python scripts/nlp/02_code-text.py --model anthropic.claude-sonnet-5 --tasks open_ended \
+      --codebook data/processed/codebook_v5.csv --answers ids.txt --tag irr-v5          # an older codebook on chosen answers
 
 Model IDs without a region prefix (`anthropic.claude-sonnet-5`) go to the Claude in
 Amazon Bedrock endpoint (`AnthropicBedrockMantle`). IDs with a `global.` or `us.`
@@ -16,7 +18,8 @@ prefix are cross-region inference profiles and go through the legacy InvokeModel
 AWS_DEFAULT_REGION, credentials from the usual AWS chain. Nothing is hard-coded.
 
 Inputs (all under data/, gitignored)
-  data/processed/codebook.csv                 from 00_ingest-codebook.R (v6)
+  data/processed/codebook.csv                 from 00_ingest-codebook.R (newest version;
+                                              --codebook picks another, e.g. codebook_v5.csv)
   data/raw/interview-transcripts/*.docx       pandoc must be on PATH
   data/processed/open_ended.csv               from 01_open-ended.R
 
@@ -157,8 +160,8 @@ def sha1(text: str) -> str:
     return hashlib.sha1(text.encode("utf-8")).hexdigest()
 
 
-def read_codebook() -> tuple[pd.DataFrame, str]:
-    cb = pd.read_csv(CODEBOOK, dtype=str).fillna("")
+def read_codebook(path: Path) -> tuple[pd.DataFrame, str]:
+    cb = pd.read_csv(path, dtype=str).fillna("")
     cols = ["domain", "parent", "code", "definition", "include", "exclude", "keywords"]
     rows = ["| Domain | Parent | Code | Definition | Include | Exclude | Keywords |", "|---|---|---|---|---|---|---|"]
     for _, r in cb.iterrows():
@@ -238,6 +241,8 @@ class Coder:
         self.codebook_md = codebook_md
         self.usage_rows: list[dict] = []
         self.run_id = f"{date.today():%Y%m%d}_{re.sub(r'[^a-z0-9]+', '-', args.model.split('anthropic.')[-1])}_{args.effort}"
+        if args.tag:
+            self.run_id += f"_{args.tag}"
         self.out = OUT_ROOT / self.run_id
         if self.out.exists() and not args.resume and any((self.out / "raw").glob("*.json")):
             sys.exit(f"{self.out} already has responses; pass --resume to reuse them or delete the folder")
@@ -380,6 +385,12 @@ class Coder:
 
     def code_open_ended(self, limit: int | None) -> pd.DataFrame:
         oe = pd.read_csv(OPEN_ENDED, dtype=str).dropna(subset=["text"]).sort_values("answer_id")
+        if self.args.answers:
+            wanted = set(Path(self.args.answers).read_text().split())
+            unknown = wanted - set(oe["answer_id"])
+            if unknown:
+                sys.exit(f"{len(unknown)} answer IDs in {self.args.answers} are not in open_ended.csv")
+            oe = oe[oe["answer_id"].isin(wanted)]
         todo = oe.head(limit) if limit else oe
         print(f"open-ended: {len(oe)} answers, coding {len(todo)}")
         system = self.system("open_ended")
@@ -470,7 +481,7 @@ class Coder:
             "run_id": self.run_id, "started": started, "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "model": self.args.model, "endpoint": self.endpoint, "region": self.region,
             "thinking": "adaptive", "effort": self.args.effort, "max_tokens": self.args.max_tokens,
-            "batch_size_open_ended": self.args.batch_size, "limit": self.args.limit, "tasks": self.args.tasks,
+            "batch_size_open_ended": self.args.batch_size, "limit": self.args.limit, "tasks": self.args.tasks, "answers": self.args.answers,
             "sdk": f"anthropic {anthropic.__version__}", "python": platform.python_version(),
             "prompt_sha1": {"coding_prompt.md": sha1(self.rules),
                             **{p.name: sha1(p.read_text()) for p in sorted(PROMPTS.glob("*.md")) if p.name != "README.md"},
@@ -496,9 +507,12 @@ def main():
     ap.add_argument("--batch-size", type=int, default=20, help="open-ended answers per call")
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--resume", action="store_true", help="reuse saved raw/*.json responses from an earlier run with the same run_id")
+    ap.add_argument("--codebook", type=Path, default=CODEBOOK, help="codebook CSV from 00_ingest-codebook.R (default: the newest version)")
+    ap.add_argument("--answers", default=None, help="file of open-ended answer IDs, one per line: code only these")
+    ap.add_argument("--tag", default=None, help="suffix for the run ID, e.g. irr-v5")
     args = ap.parse_args()
 
-    cb, codebook_md = read_codebook()
+    cb, codebook_md = read_codebook(args.codebook)
     coder = Coder(args, cb, codebook_md)
     started = datetime.now(timezone.utc).isoformat(timespec="seconds")
     print(f"run {coder.run_id}: {args.model} via {coder.endpoint} ({coder.region}), effort {args.effort}, codebook v{cb['version'].iloc[0]} ({len(cb)} codes)")
