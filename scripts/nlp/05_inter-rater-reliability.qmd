@@ -176,8 +176,8 @@ Bree coded the canvassing and survey files in her September sample in NVivo
 with codebook version 5, `r nrow(scope)` open-ended answers in all. We compared
 her codes with the codes Sonnet and Opus gave the same answers, counting only
 codes from version 5 so that all three coders choose from the same list. The
-[methods](#methods) section at the end lists the files and how each measure is
-calculated.
+[last section](#memo) has a short write-up of the methods and results for the
+qualitative researcher memo.
 
 `r sum(scope$question == "canvass_q3")` of the `r nrow(scope)` answers respond
 to one canvassing question: **“`r answers$question_text[answers$question == "canvass_q3"][1]`”**
@@ -416,49 +416,63 @@ side_by_side |>
 ```
 :::
 
-## Methods {#methods}
+## Text for the memo {#memo}
 
-**Files.** All the inputs are on Box or produced by this repository:
+To copy into the qualitative researcher memo and edit.
 
-- Bree’s coding: the NVivo export of codes and coded text (“IRR Check 1
-  9-22.xlsx”) and her coding log (“Data Log - Bree’s Coding.xlsx”), both in
-  Research Team/Qualitative Data Analysis.
-- The answers: every open-ended answer in the files her log marks as coded,
-  `r str_flatten_comma(str_c("“", coded_files, "”"), ", and ")`.
-- The model coding: one run each of Claude Sonnet 5 and Claude Opus 5.5 on
-  October 6, 2026, which coded every open-ended answer with codebook version 6.
-  The models did not see Bree’s codes.
+```{r}
+#| label: memo-values
+#| include: false
+est <- function(r, what) filter(r, measure == what)$estimate
+memo_alpha <- sprintf("%.2f", est(all_codes[[1]], "alpha"))
+memo_models <- sprintf("%.2f", est(models, "alpha"))
+memo_topics <- sprintf("%.2f", est(topics[[1]], "alpha"))
+```
 
-**Matching Bree’s codes to answers.** NVivo exports each coded passage without
-the respondent’s ID, so each passage was matched to its answer by text, ignoring
-capitalization, punctuation, and spacing. A few passages ran one cell past the
-answer and picked up the respondent’s ID; those ID lines were dropped before
-matching. Every passage matched an answer in the two files.
+To check how closely the NLP coding matches human coding, Manu compared Bree’s
+NVivo coding of the September 22 random selection, `r nrow(scope)` open-ended
+answers (`r sum(scope$tool == "canvassing")` from the canvass export and
+`r sum(scope$tool != "canvassing")` from the open-ended survey export), with
+the coding of the same answers by two large language models, Claude Sonnet 5
+and Claude Opus 5.5. The models were given codebook version 6 and written coding
+rules and did not see Bree’s codes. The 22 codes added in version 6 were set
+aside, so all three coders chose from the same `r length(bree_codes)` codes.
+NVivo exports do not include respondent IDs, so coded passages were matched to
+answers by text. Because an answer can carry several codes, agreement was
+measured on each answer’s full set of codes with Krippendorff’s alpha using the
+MASI distance (Passonneau, 2006), with 95 percent confidence intervals from
+resampling the answers.
 
-**Same code list.** Version 6 of the codebook adds 22 codes to version 5 and
-renames none. Any model code from those 22 was set aside, so all three coders
-choose from the same `r length(bree_codes)` codes.
+```{r}
+#| label: memo-table
+#| echo: false
+ci <- function(r, what, fmt) {
+  r <- filter(r, measure == what)
+  sprintf(fmt, r$estimate, r$low, r$high)
+}
+tibble(
+  Coders = c("Bree and Sonnet", "Bree and Opus", "Sonnet and Opus"),
+  `Krippendorff’s alpha` = c(ci(all_codes[[1]], "alpha", "%.2f (%.2f–%.2f)"),
+                             ci(all_codes[[2]], "alpha", "%.2f (%.2f–%.2f)"),
+                             ci(models, "alpha", "%.2f (%.2f–%.2f)")),
+  `Share of Bree’s codes found` = c(scales::percent(est(all_codes[[1]], "found"), 1),
+                                    scales::percent(est(all_codes[[2]], "found"), 1),
+                                    "")
+) |>
+  knitr::kable()
+```
 
-**Unit of comparison.** Each answer is one unit, and each coder gives it a set
-of codes. A code counts once per answer, even when it was applied to several
-passages in the answer.
-
-**Measures.** Each is calculated across all `r nrow(scope)` answers:
-
-- *Bree’s codes the model also found*: codes both used on the same answer,
-  divided by all of Bree’s codes.
-- *Model’s codes Bree also used*: codes both used, divided by all the model’s
-  codes.
-- *On topics Bree coded*: the same measures after keeping only the model codes
-  in the codebook domains Bree used on that answer.
-- *Krippendorff’s alpha*: 1 minus observed disagreement divided by expected
-  disagreement. Observed disagreement is the average distance between the two
-  coders’ code sets on the same answer; expected disagreement is the average
-  distance between any two code sets either coder produced. Distance between
-  two code sets is MASI ([Passonneau 2006](https://aclanthology.org/L06-1392/)),
-  which gives partial credit for overlap: 1 minus the share of codes in common,
-  times 1 if the sets are identical, 2/3 if one contains the other, 1/3 if they
-  overlap otherwise, and 0 if they share nothing. We checked this calculation
-  against the implementation in Python’s NLTK library, which gives the same
-  result.
-- *Intervals*: 95 percent intervals from resampling the answers 2,000 times.
+Agreement between Bree and each model was fair (alpha = `r memo_alpha`; Landis
+& Koch, 1977), below the 0.75 threshold. The two models agreed with each other
+at a moderate level (alpha = `r memo_models`), and Sonnet matched Bree as
+closely as Opus at less than half the cost. Two patterns explain most of the
+gap. The models coded every topic an answer mentioned
+(`r sprintf("%.1f", codes_per_answer[["Sonnet"]])` to
+`r sprintf("%.1f", codes_per_answer[["Opus"]])` codes per answer, compared with
+`r sprintf("%.1f", codes_per_answer[["Bree"]])` for Bree), whereas Bree appears
+to code only the content that answers the question; limited to the topics Bree
+coded, alpha rises to `r memo_topics`. And about half the codes the models
+missed were NEED_HIGH_QUALITY_CARE, where the models chose
+SOLUTION_CAREGIVER_WAGES, or NEED_OTHER, where they chose a more specific code.
+Next, Bree will set rules for both, Manu will add them to the coding prompt and
+codebook, and the models will recode the same `r nrow(scope)` answers.
